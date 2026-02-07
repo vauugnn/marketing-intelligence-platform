@@ -713,6 +713,59 @@ export default async function handler(req, res) {
 
 ---
 
+### 4. Seeding the Database (Supabase)
+
+This project includes seed data you can load into your Supabase database for local development or testing. There are two recommended approaches: run the SQL seed file directly, or run the TypeScript seed script which upserts users, platform connections, pixel events and raw events.
+
+Important environment variables (required for the TypeScript seed script):
+
+- `SUPABASE_URL`: your Supabase project URL (e.g. `https://xyzcompany.supabase.co`)
+- `SUPABASE_SERVICE_ROLE_KEY`: your Supabase Service Role key (KEEP SECRET — grants elevated privileges)
+
+Option A — Run the SQL seed file (quick, via Supabase SQL Editor or psql)
+
+- Using the Supabase SQL Editor: open your project, go to **SQL Editor → New query**, copy the contents of `database/seeds/seed_attribution.sql` and execute.
+- Using `psql` (if you have direct DB connection credentials):
+
+```bash
+# from repo root
+psql -h <host> -U <user> -d <database> -f database/seeds/seed_attribution.sql
+```
+
+Option B — Run the Node/TypeScript seed script (recommended)
+
+This script programmatically upserts a test user, platform connections, and inserts pixel/raw events.
+
+1. Add environment variables to your environment or create a `.env` file at the repo root or `packages/backend/.env` with:
+
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJ1c2Vy... (your service_role key)
+```
+
+2. Run the seed script from the repo root using the backend workspace `tsx` runner:
+
+```bash
+# installs/uses the workspace binary to run the TS script
+npm --workspace=backend exec -- tsx scripts/seed_attribution.ts
+```
+
+Notes:
+- The script will print progress (`Upserting user...`, `Inserting N pixel events...`) and exit when complete.
+- If you prefer `npx`/`npx tsx`, ensure `tsx` is available; using the `npm --workspace` command above will run the package from the `backend` workspace.
+- The script expects the tables `users`, `platform_connections`, `pixel_events`, and `raw_events` to exist (run migrations first).
+
+Verify seeded rows (Supabase Table Editor or SQL):
+
+```sql
+SELECT id, email FROM users WHERE email = 'customer@example.com';
+SELECT COUNT(*) FROM pixel_events WHERE pixel_id = 'pixel_abc123';
+SELECT COUNT(*) FROM raw_events WHERE platform = 'stripe';
+```
+
+Security reminder: never commit your `SUPABASE_SERVICE_ROLE_KEY` to source control. Use CI/CD secrets or local `.env` files that are excluded from git.
+
+
 ## Usage Examples
 
 ### Example 1: Automatic Attribution After Sync
