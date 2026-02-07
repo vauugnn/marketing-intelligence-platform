@@ -1,25 +1,15 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-let supabaseInstance: SupabaseClient | null = null;
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-export function getSupabase(): SupabaseClient {
-  if (!supabaseInstance) {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Missing Supabase credentials. Please check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env');
-    }
-
-    supabaseInstance = createClient(supabaseUrl, supabaseKey);
-  }
-
-  return supabaseInstance;
+if (!supabaseUrl || !supabaseServiceRoleKey) {
+  throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables');
 }
 
-// For backwards compatibility, export supabase as a getter
-export const supabase = new Proxy({} as SupabaseClient, {
-  get(_target, prop) {
-    return getSupabase()[prop as keyof SupabaseClient];
-  }
-});
+// Public client (respects RLS policies)
+export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey || '');
+
+// Admin client (bypasses RLS, for server-side operations)
+export const supabaseAdmin: SupabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);

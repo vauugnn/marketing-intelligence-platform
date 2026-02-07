@@ -11,12 +11,6 @@ router.post('/generate', async (req, res) => {
   try {
     const pixelId = `pix_${uuidv4().replace(/-/g, '')}`;
 
-    // TODO: If user is authenticated, associate pixel with user
-    // const userId = req.user?.id;
-    // if (userId) {
-    //   await pixelService.associatePixelWithUser(pixelId, userId);
-    // }
-
     res.json({
       success: true,
       data: {
