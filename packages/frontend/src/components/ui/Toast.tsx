@@ -66,14 +66,14 @@ export function ToastContainer() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 z-50 flex flex-col gap-2">
       {toasts.map((toast) => {
         const config = toastConfig[toast.type];
         const Icon = config.icon;
         return (
           <div
             key={toast.id}
-            className={`animate-slide-in-right flex items-center gap-3 px-4 py-3 rounded-lg border-l-4 shadow-lg backdrop-blur min-w-[320px] max-w-[420px] ${config.bg} ${config.border} ${config.text}`}
+            className={`animate-slide-in-right flex items-center gap-3 px-4 py-3 rounded-lg border-l-4 shadow-lg backdrop-blur w-full sm:min-w-[320px] sm:max-w-[420px] ${config.bg} ${config.border} ${config.text}`}
           >
             <Icon className={`w-5 h-5 flex-shrink-0 ${config.iconColor}`} />
             <p className="flex-1 text-sm font-medium">{toast.message}</p>

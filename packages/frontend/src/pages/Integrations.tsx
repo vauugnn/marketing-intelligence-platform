@@ -5,12 +5,7 @@ import { cn } from '../lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import {
   BarChart3,
-  Share2,
-  MousePointerClick,
   CreditCard,
-  Wallet,
-  Users,
-  Mail,
   CheckCircle,
   AlertCircle,
   Clock,
@@ -22,78 +17,77 @@ import {
   HelpCircle,
   Loader2,
   Zap,
-  type LucideIcon,
 } from 'lucide-react';
+import {
+  GoogleAnalyticsLogo,
+  MetaLogo,
+  GoogleAdsLogo,
+  StripeLogo,
+  PayPalLogo,
+  HubSpotLogo,
+  MailchimpLogo,
+} from '../components/icons/PlatformLogos';
 
 // ---------------------------------------------------------------------------
 // Platform configuration
 // ---------------------------------------------------------------------------
 
-const platformConfig: Record<
-  string,
-  {
-    name: string;
-    description: string;
-    icon: LucideIcon;
-    color: string;
-    iconColor: string;
-    category: 'analytics' | 'advertising' | 'payments' | 'crm' | 'email';
-  }
-> = {
+type PlatformConfig = {
+  name: string;
+  description: string;
+  logo: React.FC<{ className?: string }>;
+  color: string;
+  category: 'analytics' | 'advertising' | 'payments' | 'crm' | 'email';
+};
+
+const platformConfig: Record<string, PlatformConfig> = {
   google_analytics_4: {
     name: 'Google Analytics 4',
     description: 'Website traffic & conversions',
-    icon: BarChart3,
-    color: 'bg-orange-500/20',
-    iconColor: 'text-orange-400',
+    logo: GoogleAnalyticsLogo,
+    color: 'bg-gray-800',
     category: 'analytics',
   },
   meta: {
     name: 'Meta',
     description: 'Ad spend, reach & conversions',
-    icon: Share2,
-    color: 'bg-blue-500/20',
-    iconColor: 'text-blue-400',
+    logo: MetaLogo,
+    color: 'bg-gray-800',
     category: 'advertising',
   },
   google_ads: {
     name: 'Google Ads',
     description: 'Ad performance & spend',
-    icon: MousePointerClick,
-    color: 'bg-yellow-500/20',
-    iconColor: 'text-yellow-400',
+    logo: GoogleAdsLogo,
+    color: 'bg-gray-800',
     category: 'advertising',
   },
   stripe: {
     name: 'Stripe',
     description: 'Payments & revenue',
-    icon: CreditCard,
-    color: 'bg-purple-500/20',
-    iconColor: 'text-purple-400',
+    logo: StripeLogo,
+    color: 'bg-gray-800',
     category: 'payments',
   },
   paypal: {
     name: 'PayPal',
     description: 'Payment history',
-    icon: Wallet,
-    color: 'bg-sky-500/20',
-    iconColor: 'text-sky-400',
+    logo: PayPalLogo,
+    color: 'bg-gray-800',
     category: 'payments',
   },
   hubspot: {
     name: 'HubSpot',
     description: 'CRM & pipeline data',
-    icon: Users,
-    color: 'bg-orange-500/20',
-    iconColor: 'text-orange-400',
+    logo: HubSpotLogo,
+    color: 'bg-gray-800',
     category: 'crm',
   },
   mailchimp: {
     name: 'Mailchimp',
     description: 'Email campaigns',
-    icon: Mail,
-    color: 'bg-yellow-500/20',
-    iconColor: 'text-yellow-400',
+    logo: MailchimpLogo,
+    color: 'bg-gray-800',
     category: 'email',
   },
 };
@@ -370,10 +364,14 @@ export default function Integrations() {
   const hasPixel = !!pixelData;
 
   return (
-    <div>
+    <div className="p-4 sm:p-6 min-h-screen">
       {/* Page Header */}
-      <h2 className="text-2xl font-bold text-white mb-1">Integrations</h2>
-      <p className="text-gray-500 mb-6">Connect your marketing tools to get started</p>
+      <div className="mb-6 ml-14 lg:ml-0">
+        <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-1">
+          Integrations
+        </h2>
+        <p className="text-gray-400 text-sm">Connect your marketing tools to get started</p>
+      </div>
 
       {/* Getting Started Walkthrough */}
       {!loading && connectedCount === 0 && (
@@ -381,16 +379,16 @@ export default function Integrations() {
       )}
 
       {/* Tracking Pixel - Critical First Step */}
-      <div className="mb-6 bg-purple-500/5 border border-purple-500/20 rounded-xl p-5">
-        <div className="flex items-start justify-between mb-3">
-          <div>
+      <div className="mb-6 bg-purple-500/5 border border-purple-500/20 rounded-xl p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <Code className="w-5 h-5 text-purple-400" />
-              <h3 className="text-base font-bold text-purple-200">Your Tracking Pixel</h3>
+              <Code className="w-5 h-5 text-purple-400 flex-shrink-0" />
+              <h3 className="text-sm sm:text-base font-bold text-purple-200">Your Tracking Pixel</h3>
             </div>
             <p className="text-purple-400/70 mt-0.5 text-xs">Install this on your website to track customer journeys</p>
           </div>
-          <span className="bg-purple-500/20 text-purple-300 text-xs px-2.5 py-0.5 rounded-full font-medium">
+          <span className="bg-purple-500/20 text-purple-300 text-xs px-2.5 py-0.5 rounded-full font-medium flex-shrink-0">
             Required
           </span>
         </div>
@@ -398,9 +396,9 @@ export default function Integrations() {
         {pixelData && (
           <div className="mt-3">
             <div className="bg-gray-900/80 rounded-lg p-3 border border-gray-800">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
                 <span className="text-xs font-medium text-gray-400">Pixel ID</span>
-                <code className="bg-purple-500/10 px-2.5 py-0.5 rounded text-purple-300 font-mono text-xs">
+                <code className="bg-purple-500/10 px-2.5 py-0.5 rounded text-purple-300 font-mono text-xs break-all">
                   {pixelData.pixel_id}
                 </code>
               </div>
@@ -492,23 +490,22 @@ export default function Integrations() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {Array.from({ length: 8 }).map((_, i) => (
             <PlatformCardSkeleton key={i} />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {platforms.map((platform) => {
             const config = platformConfig[platform.platform] || {
               name: platform.platform,
               description: '',
-              icon: BarChart3,
-              color: 'bg-gray-500/20',
-              iconColor: 'text-gray-400',
+              logo: BarChart3,
+              color: 'bg-gray-800',
               category: 'analytics' as const,
             };
-            const PlatformIcon = config.icon;
+            const Logo = config.logo;
             const isConnected = platform.status === 'connected';
             const isError = platform.status === 'error';
             const isPending = platform.status === 'pending';
@@ -524,8 +521,8 @@ export default function Integrations() {
               >
                 {/* Icon + Status */}
                 <div className="flex items-start justify-between mb-3">
-                  <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', config.color)}>
-                    <PlatformIcon className={cn('w-5 h-5', config.iconColor)} />
+                  <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center p-1.5', config.color)}>
+                    <Logo className="w-full h-full" />
                   </div>
                   <StatusBadge status={platform.status} />
                 </div>
@@ -558,7 +555,7 @@ export default function Integrations() {
                       <button
                         onClick={() => handleConnect(platform.platform)}
                         disabled={isConnecting}
-                        className="flex-1 px-2 py-1.5 rounded-lg font-medium text-xs bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors disabled:opacity-50"
+                        className="flex-1 px-2 py-2 sm:py-1.5 rounded-lg font-medium text-xs bg-gray-800 text-gray-300 hover:bg-gray-700 active:bg-gray-600 transition-colors disabled:opacity-50"
                       >
                         {isConnecting ? (
                           <span className="flex items-center justify-center gap-1">
@@ -570,7 +567,7 @@ export default function Integrations() {
                       </button>
                       <button
                         onClick={() => handleDisconnect(platform.platform)}
-                        className="px-2 py-1.5 rounded-lg text-xs text-red-400 hover:bg-red-500/10 transition-colors"
+                        className="px-2 py-2 sm:py-1.5 rounded-lg text-xs text-red-400 hover:bg-red-500/10 active:bg-red-500/20 transition-colors"
                       >
                         Disconnect
                       </button>
@@ -578,7 +575,7 @@ export default function Integrations() {
                   ) : isPending ? (
                     <button
                       disabled
-                      className="w-full px-2 py-1.5 rounded-lg font-medium text-xs bg-yellow-500/10 text-yellow-400 cursor-not-allowed"
+                      className="w-full px-2 py-2 sm:py-1.5 rounded-lg font-medium text-xs bg-yellow-500/10 text-yellow-400 cursor-not-allowed"
                     >
                       <span className="flex items-center justify-center gap-1">
                         <Loader2 className="w-3 h-3 animate-spin" />
@@ -589,7 +586,7 @@ export default function Integrations() {
                     <button
                       onClick={() => handleConnect(platform.platform)}
                       disabled={isConnecting}
-                      className="w-full px-2 py-1.5 rounded-lg font-medium text-xs bg-blue-600 text-white hover:bg-blue-500 transition-colors disabled:opacity-50"
+                      className="w-full px-2 py-2 sm:py-1.5 rounded-lg font-medium text-xs bg-blue-600 text-white hover:bg-blue-500 active:bg-blue-400 transition-colors disabled:opacity-50"
                     >
                       {isConnecting ? (
                         <span className="flex items-center justify-center gap-1">
