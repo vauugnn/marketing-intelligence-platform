@@ -3,7 +3,6 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
-import path from 'path';
 import { validateEnv } from './config/env';
 import integrationsRoutes from './routes/integrations';
 import analyticsRoutes from './routes/analytics';
@@ -12,9 +11,7 @@ import oauthRoutes from './routes/oauth';
 import syncRoutes from './routes/sync';
 import { globalErrorHandler } from './middleware/error-handler.middleware';
 
-
-// Load environment variables from project root
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+// 'dotenv/config' automatically loads .env from project root
 
 // Validate environment before starting server
 validateEnv();
