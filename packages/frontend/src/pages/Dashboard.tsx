@@ -15,7 +15,6 @@ interface NetworkNode {
   revenue: number;
   x: number;
   y: number;
-  color: string;
 }
 
 interface NetworkEdge {
@@ -24,6 +23,14 @@ interface NetworkEdge {
   strength: 'strong' | 'medium' | 'weak';
 }
 
+// Performance to color mapping
+const performanceColors: { [key: string]: string } = {
+  'Exceptional': '#10b981', // green
+  'Excellent': '#3b82f6',   // blue
+  'Satisfactory': '#f59e0b', // yellow/orange
+  'Failing': '#ef4444'      // red
+};
+
 export default function Dashboard() {
   const [channels, setChannels] = useState<ChannelPerformance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,14 +38,38 @@ export default function Dashboard() {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 
   // Hardcoded system map data - repositioned to avoid overlap
-  const networkNodes: NetworkNode[] = [
-    { id: 'facebook', name: 'Facebook Ads', revenue: 245000, x: 25, y: 30, color: '#3b82f6' },
-    { id: 'instagram', name: 'Instagram', revenue: 189000, x: 50, y: 15, color: '#ec4899' },
-    { id: 'google', name: 'Google Ads', revenue: 312000, x: 75, y: 30, color: '#10b981' },
-    { id: 'linkedin', name: 'LinkedIn', revenue: 156000, x: 60, y: 55, color: '#0ea5e9' },
-    { id: 'tiktok', name: 'TikTok', revenue: 203000, x: 30, y: 70, color: '#a855f7' },
-    { id: 'twitter', name: 'X (Twitter)', revenue: 98000, x: 15, y: 50, color: '#64748b' },
+  // Mobile positions (non-overlapping, centered)
+  const mobileNodes: NetworkNode[] = [
+    { id: 'instagram', name: 'Instagram', revenue: 189000, x: 50, y: 20 },
+    { id: 'facebook', name: 'Facebook Ads', revenue: 245000, x: 22, y: 42 },
+    { id: 'google', name: 'Google Ads', revenue: 312000, x: 78, y: 42 },
+    { id: 'twitter', name: 'X (Twitter)', revenue: 98000, x: 18, y: 68 },
+    { id: 'linkedin', name: 'LinkedIn', revenue: 156000, x: 62, y: 68 },
+    { id: 'tiktok', name: 'TikTok', revenue: 203000, x: 40, y: 88 },
   ];
+
+  // Desktop positions (centered)
+  const desktopNodes: NetworkNode[] = [
+    { id: 'facebook', name: 'Facebook Ads', revenue: 245000, x: 28, y: 42 },
+    { id: 'instagram', name: 'Instagram', revenue: 189000, x: 50, y: 25 },
+    { id: 'google', name: 'Google Ads', revenue: 312000, x: 72, y: 42 },
+    { id: 'linkedin', name: 'LinkedIn', revenue: 156000, x: 58, y: 65 },
+    { id: 'tiktok', name: 'TikTok', revenue: 203000, x: 35, y: 75 },
+    { id: 'twitter', name: 'X (Twitter)', revenue: 98000, x: 20, y: 62 },
+  ];
+
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const networkNodes = isMobile ? mobileNodes : desktopNodes;
 
   const networkEdges: NetworkEdge[] = [
     { from: 'facebook', to: 'instagram', strength: 'strong' },
@@ -67,32 +98,60 @@ export default function Dashboard() {
     }
   };
 
+  // Get color for each node based on channel performance
+  const getNodeColor = (nodeId: string): string => {
+    // TikTok, Twitter, and LinkedIn are assumed to be red (failing)
+    if (nodeId === 'tiktok' || nodeId === 'twitter' || nodeId === 'linkedin') {
+      return '#ef4444'; // red
+    }
+
+    // Map node IDs to channel names
+    const channelMap: { [key: string]: string } = {
+      'facebook': 'Facebook',
+      'instagram': 'Instagram Bio',
+      'google': 'Google Ads',
+    };
+
+    const channelName = channelMap[nodeId];
+    const channel = channels.find(ch => ch.channel === channelName || ch.channel.includes(channelName));
+    
+    if (channel) {
+      return performanceColors[channel.performance] || '#64748b';
+    }
+    return '#64748b'; // default gray
+  };
+
   const totalRevenue = channels.reduce((sum, ch) => sum + ch.revenue, 0);
   const totalSpend = channels.reduce((sum, ch) => sum + ch.spend, 0);
   const avgROI = totalSpend > 0 ? ((totalRevenue - totalSpend) / totalSpend) * 100 : 0;
 
   const maxRevenue = Math.max(...networkNodes.map(n => n.revenue));
-  const getNodeSize = (revenue: number) => {
-    const minSize = 40;
-    const maxSize = 120;
+  const getNodeSize = (revenue: number, isExpanded: boolean, isMobile: boolean) => {
+    if (isMobile) {
+      const minSize = 60;
+      const maxSize = 100;
+      return minSize + (revenue / maxRevenue) * (maxSize - minSize);
+    }
+    const minSize = isExpanded ? 80 : 50;
+    const maxSize = isExpanded ? 140 : 80;
     return minSize + (revenue / maxRevenue) * (maxSize - minSize);
   };
 
   const getEdgeStyle = (strength: string) => {
     switch (strength) {
       case 'strong':
-        return { strokeWidth: 4, strokeDasharray: 'none', opacity: 0.9 };
+        return { stroke: '#10b981', strokeWidth: 4, strokeDasharray: 'none', opacity: 0.9 };
       case 'medium':
-        return { strokeWidth: 3, strokeDasharray: 'none', opacity: 0.6 };
+        return { stroke: '#f59e0b', strokeWidth: 4, strokeDasharray: 'none', opacity: 0.8 };
       case 'weak':
-        return { strokeWidth: 2, strokeDasharray: '8,8', opacity: 0.4 };
+        return { stroke: '#ef4444', strokeWidth: 4, strokeDasharray: 'none', opacity: 0.7 };
       default:
-        return { strokeWidth: 2, strokeDasharray: 'none', opacity: 0.3 };
+        return { stroke: '#64748b', strokeWidth: 2, strokeDasharray: 'none', opacity: 0.3 };
     }
   };
 
   const getSocialIcon = (nodeId: string) => {
-    const iconProps = { className: "w-6 h-6", fill: "currentColor", viewBox: "0 0 24 24" };
+    const iconProps = { className: "w-6 h-6", fill: "white", viewBox: "0 0 24 24" };
     
     switch (nodeId) {
       case 'facebook':
@@ -110,10 +169,7 @@ export default function Dashboard() {
       case 'google':
         return (
           <svg {...iconProps} viewBox="0 0 48 48">
-            <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
-            <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
-            <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
-            <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
+            <path fill="white" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
           </svg>
         );
       case 'linkedin':
@@ -200,13 +256,19 @@ export default function Dashboard() {
           to { opacity: 1; }
         }
 
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
+        .node-circle {
+          transition: all 0.3s ease-in-out;
         }
 
-        .node-pulse {
-          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+        .node-glow-hover {
+          opacity: 0.4;
+          transition: opacity 0.3s ease-in-out;
+        }
+
+        .glassmorphism-node {
+          backdrop-filter: blur(10px);
+          border: 2px solid rgba(255, 255, 255, 0.2);
         }
 
         .scrollbar-custom::-webkit-scrollbar {
@@ -233,6 +295,15 @@ export default function Dashboard() {
             linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
             linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
           background-size: 20px 20px;
+        }
+
+        .expand-button {
+          transition: all 0.2s ease;
+        }
+
+        .expand-button:hover {
+          transform: translateX(2px) translateY(-2px);
+          color: #60a5fa;
         }
       `}</style>
 
@@ -307,19 +378,21 @@ export default function Dashboard() {
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
           {/* Channel Performance Table */}
-          <div className="lg:col-span-2 table-container rounded-xl overflow-hidden">
+          <div className="lg:col-span-2 table-container rounded-xl overflow-hidden flex flex-col" style={{ height: '450px' }}>
             <div className="p-4 border-b border-gray-800">
               <h3 className="text-lg font-bold">Channel Performance</h3>
               <p className="text-gray-400 text-xs mt-0.5">Track revenue, spend, and ROI across platforms</p>
             </div>
 
             {loading ? (
-              <div className="p-8 text-center">
-                <div className="inline-block w-10 h-10 border-3 border-gray-700 border-t-blue-500 rounded-full animate-spin"></div>
-                <p className="text-gray-400 text-sm mt-3">Loading performance data...</p>
+              <div className="p-8 text-center flex-1 flex items-center justify-center">
+                <div>
+                  <div className="inline-block w-10 h-10 border-3 border-gray-700 border-t-blue-500 rounded-full animate-spin"></div>
+                  <p className="text-gray-400 text-sm mt-3">Loading performance data...</p>
+                </div>
               </div>
             ) : (
-              <div className="overflow-x-auto scrollbar-custom" style={{ maxHeight: '350px' }}>
+              <div className="overflow-x-auto scrollbar-custom flex-1">
                 <table className="w-full">
                   <thead className="bg-gray-900/50 sticky top-0 z-10">
                     <tr>
@@ -360,30 +433,43 @@ export default function Dashboard() {
           {/* System Map Preview */}
           <div className="lg:col-span-1">
             <div 
-              className={`system-map-container rounded-xl overflow-hidden ${mapExpanded ? 'system-map-expanded cursor-default' : 'cursor-pointer'}`}
-              onClick={() => !mapExpanded && setMapExpanded(true)}
+              className={`system-map-container rounded-xl overflow-hidden ${mapExpanded ? 'system-map-expanded cursor-default' : ''}`}
+              style={{ height: mapExpanded ? 'auto' : '450px' }}
             >
               <div className="p-4 border-b border-gray-800 flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-bold">System Map</h3>
                   <p className="text-gray-400 text-xs mt-0.5">Platform relationships</p>
                 </div>
-                {mapExpanded && (
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMapExpanded(false);
-                    }}
-                    className="w-7 h-7 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 flex items-center justify-center transition-colors"
-                  >
-                    <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  {!mapExpanded && (
+                    <button 
+                      onClick={() => setMapExpanded(true)}
+                      className="expand-button w-7 h-7 rounded-lg hover:bg-gray-700/30 flex items-center justify-center transition-colors text-gray-400"
+                      title="Expand system map"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </button>
+                  )}
+                  {mapExpanded && (
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMapExpanded(false);
+                      }}
+                      className="w-7 h-7 rounded-lg bg-gray-700/50 hover:bg-red-500/30 border border-gray-600 hover:border-red-500/50 flex items-center justify-center transition-colors text-gray-400 hover:text-red-400"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div className={`${mapExpanded ? 'flex flex-col lg:flex-row h-[calc(100%-64px)]' : 'h-56 sm:h-64'}`}>
+              <div className={`${mapExpanded ? 'flex flex-col lg:flex-row h-[calc(100%-64px)]' : 'h-[calc(100%-76px)]'}`}>
                 {/* Network Graph */}
                 <div className={`grid-pattern relative ${mapExpanded ? 'flex-1 min-h-0' : 'w-full h-full'}`}>
                   <svg className="w-full h-full" style={{ minHeight: mapExpanded ? '400px' : 'auto' }}>
@@ -401,7 +487,7 @@ export default function Dashboard() {
                           y1={`${fromNode.y}%`}
                           x2={`${toNode.x}%`}
                           y2={`${toNode.y}%`}
-                          stroke="white"
+                          stroke={style.stroke}
                           strokeWidth={style.strokeWidth}
                           strokeDasharray={style.strokeDasharray}
                           opacity={style.opacity}
@@ -412,100 +498,107 @@ export default function Dashboard() {
 
                     {/* Draw nodes */}
                     {networkNodes.map((node) => {
-                      const baseSize = mapExpanded ? 80 : 50;
-                      const size = baseSize + (node.revenue / maxRevenue) * (mapExpanded ? 60 : 30);
+                      const size = getNodeSize(node.revenue, mapExpanded, isMobile);
                       const isHovered = hoveredNode === node.id;
+                      const nodeColor = getNodeColor(node.id);
                       
                       return (
                         <g key={node.id}>
-                          {/* Glow effect for hovered node */}
+                          {/* Outer glow effect for hovered node - static, no animation */}
                           {isHovered && (
                             <circle
                               cx={`${node.x}%`}
                               cy={`${node.y}%`}
-                              r={size / 2 + 12}
-                              fill={node.color}
-                              opacity="0.3"
-                              className="node-pulse"
+                              r={size / 2 + 15}
+                              fill={nodeColor}
+                              className="node-glow-hover"
                             />
                           )}
                           
-                          {/* Main node circle */}
+                          {/* Glassmorphism background circle */}
                           <circle
                             cx={`${node.x}%`}
                             cy={`${node.y}%`}
                             r={size / 2}
-                            fill={node.color}
-                            opacity="1"
-                            className="transition-all duration-300 cursor-pointer"
+                            fill={nodeColor}
+                            fillOpacity="0.2"
+                            stroke={nodeColor}
+                            strokeWidth="2"
+                            className="glassmorphism-node"
+                          />
+                          
+                          {/* Main colored circle with reduced opacity for glass effect */}
+                          <circle
+                            cx={`${node.x}%`}
+                            cy={`${node.y}%`}
+                            r={size / 2 - 2}
+                            fill={nodeColor}
+                            opacity="0.8"
+                            className="node-circle"
                             onMouseEnter={() => setHoveredNode(node.id)}
                             onMouseLeave={() => setHoveredNode(null)}
                             style={{
-                              filter: isHovered ? 'brightness(1.2)' : 'none'
+                              filter: isHovered ? 'brightness(1.2)' : 'brightness(1)',
+                              cursor: 'pointer'
                             }}
                           />
                           
                           {/* Social media icon in center */}
+                          <foreignObject
+                            x={`${node.x - (mapExpanded && !isMobile ? 3 : 2)}%`}
+                            y={`${node.y - (mapExpanded && !isMobile ? 3 : 2)}%`}
+                            width={mapExpanded && !isMobile ? "6%" : "4%"}
+                            height={mapExpanded && !isMobile ? "6%" : "4%"}
+                            className="pointer-events-none"
+                          >
+                            <div className="w-full h-full flex items-center justify-center text-white opacity-90">
+                              {getSocialIcon(node.id)}
+                            </div>
+                          </foreignObject>
+                          
+                          {/* Only show text labels in expanded view */}
                           {mapExpanded && (
-                            <foreignObject
-                              x={`${node.x - 3}%`}
-                              y={`${node.y - 3}%`}
-                              width="6%"
-                              height="6%"
-                              className="pointer-events-none"
-                            >
-                              <div className="w-full h-full flex items-center justify-center text-white">
-                                {getSocialIcon(node.id)}
-                              </div>
-                            </foreignObject>
+                            <>
+                              {/* Node name - positioned above circle with more spacing */}
+                              <text
+                                x={`${node.x}%`}
+                                y={`${node.y - (size / 2 / (isMobile ? 5.5 : 4.5)) - (isMobile ? 5 : 6.5)}%`}
+                                textAnchor="middle"
+                                fill="white"
+                                fontSize={isMobile ? "11" : "14"}
+                                fontWeight="700"
+                                className="pointer-events-none"
+                              >
+                                {node.name}
+                              </text>
+                              
+                              {/* Revenue label - positioned below name with proper spacing */}
+                              <text
+                                x={`${node.x}%`}
+                                y={`${node.y - (size / 2 / (isMobile ? 5.5 : 4.5)) - (isMobile ? 2.5 : 3.5)}%`}
+                                textAnchor="middle"
+                                fill="rgba(255, 255, 255, 0.7)"
+                                fontSize={isMobile ? "10" : "12"}
+                                fontFamily="JetBrains Mono, monospace"
+                                fontWeight="500"
+                                className="pointer-events-none"
+                              >
+                                ₱{(node.revenue / 1000).toFixed(0)}K
+                              </text>
+                            </>
                           )}
-                          
-                          {/* Node name - positioned above circle */}
-                          <text
-                            x={`${node.x}%`}
-                            y={`${node.y - (size / 2 / (mapExpanded ? 8 : 12)) - 2}%`}
-                            textAnchor="middle"
-                            fill="white"
-                            fontSize={mapExpanded ? "14" : "9"}
-                            fontWeight="700"
-                            className="pointer-events-none"
-                          >
-                            {node.name}
-                          </text>
-                          
-                          {/* Revenue label - positioned below name, above circle */}
-                          <text
-                            x={`${node.x}%`}
-                            y={`${node.y - (size / 2 / (mapExpanded ? 8 : 12)) + 1}%`}
-                            textAnchor="middle"
-                            fill="rgba(255, 255, 255, 0.7)"
-                            fontSize={mapExpanded ? "12" : "8"}
-                            fontFamily="JetBrains Mono, monospace"
-                            fontWeight="500"
-                            className="pointer-events-none"
-                          >
-                            ₱{(node.revenue / 1000).toFixed(0)}K
-                          </text>
                         </g>
                       );
                     })}
                   </svg>
-
-                  {!mapExpanded && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="text-center bg-gray-900/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-gray-700">
-                        <p className="text-xs text-gray-300 font-medium">Click to expand</p>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Legend - right side on desktop, bottom on mobile */}
                 {mapExpanded && (
-                  <div className="w-full lg:w-72 border-t lg:border-t-0 lg:border-l border-gray-800 p-6 flex flex-col">
-                    <div className="mb-6">
-                      <h4 className="font-bold text-base mb-1 flex items-center">
-                        <svg className="w-5 h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-full lg:w-64 xl:w-72 border-t lg:border-t-0 lg:border-l border-gray-800 p-4 lg:p-6 flex flex-col overflow-y-auto">
+                    <div className="mb-4 lg:mb-6">
+                      <h4 className="font-bold text-sm lg:text-base mb-1 flex items-center">
+                        <svg className="w-4 h-4 lg:w-5 lg:h-5 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         Legend
@@ -513,35 +606,35 @@ export default function Dashboard() {
                       <p className="text-xs text-gray-500">Understand the connections</p>
                     </div>
                     
-                    <div className="space-y-4 text-sm">
+                    <div className="space-y-3 lg:space-y-4 text-xs lg:text-sm">
                       <div className="flex items-start">
-                        <div className="w-12 h-1 bg-white opacity-90 mr-3 mt-2 flex-shrink-0 rounded"></div>
+                        <div className="w-10 lg:w-12 h-1 bg-green-500 mr-2 lg:mr-3 mt-1.5 lg:mt-2 flex-shrink-0 rounded"></div>
                         <div>
-                          <p className="text-white font-semibold">Thick solid</p>
+                          <p className="text-white font-semibold">Green solid</p>
                           <p className="text-gray-400 text-xs">Strong synergy</p>
                         </div>
                       </div>
                       
                       <div className="flex items-start">
-                        <div className="w-12 h-0.5 bg-white opacity-60 mr-3 mt-2 flex-shrink-0 rounded"></div>
+                        <div className="w-10 lg:w-12 h-1 bg-yellow-500 mr-2 lg:mr-3 mt-1.5 lg:mt-2 flex-shrink-0 rounded"></div>
                         <div>
-                          <p className="text-white font-semibold">Medium</p>
+                          <p className="text-white font-semibold">Yellow solid</p>
                           <p className="text-gray-400 text-xs">Some reinforcement</p>
                         </div>
                       </div>
                       
                       <div className="flex items-start">
-                        <div className="w-12 h-0.5 bg-white opacity-40 mr-3 mt-2 flex-shrink-0 rounded" style={{ backgroundImage: 'repeating-linear-gradient(to right, white 0, white 4px, transparent 4px, transparent 12px)' }}></div>
+                        <div className="w-10 lg:w-12 h-1 bg-red-500 mr-2 lg:mr-3 mt-1.5 lg:mt-2 flex-shrink-0 rounded"></div>
                         <div>
-                          <p className="text-white font-semibold">Dashed</p>
+                          <p className="text-white font-semibold">Red solid</p>
                           <p className="text-gray-400 text-xs">Weak connection</p>
                         </div>
                       </div>
                       
                       <div className="flex items-start">
-                        <div className="flex items-center mr-3 mt-1 flex-shrink-0">
-                          <div className="w-8 h-8 rounded-full bg-blue-500"></div>
-                          <div className="w-5 h-5 rounded-full bg-blue-500 -ml-2"></div>
+                        <div className="flex items-center mr-2 lg:mr-3 mt-1 flex-shrink-0">
+                          <div className="w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-blue-500"></div>
+                          <div className="w-4 h-4 lg:w-5 lg:h-5 rounded-full bg-blue-500 -ml-2"></div>
                         </div>
                         <div>
                           <p className="text-white font-semibold">Node size</p>
@@ -550,7 +643,7 @@ export default function Dashboard() {
                       </div>
                     </div>
 
-                    <div className="mt-auto pt-6 border-t border-gray-800">
+                    <div className="mt-auto pt-4 lg:pt-6 border-t border-gray-800">
                       <p className="text-xs text-gray-500">
                         Hover over nodes to see details. Larger nodes indicate higher revenue.
                       </p>
@@ -565,7 +658,7 @@ export default function Dashboard() {
 
       {/* Overlay when map is expanded */}
       {mapExpanded && (
-        <div className="overlay" onClick={() => setMapExpanded(false)}></div>
+        <div className="overlay" onClick={() => setMapExpanded(false)} style={{ zIndex: 45 }}></div>
       )}
     </div>
   );
