@@ -1,10 +1,21 @@
 import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import { pixelService } from '../services/pixel.service';
 import { PixelEventSchema } from '../validators/pixel.validator';
 import { z } from 'zod';
 
 const router = Router();
+
+// Rate limiter for /track endpoint: 100 requests per minute per IP
+const trackRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many requests, please try again later' },
+});
 
 // POST /api/pixel/generate - Generate new pixel ID for user
 router.post('/generate', async (req, res) => {
@@ -28,7 +39,9 @@ router.post('/generate', async (req, res) => {
 });
 
 // POST /api/pixel/track - Receive pixel events
-router.post('/track', async (req, res) => {
+// CORS: allow any origin (customer websites embed the pixel cross-origin)
+router.options('/track', cors());
+router.post('/track', cors(), trackRateLimiter, async (req, res) => {
   try {
     // Validate input
     const validatedEvent = PixelEventSchema.parse(req.body);

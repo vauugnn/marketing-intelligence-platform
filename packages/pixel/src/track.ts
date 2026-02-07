@@ -2,6 +2,9 @@
 (function() {
   const script = document.currentScript as HTMLScriptElement;
   const pixelId = script?.getAttribute('data-pixel-id');
+  const apiUrl = script?.getAttribute('data-api-url')
+    || (script?.src ? new URL(script.src).origin.replace(/:\d+$/, ':3001') + '/api/pixel/track' : null)
+    || 'http://localhost:3001/api/pixel/track';
 
   if (!pixelId) {
     console.error('Pixel ID not found');
@@ -66,7 +69,7 @@
     };
 
     // Send to backend
-    fetch('http://localhost:3001/api/pixel/track', {
+    fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(event)
