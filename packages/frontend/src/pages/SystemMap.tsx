@@ -29,15 +29,50 @@ interface NodeConnection {
   strength: 'strong' | 'medium' | 'weak';
 }
 
-// Performance to color mapping
+// Performance to color mapping - Maps performance status to circle colors
+// Backend: Modify these colors to match your design system
 const performanceColors: { [key: string]: string } = {
-  'Exceptional': '#10b981', // green
-  'Excellent': '#3b82f6',   // blue
-  'Satisfactory': '#f59e0b', // yellow/orange
-  'Failing': '#ef4444'      // red
+  'Exceptional': '#10b981', // Green - Best performance
+  'Excellent': '#10b981',   // Green - Good performance
+  'Satisfactory': '#f59e0b', // Yellow - Moderate performance
+  'Failing': '#ef4444'      // Red - Poor performance
 };
 
-// Mock data
+// Visual configuration constants
+// Backend: Adjust these values to control node appearance
+const VISUAL_CONFIG = {
+  // Node sizing (in pixels for SVG viewBox scale)
+  NODE_MIN_SIZE: 180,        // Minimum circle diameter
+  NODE_MAX_SIZE: 240,        // Maximum circle diameter
+
+  // Icon and label sizing
+  ICON_SIZE: 7,              // Icon container size (larger = more visible)
+  LABEL_FONT_SIZE: 2.4,      // Node name font size
+  REVENUE_FONT_SIZE: 2.0,    // Revenue label font size
+
+  // Animation settings
+  FLOAT_ANIMATION_DURATION: '6s',  // How long one float cycle takes
+  PULSE_SCALE: 1.15,               // How much circles grow on hover (1.15 = 15% larger)
+
+  // Overlap prevention
+  MIN_DISTANCE_BETWEEN_NODES: 25,  // Minimum space between circle edges
+};
+
+/**
+ * ============================================
+ * CHANNEL DATA CONFIGURATION
+ * ============================================
+ * Backend: Replace this mock data with API calls
+ *
+ * Expected data structure for each channel:
+ * - channel: Display name of the marketing channel
+ * - revenue: Total revenue generated (in currency units)
+ * - spend: Total ad spend (in currency units)
+ * - roi: Return on investment ratio (revenue/spend)
+ * - performance: Status indicator - must be one of:
+ *   'Exceptional' (green), 'Excellent' (green),
+ *   'Satisfactory' (yellow), 'Failing' (red)
+ */
 const mockChannels: ChannelPerformance[] = [
   { channel: 'Facebook', revenue: 245000, spend: 45000, roi: 5.44, performance: 'Excellent' },
   { channel: 'Instagram Bio', revenue: 189000, spend: 32000, roi: 5.91, performance: 'Excellent' },
@@ -45,10 +80,63 @@ const mockChannels: ChannelPerformance[] = [
   { channel: 'Email', revenue: 156000, spend: 28000, roi: 5.57, performance: 'Satisfactory' },
 ];
 
+/**
+ * ============================================
+ * SYSTEM MAP COMPONENT - BACKEND INTEGRATION GUIDE
+ * ============================================
+ *
+ * This component visualizes marketing channel performance as an interactive network graph.
+ *
+ * KEY CONFIGURATION SECTIONS FOR BACKEND:
+ *
+ * 1. VISUAL_CONFIG (lines 38-51)
+ *    - Control node sizes, icons, labels, and animations
+ *    - Adjust these to fine-tune appearance
+ *
+ * 2. performanceColors (lines 33-37)
+ *    - Maps performance status to circle colors (green/yellow/red)
+ *
+ * 3. mockChannels (lines 64-71)
+ *    - REPLACE with API call to fetch real channel data
+ *    - Required fields: channel, revenue, spend, roi, performance
+ *
+ * 4. networkNodes (lines 84-89)
+ *    - Define node positions and properties
+ *    - x, y coordinates are percentages (0-100)
+ *
+ * 5. networkEdges (lines 104-109)
+ *    - Define connections between channels
+ *    - strength: 'strong' (green), 'medium' (yellow), 'weak' (red)
+ *
+ * 6. getTwoConnectionMetrics (lines 257-271)
+ *    - REPLACE with API call for connection analytics
+ *
+ * 7. getNodeColor (lines 139-158)
+ *    - Update channelMap when adding/removing nodes
+ *
+ * FEATURES:
+ * - Floating animation: Graph gently moves up and down
+ * - Pulsing on hover/click: Circles grow and pulse when interacted with
+ * - Overlap prevention: Lines adjust to avoid overlapping with circles
+ * - Color coding: Green (good), Yellow (moderate), Red (poor performance)
+ * - Responsive design: Works on mobile and desktop
+ */
 export default function SystemMap() {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [animatedNodes, setAnimatedNodes] = useState<Set<string>>(new Set());
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect screen size for responsive positioning
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Animate nodes on mount
   useEffect(() => {
@@ -60,14 +148,54 @@ export default function SystemMap() {
     });
   }, []);
 
-  // Network positions optimized for better centering and spacing
-  const networkNodes: NetworkNode[] = [
-    { id: 'facebook', name: 'Facebook Ads', revenue: 245000, x: 25, y: 45 },
-    { id: 'instagram', name: 'Instagram', revenue: 189000, x: 50, y: 28 },
-    { id: 'google', name: 'Google Ads', revenue: 312000, x: 75, y: 45 },
-    { id: 'email', name: 'Email', revenue: 156000, x: 50, y: 70 },
-  ];
+  /**
+   * ============================================
+   * NETWORK NODE POSITIONS - RESPONSIVE
+   * ============================================
+   * Backend: Define node positions in the graph
+   *
+   * Positions automatically adjust based on screen size:
+   * - Desktop/Tablet: Wider horizontal spacing for better visibility
+   * - Mobile: Tighter spacing to fit smaller screens
+   *
+   * Coordinates are in percentage (0-100) of the SVG viewBox:
+   * - x: Horizontal position (0=left, 100=right)
+   * - y: Vertical position (0=top, 100=bottom)
+   * - id: Unique identifier (must match channel mapping)
+   * - name: Display label for the node
+   * - revenue: Used to calculate circle size (higher revenue = larger circle)
+   *
+   * Note: Positions are automatically adjusted to prevent overlap
+   */
+  const networkNodes: NetworkNode[] = isMobile
+    ? [
+        // Mobile layout - Tighter spacing
+        { id: 'facebook', name: 'Facebook Ads', revenue: 245000, x: 20, y: 45 },
+        { id: 'instagram', name: 'Instagram', revenue: 189000, x: 50, y: 25 },
+        { id: 'google', name: 'Google Ads', revenue: 312000, x: 80, y: 45 },
+        { id: 'email', name: 'Email', revenue: 156000, x: 50, y: 72 },
+      ]
+    : [
+        // Desktop layout - Maximum horizontal spread with closer Instagram
+        { id: 'facebook', name: 'Facebook Ads', revenue: 245000, x: 2, y: 45 },
+        { id: 'instagram', name: 'Instagram', revenue: 189000, x: 50, y: 30 },
+        { id: 'google', name: 'Google Ads', revenue: 312000, x: 98, y: 45 },
+        { id: 'email', name: 'Email', revenue: 156000, x: 50, y: 78 },
+      ];
 
+  /**
+   * ============================================
+   * NETWORK CONNECTIONS
+   * ============================================
+   * Backend: Define relationships between channels
+   *
+   * Edge properties:
+   * - from: Source node id
+   * - to: Target node id
+   * - strength: Connection quality - 'strong' (green), 'medium' (yellow), 'weak' (red)
+   *
+   * Lines will automatically adjust their paths to prevent overlap with circles
+   */
   const networkEdges: NetworkEdge[] = [
     { from: 'facebook', to: 'instagram', strength: 'strong' },
     { from: 'instagram', to: 'google', strength: 'strong' },
@@ -75,7 +203,23 @@ export default function SystemMap() {
     { from: 'email', to: 'facebook', strength: 'medium' },
   ];
 
-  // Get color for each node based on channel performance
+  /**
+   * ============================================
+   * NODE COLOR MAPPING
+   * ============================================
+   * Backend: This function determines circle colors based on performance
+   *
+   * Process:
+   * 1. Maps node ID to channel name
+   * 2. Looks up channel in mockChannels data
+   * 3. Returns color based on performance status:
+   *    - Green (#10b981): Exceptional, Excellent
+   *    - Yellow (#f59e0b): Satisfactory
+   *    - Red (#ef4444): Failing
+   *    - Gray (#64748b): No data/default
+   *
+   * Backend: Update channelMap when adding/removing nodes
+   */
   const getNodeColor = (nodeId: string): string => {
     const channelMap: { [key: string]: string } = {
       'facebook': 'Facebook',
@@ -86,7 +230,7 @@ export default function SystemMap() {
 
     const channelName = channelMap[nodeId];
     const channel = mockChannels.find(ch => ch.channel === channelName || ch.channel.includes(channelName));
-    
+
     if (channel) {
       return performanceColors[channel.performance] || '#64748b';
     }
@@ -97,16 +241,44 @@ export default function SystemMap() {
   const sortedByRevenue = [...networkNodes].sort((a, b) => b.revenue - a.revenue);
   const maxRevenue = sortedByRevenue[0].revenue;
   const minRevenue = sortedByRevenue[sortedByRevenue.length - 1].revenue;
-  
+
+  /**
+   * Calculate node size based on revenue
+   * Backend: This determines circle diameter based on performance metrics
+   * Uses VISUAL_CONFIG.NODE_MIN_SIZE and NODE_MAX_SIZE
+   */
   const getNodeSize = (revenue: number) => {
-    // More dramatic size difference based on ranking
-    const minSize = 150;
-    const maxSize = 200;
     const range = maxRevenue - minRevenue;
     const normalized = range > 0 ? (revenue - minRevenue) / range : 0.5;
-    return minSize + (normalized * (maxSize - minSize));
+    return VISUAL_CONFIG.NODE_MIN_SIZE + (normalized * (VISUAL_CONFIG.NODE_MAX_SIZE - VISUAL_CONFIG.NODE_MIN_SIZE));
   };
 
+  /**
+   * Check if two nodes overlap and return adjustment if needed
+   * Backend: This prevents circles from overlapping when they grow too large
+   */
+  const checkNodeOverlap = (node1: NetworkNode, node2: NetworkNode): boolean => {
+    const size1 = getNodeSize(node1.revenue) / 15; // Scale to viewBox
+    const size2 = getNodeSize(node2.revenue) / 15;
+    const distance = Math.sqrt(Math.pow(node2.x - node1.x, 2) + Math.pow(node2.y - node1.y, 2));
+    const minDistance = (size1 + size2) / 2 + VISUAL_CONFIG.MIN_DISTANCE_BETWEEN_NODES / 15;
+    return distance < minDistance;
+  };
+
+  /**
+   * ============================================
+   * EDGE (LINE) STYLING
+   * ============================================
+   * Backend: Controls the appearance of connection lines between nodes
+   *
+   * Connection strength determines line color:
+   * - strong: Green (#10b981) - High synergy/performance
+   * - medium: Yellow (#f59e0b) - Moderate connection
+   * - weak: Red (#ef4444) - Low performance/weak link
+   * - default: Gray (#64748b) - No data
+   *
+   * Adjust strokeWidth and opacity to make lines more/less prominent
+   */
   const getEdgeStyle = (strength: string) => {
     switch (strength) {
       case 'strong':
@@ -121,8 +293,9 @@ export default function SystemMap() {
   };
 
   const getSocialIcon = (nodeId: string) => {
-    const iconProps = { className: "w-6 h-6", fill: "white", viewBox: "0 0 24 24" };
-    
+    // Larger icons for better visibility
+    const iconProps = { className: "w-full h-full", fill: "white", viewBox: "0 0 24 24" };
+
     switch (nodeId) {
       case 'facebook':
         return (
@@ -207,7 +380,21 @@ export default function SystemMap() {
     }
   };
 
-  // Mock connection metrics (hardcoded for now)
+  /**
+   * ============================================
+   * CONNECTION METRICS - TWO NODE PATH
+   * ============================================
+   * Backend: Replace with API endpoint that returns metrics for direct connections
+   *
+   * Expected return format:
+   * {
+   *   conversions: number,  // Total conversions through this path
+   *   revenue: number,      // Revenue generated from this connection
+   *   ctr: number          // Click-through rate (percentage)
+   * }
+   *
+   * These metrics appear in the detail panel when a node is selected
+   */
   const getTwoConnectionMetrics = (fromNode: string, toNode: string) => {
     const metrics: { [key: string]: { conversions: number; revenue: number; ctr: number } } = {
       'facebook-instagram': { conversions: 234, revenue: 45000, ctr: 3.2 },
@@ -221,6 +408,15 @@ export default function SystemMap() {
     return metrics[key] || { conversions: 0, revenue: 0, ctr: 0 };
   };
 
+  /**
+   * ============================================
+   * CONNECTION METRICS - THREE NODE PATH
+   * ============================================
+   * Backend: Replace with API endpoint for multi-hop connection analytics
+   *
+   * Tracks performance across three-node customer journeys
+   * Format same as getTwoConnectionMetrics
+   */
   const getThreeConnectionMetrics = (fromNode: string, toSecondNode: string, toLastNode: string) => {
     const metrics: { [key: string]: { conversions: number; revenue: number; ctr: number } } = {
       'facebook-instagram-email': { conversions: 234, revenue: 45000, ctr: 3.2 },
@@ -235,13 +431,13 @@ export default function SystemMap() {
   };
 
   return (
-    <div className="h-screen flex flex-col lg:flex-row bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
-      {/* Header - Styled like Dashboard */}
-      <div className="p-4 sm:p-6">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+      {/* Header - Fixed to avoid hamburger menu overlap */}
+      <div className="p-4 sm:p-6 pl-16 sm:pl-20 lg:pb-2">
         {/* Header */}
-        <div className="mb-6 ml-14 lg:ml-0">
+        <div className="mb-3 lg:mb-2">
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-1">
-            Performance Dashboard
+            System Map
           </h1>
           <p className="text-gray-400 text-sm">
             Real-time insights into your marketing channels
@@ -250,13 +446,13 @@ export default function SystemMap() {
       </div>
 
       {/* Main Content - Responsive Layout */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden lg:pt-20">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Left side - Graph and Legend */}
-        <div className="flex-1 flex flex-col p-2 sm:p-4 overflow-hidden">
+        <div className="flex-1 flex flex-col px-4 sm:px-6 pb-4 lg:pt-0 overflow-hidden">
           <div className="flex-1 bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 rounded-xl overflow-hidden flex flex-col min-h-0">
-            {/* Network Graph with Grid Background - Now with proper centering */}
-            <div 
-              className="flex-1 relative overflow-hidden" 
+            {/* Network Graph with Grid Background - Now with proper centering and floating animation */}
+            <div
+              className="flex-1 relative overflow-hidden"
               style={{
                 backgroundImage: `
                   linear-gradient(rgba(75, 85, 99, 0.1) 1px, transparent 1px),
@@ -266,8 +462,8 @@ export default function SystemMap() {
                 backgroundPosition: 'center center'
               }}
             >
-              <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                {/* Draw edges with animation */}
+              <svg className="w-full h-full animate-float" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                {/* Draw edges with animation and overlap prevention */}
                 {networkEdges.map((edge, idx) => {
                   const fromNode = networkNodes.find(n => n.id === edge.from);
                   const toNode = networkNodes.find(n => n.id === edge.to);
@@ -275,30 +471,35 @@ export default function SystemMap() {
 
                   const style = getEdgeStyle(edge.strength);
                   const isConnectedToSelected = selectedNode === edge.from || selectedNode === edge.to;
-                  
+
+                  /**
+                   * Backend: Edge path calculation with overlap prevention
+                   * When circles grow too large, edges are shortened to stop at circle boundaries
+                   */
+                  const fromSize = getNodeSize(fromNode.revenue) / 15;
+                  const toSize = getNodeSize(toNode.revenue) / 15;
+
+                  // Calculate angle between nodes
+                  const dx = toNode.x - fromNode.x;
+                  const dy = toNode.y - fromNode.y;
+                  const angle = Math.atan2(dy, dx);
+
+                  // Adjust start/end points to circle edges (preventing overlap)
+                  const hasOverlap = checkNodeOverlap(fromNode, toNode);
+                  const padding = hasOverlap ? 0.5 : 0.3; // Extra space when nodes are close
+
+                  const x1 = fromNode.x + Math.cos(angle) * (fromSize + padding);
+                  const y1 = fromNode.y + Math.sin(angle) * (fromSize + padding);
+                  const x2 = toNode.x - Math.cos(angle) * (toSize + padding);
+                  const y2 = toNode.y - Math.sin(angle) * (toSize + padding);
+
                   return (
                     <g key={idx}>
                       <line
-                        x1={fromNode.x}
-                        y1={fromNode.y}
-                        x2={toNode.x}
-                        y2={toNode.y}
-                        stroke={style.stroke}
-                        strokeWidth={isConnectedToSelected ? 0.6 : 0.4}
-                        strokeDasharray={style.strokeDasharray}
-                        opacity={isConnectedToSelected ? 1 : style.opacity}
-                        className="transition-all duration-500 ease-out"
-                      />
-                      <line
-                        x1={fromNode.x}
-                        y1={fromNode.y}
-                        z1={fromNode.z}
-                        x2={fromSecondNode.x}
-                        y2={fromSecondNode.y}
-                        z2={fromSecondNode.z}
-                        x3={toLastNode.x}
-                        y3={toLastNode.y}
-                        z3={toLastNode.z}
+                        x1={x1}
+                        y1={y1}
+                        x2={x2}
+                        y2={y2}
                         stroke={style.stroke}
                         strokeWidth={isConnectedToSelected ? 0.6 : 0.4}
                         strokeDasharray={style.strokeDasharray}
@@ -320,10 +521,10 @@ export default function SystemMap() {
                         </marker>
                       </defs>
                       <line
-                        x1={fromNode.x}
-                        y1={fromNode.y}
-                        x2={toNode.x}
-                        y2={toNode.y}
+                        x1={x1}
+                        y1={y1}
+                        x2={x2}
+                        y2={y2}
                         stroke={style.stroke}
                         strokeWidth={isConnectedToSelected ? 0.6 : 0.4}
                         opacity={isConnectedToSelected ? 1 : style.opacity}
@@ -353,25 +554,34 @@ export default function SystemMap() {
                         transition: 'all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)'
                       }}
                     >
-                      {/* Pulsing glow for selected/hovered */}
+                      {/* Enhanced pulsing glow for selected/hovered - uses VISUAL_CONFIG.PULSE_SCALE */}
                       {(isHovered || isSelected) && (
                         <>
                           <circle
                             cx={node.x}
                             cy={node.y}
-                            r={size + 2}
+                            r={size * VISUAL_CONFIG.PULSE_SCALE + 2}
                             fill={nodeColor}
-                            opacity="0.15"
-                            className="animate-pulse"
+                            opacity="0.2"
+                            className="animate-pulse-strong"
                           />
                           <circle
                             cx={node.x}
                             cy={node.y}
-                            r={size + 1.2}
+                            r={size * VISUAL_CONFIG.PULSE_SCALE + 1}
                             fill={nodeColor}
-                            opacity="0.25"
-                            className="animate-pulse"
-                            style={{ animationDelay: '0.15s' }}
+                            opacity="0.35"
+                            className="animate-pulse-strong"
+                            style={{ animationDelay: '0.2s' }}
+                          />
+                          <circle
+                            cx={node.x}
+                            cy={node.y}
+                            r={size * 1.08}
+                            fill={nodeColor}
+                            opacity="0.5"
+                            className="animate-pulse-strong"
+                            style={{ animationDelay: '0.4s' }}
                           />
                         </>
                       )}
@@ -399,61 +609,35 @@ export default function SystemMap() {
                         className="backdrop-blur-sm transition-all duration-300"
                       />
                       
-                      {/* Main colored circle */}
+                      {/* Main colored circle with enhanced pulse effect */}
                       <circle
                         cx={node.x}
                         cy={node.y}
-                        r={size - 0.3}
+                        r={(size - 0.3) * (isHovered || isSelected ? 1.08 : 1)}
                         fill={nodeColor}
-                        opacity="0.9"
-                        className="cursor-pointer transition-all duration-300 hover:opacity-100"
+                        opacity="0.95"
+                        className="cursor-pointer transition-all duration-500 ease-out hover:opacity-100"
                         onMouseEnter={() => setHoveredNode(node.id)}
                         onMouseLeave={() => setHoveredNode(null)}
                         onClick={() => setSelectedNode(selectedNode === node.id ? null : node.id)}
                         style={{
-                          filter: (isHovered || isSelected) ? 'brightness(1.3)' : 'brightness(1)',
+                          filter: (isHovered || isSelected) ? 'brightness(1.3) drop-shadow(0 0 8px currentColor)' : 'brightness(1)',
+                          transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
                         }}
                       />
                       
-                      {/* Social media icon in center */}
+                      {/* Social media icon in center - Sized using VISUAL_CONFIG */}
                       <foreignObject
-                        x={node.x - 1.5}
-                        y={node.y - 1.5}
-                        width="3"
-                        height="3"
+                        x={node.x - VISUAL_CONFIG.ICON_SIZE / 2}
+                        y={node.y - VISUAL_CONFIG.ICON_SIZE / 2}
+                        width={VISUAL_CONFIG.ICON_SIZE}
+                        height={VISUAL_CONFIG.ICON_SIZE}
                         className="pointer-events-none"
                       >
                         <div className="w-full h-full flex items-center justify-center text-white opacity-95">
                           {getSocialIcon(node.id)}
                         </div>
                       </foreignObject>
-                      
-                      {/* Node name */}
-                      <text
-                        x={node.x}
-                        y={node.y - size - 1}
-                        textAnchor="middle"
-                        fill="white"
-                        fontSize="1.8"
-                        fontWeight="700"
-                        className="pointer-events-none drop-shadow-lg"
-                      >
-                        {node.name}
-                      </text>
-                      
-                      {/* Revenue label */}
-                      <text
-                        x={node.x}
-                        y={node.y - size - 0.2}
-                        textAnchor="middle"
-                        fill="rgba(255, 255, 255, 0.8)"
-                        fontSize="1.5"
-                        fontFamily="JetBrains Mono, monospace"
-                        fontWeight="600"
-                        className="pointer-events-none drop-shadow"
-                      >
-                        ₱{(node.revenue / 1000).toFixed(0)}K
-                      </text>
                     </g>
                   );
                 })}
@@ -520,7 +704,7 @@ export default function SystemMap() {
 
         {/* Right side - Details Panel (Desktop) / Bottom Panel (Mobile) */}
         {selectedNode && (
-          <div className="lg:w-96 p-2 sm:p-4 lg:pl-0 animate-slide-in lg:overflow-auto">
+          <div className="lg:w-96 px-4 sm:px-6 pb-4 lg:pl-0 animate-slide-in lg:overflow-auto">
             <div className="h-full bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 rounded-xl overflow-auto max-h-[60vh] lg:max-h-none">
               <div className="p-4 sm:p-6">
                 {/* Header with close button */}
@@ -600,7 +784,7 @@ export default function SystemMap() {
                       </div>
                       <div className="space-y-3">
                         {getNodeConnections(selectedNode).map((conn, idx) => {
-                          const metrics = getConnectionMetrics(conn.fromNode, conn.toNode);
+                          const metrics = getTwoConnectionMetrics(conn.fromNode, conn.toNode);
                           return (
                             <div key={idx} className="bg-gray-900/50 p-3 rounded border border-gray-700/50">
                               {/* Connection header */}
@@ -677,32 +861,33 @@ export default function SystemMap() {
       </div>
 
       <style>{`
-        @keyframes dash {
-          to {
-            stroke-dashoffset: -1000;
+        /* Floating animation for the entire graph */
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px);
           }
-        }
-        
-        @keyframes slide-in {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
+          50% {
+            transform: translateY(-8px);
           }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        .animate-slide-in {
-          animation: slide-in 0.3s ease-out;
         }
 
-        @media (min-width: 1024px) {
-          .animate-slide-in {
-            animation: slide-in 0.3s ease-out;
+        .animate-float {
+          animation: float ${VISUAL_CONFIG.FLOAT_ANIMATION_DURATION} ease-in-out infinite;
+        }
+
+        /* Enhanced pulse animation for hover/click states */
+        @keyframes pulse-strong {
+          0%, 100% {
+            transform: scale(1);
+            opacity: 0.4;
+          }
+          50% {
+            transform: scale(1.1);
+            opacity: 0.8;
           }
         }
+
+
       `}</style>
     </div>
   );
