@@ -9,7 +9,7 @@ export type Platform =
   | 'mailchimp'
   | 'pixel';
 
-export type ConnectionStatus = 'connected' | 'disconnected' | 'error' | 'pending';
+export type ConnectionStatus = 'connected' | 'disconnected' | 'error' | 'pending' | 'syncing';
 
 // User & Account
 export interface User {
@@ -129,6 +129,21 @@ export interface AIRecommendation {
   estimated_impact: number;
   confidence: number;
   priority: 'high' | 'medium' | 'low';
+}
+
+// OAuth Connect Response
+export interface ConnectResponse {
+  type: 'oauth' | 'api_key';
+  authUrl?: string;
+  message?: string;
+}
+
+// Sync Status
+export interface SyncStatus {
+  platform: Platform;
+  status: ConnectionStatus;
+  lastSyncedAt?: string;
+  connectedAt?: string;
 }
 
 // API Response Types
