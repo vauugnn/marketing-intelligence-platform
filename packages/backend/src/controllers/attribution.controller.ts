@@ -16,7 +16,7 @@ import type { TransactionData, AttributionStats } from '../types/attribution.typ
  */
 export async function runAttribution(req: Request, res: Response): Promise<void> {
   try {
-    const userId = req.user?.id; // Assuming auth middleware sets req.user
+    const userId = req.userId;
 
     if (!userId) {
       res.status(401).json({ error: 'Unauthorized' });
@@ -134,7 +134,7 @@ export async function runAttribution(req: Request, res: Response): Promise<void>
  */
 export async function getAttributionStatus(req: Request, res: Response): Promise<void> {
   try {
-    const userId = req.user?.id;
+    const userId = req.userId;
 
     if (!userId) {
       res.status(401).json({ error: 'Unauthorized' });
@@ -220,7 +220,7 @@ export async function getAttributionStatus(req: Request, res: Response): Promise
  */
 export async function getVerifiedConversions(req: Request, res: Response): Promise<void> {
   try {
-    const userId = req.user?.id;
+    const userId = req.userId;
 
     if (!userId) {
       res.status(401).json({ error: 'Unauthorized' });
