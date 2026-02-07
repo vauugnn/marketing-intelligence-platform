@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
+import SystemMapComponent from '../components/SystemMapComponent';
 
 interface ChannelPerformance {
   channel: string;
@@ -9,46 +10,10 @@ interface ChannelPerformance {
   performance: string;
 }
 
-interface NetworkNode {
-  id: string;
-  name: string;
-  revenue: number;
-  x: number;
-  y: number;
-  color: string;
-}
-
-interface NetworkEdge {
-  from: string;
-  to: string;
-  strength: 'strong' | 'medium' | 'weak';
-}
-
 export default function Dashboard() {
   const [channels, setChannels] = useState<ChannelPerformance[]>([]);
   const [loading, setLoading] = useState(true);
   const [mapExpanded, setMapExpanded] = useState(false);
-  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
-
-  // Hardcoded system map data
-  const networkNodes: NetworkNode[] = [
-    { id: 'facebook', name: 'Facebook Ads', revenue: 245000, x: 30, y: 40, color: '#3b82f6' },
-    { id: 'instagram', name: 'Instagram', revenue: 189000, x: 55, y: 25, color: '#ec4899' },
-    { id: 'google', name: 'Google Ads', revenue: 312000, x: 70, y: 50, color: '#10b981' },
-    { id: 'linkedin', name: 'LinkedIn', revenue: 156000, x: 45, y: 65, color: '#0ea5e9' },
-    { id: 'tiktok', name: 'TikTok', revenue: 203000, x: 25, y: 70, color: '#a855f7' },
-    { id: 'twitter', name: 'X (Twitter)', revenue: 98000, x: 15, y: 55, color: '#64748b' },
-  ];
-
-  const networkEdges: NetworkEdge[] = [
-    { from: 'facebook', to: 'instagram', strength: 'strong' },
-    { from: 'instagram', to: 'tiktok', strength: 'strong' },
-    { from: 'google', to: 'facebook', strength: 'medium' },
-    { from: 'google', to: 'linkedin', strength: 'medium' },
-    { from: 'linkedin', to: 'twitter', strength: 'weak' },
-    { from: 'tiktok', to: 'twitter', strength: 'weak' },
-    { from: 'facebook', to: 'google', strength: 'medium' },
-  ];
 
   useEffect(() => {
     loadPerformance();
@@ -71,35 +36,9 @@ export default function Dashboard() {
   const totalSpend = channels.reduce((sum, ch) => sum + ch.spend, 0);
   const avgROI = totalSpend > 0 ? ((totalRevenue - totalSpend) / totalSpend) * 100 : 0;
 
-  const maxRevenue = Math.max(...networkNodes.map(n => n.revenue));
-  const getNodeSize = (revenue: number) => {
-    const minSize = 40;
-    const maxSize = 120;
-    return minSize + (revenue / maxRevenue) * (maxSize - minSize);
-  };
-
-  const getEdgeStyle = (strength: string) => {
-    switch (strength) {
-      case 'strong':
-        return { strokeWidth: 3, strokeDasharray: 'none', opacity: 0.8 };
-      case 'medium':
-        return { strokeWidth: 2, strokeDasharray: 'none', opacity: 0.5 };
-      case 'weak':
-        return { strokeWidth: 1.5, strokeDasharray: '5,5', opacity: 0.3 };
-      default:
-        return { strokeWidth: 1, strokeDasharray: 'none', opacity: 0.3 };
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-white">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
-        
-        * {
-          font-family: 'Outfit', sans-serif;
-        }
-
         .metric-card {
           background: linear-gradient(135deg, rgba(30, 30, 40, 0.8) 0%, rgba(20, 20, 30, 0.9) 100%);
           backdrop-filter: blur(10px);
@@ -152,13 +91,18 @@ export default function Dashboard() {
           to { opacity: 1; }
         }
 
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
+        .node-circle {
+          transition: all 0.3s ease-in-out;
         }
 
-        .node-pulse {
-          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        .node-glow-hover {
+          opacity: 0.4;
+          transition: opacity 0.3s ease-in-out;
+        }
+
+        .glassmorphism-node {
+          backdrop-filter: blur(10px);
+          border: 2px solid rgba(255, 255, 255, 0.2);
         }
 
         .scrollbar-custom::-webkit-scrollbar {
@@ -186,9 +130,18 @@ export default function Dashboard() {
             linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
           background-size: 20px 20px;
         }
+
+        .expand-button {
+          transition: all 0.2s ease;
+        }
+
+        .expand-button:hover {
+          transform: translateX(2px) translateY(-2px);
+          color: #60a5fa;
+        }
       `}</style>
 
-      <div className="p-4 sm:p-6">
+      <div className="p-4 sm:p-6 ">
         {/* Header */}
         <div className="mb-6 ml-14 lg:ml-0">
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-1">
@@ -259,19 +212,21 @@ export default function Dashboard() {
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
           {/* Channel Performance Table */}
-          <div className="lg:col-span-2 table-container rounded-xl overflow-hidden">
+          <div className="lg:col-span-2 table-container rounded-xl overflow-hidden flex flex-col" style={{ height: '450px' }}>
             <div className="p-4 border-b border-gray-800">
               <h3 className="text-lg font-bold">Channel Performance</h3>
               <p className="text-gray-400 text-xs mt-0.5">Track revenue, spend, and ROI across platforms</p>
             </div>
 
             {loading ? (
-              <div className="p-8 text-center">
-                <div className="inline-block w-10 h-10 border-3 border-gray-700 border-t-blue-500 rounded-full animate-spin"></div>
-                <p className="text-gray-400 text-sm mt-3">Loading performance data...</p>
+              <div className="p-8 text-center flex-1 flex items-center justify-center">
+                <div>
+                  <div className="inline-block w-10 h-10 border-3 border-gray-700 border-t-blue-500 rounded-full animate-spin"></div>
+                  <p className="text-gray-400 text-sm mt-3">Loading performance data...</p>
+                </div>
               </div>
             ) : (
-              <div className="overflow-x-auto scrollbar-custom" style={{ maxHeight: '350px' }}>
+              <div className="overflow-x-auto scrollbar-custom flex-1">
                 <table className="w-full">
                   <thead className="bg-gray-900/50 sticky top-0 z-10">
                     <tr>
@@ -309,174 +264,18 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* System Map Preview */}
-          <div className="lg:col-span-1">
-            <div 
-              className={`system-map-container rounded-xl overflow-hidden ${mapExpanded ? 'system-map-expanded cursor-default' : 'cursor-pointer'}`}
-              onClick={() => !mapExpanded && setMapExpanded(true)}
-            >
-              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-bold">System Map</h3>
-                  <p className="text-gray-400 text-xs mt-0.5">Platform relationships</p>
-                </div>
-                {mapExpanded && (
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMapExpanded(false);
-                    }}
-                    className="w-7 h-7 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 flex items-center justify-center transition-colors"
-                  >
-                    <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-
-              <div className={`grid-pattern relative ${mapExpanded ? 'h-[calc(100%-140px)]' : 'h-56 sm:h-64'}`}>
-                <svg className="w-full h-full">
-                  {/* Draw edges */}
-                  {networkEdges.map((edge, idx) => {
-                    const fromNode = networkNodes.find(n => n.id === edge.from);
-                    const toNode = networkNodes.find(n => n.id === edge.to);
-                    if (!fromNode || !toNode) return null;
-
-                    const style = getEdgeStyle(edge.strength);
-                    return (
-                      <line
-                        key={idx}
-                        x1={`${fromNode.x}%`}
-                        y1={`${fromNode.y}%`}
-                        x2={`${toNode.x}%`}
-                        y2={`${toNode.y}%`}
-                        stroke="rgba(255, 255, 255, 0.2)"
-                        strokeWidth={style.strokeWidth}
-                        strokeDasharray={style.strokeDasharray}
-                        opacity={style.opacity}
-                        className="transition-all duration-300"
-                      />
-                    );
-                  })}
-
-                  {/* Draw nodes */}
-                  {networkNodes.map((node) => {
-                    const size = getNodeSize(node.revenue);
-                    const isHovered = hoveredNode === node.id;
-                    
-                    return (
-                      <g key={node.id}>
-                        {/* Glow effect for hovered node */}
-                        {isHovered && (
-                          <circle
-                            cx={`${node.x}%`}
-                            cy={`${node.y}%`}
-                            r={size / 2 + 8}
-                            fill={node.color}
-                            opacity="0.2"
-                            className="node-pulse"
-                          />
-                        )}
-                        
-                        {/* Main node */}
-                        <circle
-                          cx={`${node.x}%`}
-                          cy={`${node.y}%`}
-                          r={size / 2}
-                          fill={node.color}
-                          opacity={isHovered ? "1" : "0.8"}
-                          className="transition-all duration-300 cursor-pointer"
-                          onMouseEnter={() => setHoveredNode(node.id)}
-                          onMouseLeave={() => setHoveredNode(null)}
-                          style={{
-                            filter: isHovered ? 'brightness(1.2)' : 'none',
-                            transform: isHovered ? 'scale(1.1)' : 'scale(1)',
-                            transformOrigin: `${node.x}% ${node.y}%`
-                          }}
-                        />
-                        
-                        {/* Node label */}
-                        <text
-                          x={`${node.x}%`}
-                          y={`${node.y + (mapExpanded ? 7 : 10)}%`}
-                          textAnchor="middle"
-                          fill="white"
-                          fontSize={mapExpanded ? "12" : "8"}
-                          fontWeight="600"
-                          className="pointer-events-none"
-                        >
-                          {mapExpanded ? node.name : node.name.split(' ')[0]}
-                        </text>
-                        
-                        {/* Revenue label when expanded */}
-                        {mapExpanded && (
-                          <text
-                            x={`${node.x}%`}
-                            y={`${node.y + 11}%`}
-                            textAnchor="middle"
-                            fill="rgba(255, 255, 255, 0.6)"
-                            fontSize="10"
-                            fontFamily="JetBrains Mono, monospace"
-                            className="pointer-events-none"
-                          >
-                            ₱{(node.revenue / 1000).toFixed(0)}K
-                          </text>
-                        )}
-                      </g>
-                    );
-                  })}
-                </svg>
-
-                {!mapExpanded && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="text-center bg-gray-900/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-gray-700">
-                      <p className="text-xs text-gray-300 font-medium">Click to expand</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Legend - only visible when expanded */}
-              {mapExpanded && (
-                <div className="p-4 border-t border-gray-800">
-                  <h4 className="font-bold text-sm mb-3 flex items-center">
-                    <svg className="w-4 h-4 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Legend
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="flex items-center">
-                      <div className="w-6 h-0.5 bg-white opacity-80 mr-2"></div>
-                      <span className="text-gray-300"><strong>Thick solid</strong> = Strong synergy</span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-6 h-0.5 bg-white opacity-50 mr-2"></div>
-                      <span className="text-gray-300"><strong>Medium</strong> = Some reinforcement</span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-6 h-0.5 bg-white opacity-30 mr-2" style={{ backgroundImage: 'repeating-linear-gradient(to right, white 0, white 2px, transparent 2px, transparent 6px)' }}></div>
-                      <span className="text-gray-300"><strong>Dashed</strong> = Weak connection</span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="flex items-center mr-2">
-                        <div className="w-5 h-5 rounded-full bg-blue-500"></div>
-                        <div className="w-3 h-3 rounded-full bg-blue-500 -ml-1.5"></div>
-                      </div>
-                      <span className="text-gray-300"><strong>Node size</strong> = Revenue volume</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          {/* System Map Component - maintains same responsive grid position */}
+          <SystemMapComponent 
+            channels={channels}
+            isExpanded={mapExpanded}
+            onToggleExpand={setMapExpanded}
+          />
         </div>
       </div>
 
       {/* Overlay when map is expanded */}
       {mapExpanded && (
-        <div className="overlay" onClick={() => setMapExpanded(false)}></div>
+        <div className="overlay" onClick={() => setMapExpanded(false)} style={{ zIndex: 45 }}></div>
       )}
     </div>
   );
