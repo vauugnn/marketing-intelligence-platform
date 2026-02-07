@@ -2,6 +2,9 @@ import { Router } from 'express';
 import { getOAuthService } from '../services/oauth/OAuthServiceFactory';
 import { OAuthRepository } from '../services/oauth/OAuthRepository';
 import { Platform } from '@shared/types';
+import { asyncHandler } from '../middleware/error-handler.middleware';
+import { authMiddleware } from '../middleware/auth.middleware';
+import * as integrationsController from '../controllers/integrations.controller';
 
 const router = Router();
 const repository = new OAuthRepository();
