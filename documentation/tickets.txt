@@ -1,0 +1,420 @@
+SPRINT TICKETS
+EPIC 1: Data Infrastructure (Foundation)
+Ticket 1.1: Multi-Platform Data Integration
+Priority: P0 (Critical Path)
+Story: As a user, I need to connect my existing marketing tools so the system can pull historical data
+Acceptance Criteria:
+
+ OAuth integration for at least 3 platforms (Google Analytics 4, Meta, Stripe/PayPal)
+ Pull last 90 days of historical data on connection
+ Store raw data in Supabase with timestamps
+ Handle API rate limits gracefully
+ Show connection status in UI
+
+Tech Notes:
+
+Use Google Analytics Data API v1
+Meta Marketing API for ad performance
+Stripe/PayPal API for actual transaction data
+Store in raw_events table with platform source tag
+
+Time Estimate: 8 hours
+
+Ticket 1.2: Custom Tracking Pixel Implementation
+Priority: P0 (Critical Path)
+Story: As a user, I need a tracking pixel installed so the system can capture customer journeys
+Acceptance Criteria:
+
+ Generate unique pixel ID per user account
+ Pixel tracks: page views, UTM parameters, referrer, timestamp
+ Store events in pixel_events table
+ Cookie-based session tracking (30-day expiry)
+ Integration instructions/snippet in dashboard
+
+Tech Notes:
+
+Lightweight JS snippet (<5KB)
+Firebase/Supabase for event storage
+Capture: user_id, session_id, source, medium, campaign, timestamp, page_url
+
+Time Estimate: 6 hours
+
+Ticket 1.3: Cross-Reference Engine (Correlation vs Causation)
+Priority: P0 (Critical Path)
+Story: As a user, I need to see which conversions are truly attributed to which channels, not just platform claims
+Acceptance Criteria:
+
+ Match Stripe/PayPal transactions to pixel events by email/timestamp (±24hr window)
+ Match GA4 conversions to pixel events by session ID
+ Calculate attribution confidence score (0-100%)
+
+95%+ = Both pixel + GA4 agree on source
+70-94% = One source confirms
+<70% = Conflicting data (flag as "uncertain")
+
+
+ Flag "platform over-attribution" when claimed conversions > actual sales
+ Store in verified_conversions table with confidence metadata
+
+Tech Notes:
+
+Causation logic: Pixel saw user journey (Facebook → Email → Purchase within 30 days) = causal chain
+Correlation flag: Platform claims conversion but no pixel journey = correlation only
+Use time-decay weighting: touchpoints closer to conversion = higher weight
+
+Time Estimate: 10 hours
+
+EPIC 2: Visual System Mapping (Core Differentiator)
+Ticket 2.1: Channel Relationship Graph Data Model
+Priority: P0 (Critical Path)
+Story: As a user, I need to see how my marketing channels interact as a visual network
+Acceptance Criteria:
+
+ Build channel adjacency matrix from verified conversions
+
+Track: Channel A → Channel B transitions
+Count: How many users touched both channels
+Revenue: Total revenue from combined journeys
+
+
+ Calculate synergy coefficient: (Revenue_AB / (Revenue_A + Revenue_B)) - 1
+
+Positive = synergy (e.g., 5x means 400% boost)
+Negative = interference
+
+
+ Detect isolation: Channels appearing in <5% of multi-touch journeys
+ Store in channel_relationships table
+
+Tech Notes:
+
+Use 7-day, 14-day, 30-day lookback windows
+Weight by time decay (last-touch = 40%, first-touch = 20%, middle = 40% split)
+
+Time Estimate: 8 hours
+
+Ticket 2.2: Interactive Network Map UI
+Priority: P0 (Critical Path)
+Story: As a user, I need to visually understand which channels work together vs in isolation
+Acceptance Criteria:
+
+ Force-directed graph using React Flow or D3.js
+ Nodes = channels (size = revenue contribution)
+ Edges = relationship strength (thickness = synergy coefficient)
+ Color coding:
+
+Green edges = positive synergy (>1.5x)
+Gray edges = neutral (0.8-1.5x)
+Red edges = negative (<0.8x)
+Dotted edges = low confidence (<70%)
+
+
+ Hover states show: synergy %, revenue, sample journeys
+ Filter by time period (7d/14d/30d)
+
+Tech Notes:
+
+Use React Flow for easier implementation
+Precompute graph data server-side, render client-side
+Update every 24 hours (not real-time for MVP)
+
+Time Estimate: 10 hours
+
+Ticket 2.3: Time-Series Mapping Changes
+Priority: P1 (High - addresses feedback)
+Story: As a user, I need to see how channel relationships change over time to make informed decisions
+Acceptance Criteria:
+
+ Weekly snapshot comparison view
+
+Show map for Week 1, Week 2, Week 3, Week 4
+Highlight: New connections, broken connections, strength changes
+
+
+ "What changed?" summary panel
+
+"Facebook → Email synergy increased from 3x to 5x"
+"Instagram Ads became isolated (was 12% of journeys, now 4%)"
+
+
+ Trend indicators on nodes/edges (↑↓)
+ Flag volatile relationships (>30% change week-over-week)
+
+Tech Notes:
+
+Store weekly graph snapshots in graph_snapshots table
+Compare current vs previous 4 weeks
+Use created_at timestamp for versioning
+
+Time Estimate: 6 hours
+
+EPIC 3: AI Intelligence Layer (Core Value)
+Ticket 3.1: Short-Term vs Long-Term Analysis Engine
+Priority: P0 (Critical Path - key feedback requirement)
+Story: As a user, I need AI to distinguish between short-term noise and long-term strategic value
+Acceptance Criteria:
+
+ Calculate 3 time horizons per channel:
+
+7-day ROI (immediate performance)
+30-day ROI (monthly trend)
+90-day projected ROI (strategic trajectory)
+
+
+ Detect "building channels" pattern:
+
+Current ROI negative BUT synergy coefficient increasing
+Example: YouTube Ads at -20% ROI but YouTube → Google synergy at 2.3x and growing
+
+
+ Classify each channel:
+
+Quick Win: Positive short-term + long-term
+Strategic Investment: Negative short-term, positive long-term trajectory
+Declining Asset: Positive short-term, negative long-term trend
+Dead Weight: Negative both horizons
+
+
+ Store in channel_classifications table
+
+Tech Notes:
+
+Use linear regression on weekly ROI to project 90-day trend
+Weight synergy growth as leading indicator
+Flag when short-term recommendation contradicts long-term strategy
+
+Time Estimate: 8 hours
+
+Ticket 3.2: Gemini AI Recommendation Engine
+Priority: P0 (Critical Path)
+Story: As a user, I need specific, actionable recommendations that account for both immediate and future value
+Acceptance Criteria:
+
+ Generate recommendations in 3 categories:
+
+✅ Keep & Scale (high confidence)
+⚠️ Optimize (medium confidence, needs context)
+🔴 Consider Cutting (but explain tradeoffs)
+
+
+ Each recommendation includes:
+
+Action (e.g., "Scale Facebook ads by 30%")
+Financial impact (e.g., "+₱15,000/month projected")
+Confidence score (70-95%)
+Time horizon (immediate vs 90-day)
+Tradeoff warning (e.g., "Cutting YouTube may hurt Google in 60 days")
+
+
+ Anti-Pattern Detection: Flag when recommendation conflicts with long-term strategy
+
+Example: "Instagram Ads shows -50% ROI now, but synergy with Facebook growing 15%/week. Consider: reduce spend 50% instead of cutting entirely."
+
+
+
+Prompt Structure for Gemini:
+Context: [Channel performance data, synergy matrix, time-series trends]
+Question: Should user cut/scale/optimize [Channel X]?
+Constraints: 
+- Distinguish 7-day vs 90-day impact
+- Identify if channel is strategic investment vs dead weight
+- Warn about downstream effects on other channels
+- Provide confidence score based on data quality
+Tech Notes:
+
+Use Gemini 1.5 Flash for speed
+Cache platform data, regenerate recommendations daily
+Store in ai_recommendations with created_at timestamp
+
+Time Estimate: 8 hours
+
+Ticket 3.3: "Future Scenario" Simulator (Feedback Requirement)
+Priority: P1 (High - "seeing the future" feature)
+Story: As a user, I need to understand what happens to my system if I cut/scale a channel
+Acceptance Criteria:
+
+ "What if?" simulator in UI
+
+User selects: Cut Instagram Ads entirely
+System shows:
+
+Immediate savings: +₱4,000/month
+30-day impact: Facebook synergy drops 1.2x → 0.9x (loses ₱8,000)
+90-day projection: Net loss -₱4,000/month
+Recommendation: "Cut spend 75% instead of 100% to maintain synergy at 50% cost"
+
+
+
+
+ Simulate 3 scenarios per recommendation:
+
+Conservative (cut 25%)
+Moderate (cut 50%)
+Aggressive (cut 100%)
+
+
+ Show projected system health score (0-100) for each scenario
+
+Tech Notes:
+
+Use synergy matrix to model cascading effects
+Apply regression model to project revenue impact
+Precompute top 5 channels worth simulating
+
+Time Estimate: 8 hours
+
+EPIC 4: Dashboard & UX (User-Facing)
+Ticket 4.1: Individual Channel Performance Table
+Priority: P0 (Critical Path)
+Story: As a user, I need to see each channel's verified performance vs platform claims
+Acceptance Criteria:
+
+ Table columns: Channel, Revenue (verified), Spend, ROI, Platform Claimed Conversions, Actual Conversions, Confidence Score
+ Color-coded performance badges:
+
+Green = Exceptional (ROI >500%)
+Blue = Excellent (200-500%)
+Yellow = Satisfactory (50-200%)
+Red = Failing (<50%)
+
+
+ "Platform vs Reality" indicator
+
+Show discrepancy: "Facebook claims 20, we verified 14 (70% accurate)"
+
+
+ Sortable by any column
+ Export to CSV
+
+Time Estimate: 4 hours
+
+Ticket 4.2: System Health Dashboard (30-Day Unlock)
+Priority: P1 (High)
+Story: As a user, after 30 days of pixel tracking, I need a holistic view of my marketing system health
+Acceptance Criteria:
+
+ Overall system health score (0-100)
+
+Based on: attribution accuracy, channel diversification, synergy utilization
+
+
+ Key metrics cards:
+
+Total verified revenue
+Total platform-claimed revenue (show gap)
+Wasted spend (isolated channels)
+Potential revenue (underutilized synergies)
+
+
+ "Days until full intelligence" countdown (30 - days_since_pixel_install)
+ Before 30 days: Show "Building intelligence..." with progress bar
+
+Tech Notes:
+
+Check pixel_events earliest timestamp
+If < 30 days, show limited view with historical platform data only
+If ≥ 30 days, unlock full system map + AI recommendations
+
+Time Estimate: 4 hours
+
+Ticket 4.3: Onboarding Flow
+Priority: P1 (High)
+Story: As a new user, I need to connect my tools and install the pixel easily
+Acceptance Criteria:
+
+ Step 1: Platform selection checklist (GA4, Meta, Google Ads, Email, Payment)
+ Step 2: OAuth connections (handle errors gracefully)
+ Step 3: Pixel installation instructions
+
+Copy snippet
+Test pixel firing (send test event)
+
+
+ Step 4: Historical data import progress bar
+ Step 5: Show "Day 1 insights" immediately (platform claims vs actual sales)
+
+Time Estimate: 6 hours
+
+EPIC 5: Backend Intelligence (Data Processing)
+Ticket 5.1: Multi-Touch Attribution Models
+Priority: P1 (High - proves sophistication)
+Story: As a user, I need to see how credit is distributed across multiple touchpoints in a customer journey
+Acceptance Criteria:
+
+ Implement 3 attribution models:
+
+Last-Touch: 100% credit to final touchpoint
+First-Touch: 100% credit to initial touchpoint
+Time-Decay: Exponential decay (most recent = most credit)
+Position-Based: 40% first, 40% last, 20% middle
+
+
+ Allow user to toggle between models in UI
+ Show "Model Comparison" view
+
+Same journey, different credit distribution
+Example: Facebook gets 10% credit (time-decay) vs 40% (position-based)
+
+
+ Store attributed revenue per channel per model
+
+Tech Notes:
+
+Default to Time-Decay for recommendations
+Use Position-Based for synergy detection
+Update nightly batch job
+
+Time Estimate: 6 hours
+
+Ticket 5.2: Data Quality & Confidence Scoring
+Priority: P1 (High - addresses "correlation vs causation")
+Story: As a user, I need to know how confident the system is in its recommendations
+Acceptance Criteria:
+
+ Calculate confidence score per conversion:
+
+95%: Pixel + GA4 + Platform all agree
+85%: Pixel + GA4 agree, platform differs
+70%: Pixel only (no GA4 confirmation)
+50%: Platform claim only (no pixel journey)
+
+
+ Show confidence distribution in dashboard
+
+"78% of conversions are high-confidence (>85%)"
+
+
+ Flag low-confidence recommendations with warning
+
+"⚠️ Based on limited data (60% confidence). Revisit in 14 days."
+
+
+ Auto-improve confidence as more pixel data accumulates
+
+Tech Notes:
+
+Store confidence_score in verified_conversions
+Weight recommendations by confidence
+Show data quality badge per channel
+
+Time Estimate: 4 hours
+
+EPIC 6: CAPI Feedback Loop (Competitive Edge)
+Ticket 6.1: Send Verified Conversions Back to Ad Platforms
+Priority: P2 (Nice-to-Have - proves concept but not critical for demo)
+Story: As a user, I want my ad platforms to optimize using accurate conversion data
+Acceptance Criteria:
+
+ Send verified conversions to Meta CAPI
+ Only send conversions with >85% confidence
+ Include: conversion value, timestamp, user hashed email
+ Track: conversions sent vs platform's original claim
+ Show in UI: "Sent 14 verified conversions to Facebook (was claiming 20)"
+
+Tech Notes:
+
+Use Meta Conversions API
+Send async (don't block dashboard)
+Log sends in capi_events table
+
+Time Estimate: 6 hours (CUT if time-constrained)
