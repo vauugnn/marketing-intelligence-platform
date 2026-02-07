@@ -190,7 +190,7 @@ export default function Dashboard() {
 
       <div className="p-4 sm:p-6">
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-6 ml-14 lg:ml-0">
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-1">
             Performance Dashboard
           </h1>
