@@ -260,7 +260,6 @@ export default function Dashboard() {
           transition: all 0.3s ease-in-out;
         }
 
-
         .node-glow-hover {
           opacity: 0.4;
           transition: opacity 0.3s ease-in-out;
