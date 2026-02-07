@@ -45,7 +45,6 @@ export default function Dashboard() {
     { id: 'google', name: 'Google Ads', revenue: 312000, x: 78, y: 42 },
     { id: 'twitter', name: 'X (Twitter)', revenue: 98000, x: 18, y: 68 },
     { id: 'linkedin', name: 'LinkedIn', revenue: 156000, x: 62, y: 68 },
-    { id: 'tiktok', name: 'TikTok', revenue: 203000, x: 40, y: 88 },
   ];
 
   // Desktop positions (centered)
@@ -54,7 +53,6 @@ export default function Dashboard() {
     { id: 'instagram', name: 'Instagram', revenue: 189000, x: 50, y: 25 },
     { id: 'google', name: 'Google Ads', revenue: 312000, x: 72, y: 42 },
     { id: 'linkedin', name: 'LinkedIn', revenue: 156000, x: 58, y: 65 },
-    { id: 'tiktok', name: 'TikTok', revenue: 203000, x: 35, y: 75 },
     { id: 'twitter', name: 'X (Twitter)', revenue: 98000, x: 20, y: 62 },
   ];
 
@@ -75,10 +73,6 @@ export default function Dashboard() {
     { from: 'facebook', to: 'instagram', strength: 'strong' },
     { from: 'instagram', to: 'google', strength: 'strong' },
     { from: 'google', to: 'linkedin', strength: 'medium' },
-    { from: 'linkedin', to: 'tiktok', strength: 'medium' },
-    { from: 'tiktok', to: 'twitter', strength: 'weak' },
-    { from: 'twitter', to: 'facebook', strength: 'weak' },
-    { from: 'instagram', to: 'tiktok', strength: 'medium' },
   ];
 
   useEffect(() => {
