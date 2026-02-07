@@ -59,12 +59,14 @@ CREATE TABLE IF NOT EXISTS pixel_events (
   user_agent TEXT,
   ip_address INET,
   metadata JSONB,
+  dedup_key TEXT UNIQUE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX idx_pixel_events_pixel_id ON pixel_events(pixel_id);
 CREATE INDEX idx_pixel_events_session_id ON pixel_events(session_id);
 CREATE INDEX idx_pixel_events_timestamp ON pixel_events(timestamp);
+CREATE UNIQUE INDEX idx_pixel_events_dedup_key ON pixel_events(dedup_key);
 
 -- Verified conversions (Ticket 1.3)
 CREATE TABLE IF NOT EXISTS verified_conversions (

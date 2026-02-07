@@ -1,6 +1,4 @@
 import 'dotenv/config';
-import dotenv from 'dotenv'
-import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -11,9 +9,8 @@ import analyticsRoutes from './routes/analytics';
 import pixelRoutes from './routes/pixel';
 import oauthRoutes from './routes/oauth';
 import syncRoutes from './routes/sync';
+import attributionRoutes from './routes/attribution';
 import { globalErrorHandler } from './middleware/error-handler.middleware';
-
-// 'dotenv/config' automatically loads .env from project root
 
 // Validate environment before starting server
 validateEnv();
@@ -21,7 +18,10 @@ validateEnv();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
+// Pixel routes mounted before global CORS — they handle their own permissive CORS
+app.use('/api/pixel', express.json(), pixelRoutes);
+
+// Global middleware (restricted CORS for frontend-only routes)
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true
@@ -44,9 +44,8 @@ app.get('/health', (req, res) => {
 app.use('/api/oauth', oauthRoutes);
 app.use('/api/integrations', integrationsRoutes);
 app.use('/api/analytics', analyticsRoutes);
-app.use('/api/pixel', pixelRoutes);
-app.use('/api/oauth', oauthRoutes);
 app.use('/api/sync', syncRoutes);
+app.use('/api/attribution', attributionRoutes);
 
 // Global error handler (must be after all routes)
 app.use(globalErrorHandler);

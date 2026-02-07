@@ -43,6 +43,26 @@ export function getOAuthConfig(platform: Platform): OAuthConfig | null {
         redirectUri: OAUTH_REDIRECT_URI,
       };
 
+    case 'mailchimp':
+      return {
+        clientId: process.env.MAILCHIMP_OAUTH_CLIENT_ID || '',
+        clientSecret: process.env.MAILCHIMP_OAUTH_CLIENT_SECRET || '',
+        authorizationUrl: 'https://login.mailchimp.com/oauth2/authorize',
+        tokenUrl: 'https://login.mailchimp.com/oauth2/token',
+        scopes: [],
+        redirectUri: OAUTH_REDIRECT_URI,
+      };
+
+    case 'hubspot':
+      return {
+        clientId: process.env.HUBSPOT_OAUTH_CLIENT_ID || '',
+        clientSecret: process.env.HUBSPOT_OAUTH_CLIENT_SECRET || '',
+        authorizationUrl: 'https://app.hubspot.com/oauth/authorize',
+        tokenUrl: 'https://api.hubapi.com/oauth/v1/token',
+        scopes: ['content', 'e-commerce'],
+        redirectUri: OAUTH_REDIRECT_URI,
+      };
+
     // Stripe uses API key, not OAuth redirect flow
     case 'stripe':
       return null;
