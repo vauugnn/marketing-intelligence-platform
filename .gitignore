@@ -43,3 +43,5 @@ coverage/
 
 # Supabase
 .supabase/
+.env.example
+.env.example
