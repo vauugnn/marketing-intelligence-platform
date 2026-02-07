@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import integrationsRoutes from './routes/integrations';
 import analyticsRoutes from './routes/analytics';
 import pixelRoutes from './routes/pixel';
+import oauthRoutes from './routes/oauth';
 
 // Load environment variables
 dotenv.config();
@@ -26,6 +27,7 @@ app.get('/health', (req, res) => {
 });
 
 // API Routes
+app.use('/api/oauth', oauthRoutes);
 app.use('/api/integrations', integrationsRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/pixel', pixelRoutes);
