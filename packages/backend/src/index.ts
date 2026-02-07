@@ -1,4 +1,5 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'path';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -9,6 +10,7 @@ import pixelRoutes from './routes/pixel';
 import oauthRoutes from './routes/oauth';
 import syncRoutes from './routes/sync';
 import { globalErrorHandler } from './middleware/error-handler.middleware';
+import { validateEnv } from './config/env';
 
 
 // Load environment variables from project root
