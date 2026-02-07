@@ -8,6 +8,7 @@ import integrationsRoutes from './routes/integrations';
 import analyticsRoutes from './routes/analytics';
 import pixelRoutes from './routes/pixel';
 import oauthRoutes from './routes/oauth';
+import oauthRoutes from './routes/oauth';
 import syncRoutes from './routes/sync';
 import attributionRoutes from './routes/attribution';
 import { globalErrorHandler } from './middleware/error-handler.middleware';
@@ -40,6 +41,7 @@ app.get('/health', (req, res) => {
 });
 
 // API Routes
+app.use('/api/oauth', oauthRoutes);
 app.use('/api/integrations', integrationsRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/pixel', pixelRoutes);
