@@ -4,14 +4,15 @@ import Dashboard from './pages/Dashboard';
 import Integrations from './pages/Integrations';
 import SystemMap from './pages/SystemMap';
 import Recommendations from './pages/Recommendations';
+import { ToastContainer } from './components/ui/Toast';
 
 function App() {
   return (
     <Router>
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="flex min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
         <Sidebar />
 
-        <main className="flex-1 p-8">
+        <main className="flex-1">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/integrations" element={<Integrations />} />
@@ -20,6 +21,7 @@ function App() {
           </Routes>
         </main>
       </div>
+      <ToastContainer />
     </Router>
   );
 }
