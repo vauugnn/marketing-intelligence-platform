@@ -55,6 +55,10 @@ export async function exchangeCodeForTokens(platform: Platform, code: string): P
       return exchangeMetaToken(config, code);
     case 'paypal':
       return exchangePayPalToken(config, code);
+    case 'mailchimp':
+      return exchangeMailchimpToken(config, code);
+    case 'hubspot':
+      return exchangeHubSpotToken(config, code);
     default:
       throw new Error(`Token exchange not implemented for: ${platform}`);
   }
@@ -76,6 +80,10 @@ export async function refreshAccessToken(platform: Platform, refreshToken: strin
       return refreshMetaToken(config, refreshToken);
     case 'paypal':
       return refreshPayPalToken(config, refreshToken);
+    case 'mailchimp':
+      return refreshMailchimpToken(config, refreshToken);
+    case 'hubspot':
+      return refreshHubSpotToken(config, refreshToken);
     default:
       throw new Error(`Token refresh not implemented for: ${platform}`);
   }
@@ -211,3 +219,90 @@ async function refreshPayPalToken(config: ReturnType<typeof getOAuthConfig> & {}
     expiresIn: data.expires_in,
   };
 }
+
+// --- Mailchimp ---
+
+async function exchangeMailchimpToken(config: ReturnType<typeof getOAuthConfig> & {}, code: string): Promise<TokenResponse> {
+  const { data } = await axios.post(
+    config!.tokenUrl,
+    new URLSearchParams({
+      grant_type: 'authorization_code',
+      client_id: config!.clientId,
+      client_secret: config!.clientSecret,
+      redirect_uri: config!.redirectUri,
+      code,
+    }).toString(),
+    {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    }
+  );
+
+  logger.info('OAuthService', 'Mailchimp token exchange successful');
+
+  return {
+    accessToken: data.access_token,
+    expiresIn: data.expires_in,
+  };
+}
+
+async function refreshMailchimpToken(config: ReturnType<typeof getOAuthConfig> & {}, currentToken: string): Promise<TokenResponse> {
+  // Mailchimp tokens don't expire, so we just return the current token
+  // If needed, user would need to re-authenticate
+  return {
+    accessToken: currentToken,
+  };
+}
+
+// --- HubSpot ---
+
+async function exchangeHubSpotToken(config: ReturnType<typeof getOAuthConfig> & {}, code: string): Promise<TokenResponse> {
+  const { data } = await axios.post(
+    config!.tokenUrl,
+    new URLSearchParams({
+      grant_type: 'authorization_code',
+      client_id: config!.clientId,
+      client_secret: config!.clientSecret,
+      redirect_uri: config!.redirectUri,
+      code,
+    }).toString(),
+    {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    }
+  );
+
+  logger.info('OAuthService', 'HubSpot token exchange successful');
+
+  return {
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token,
+    expiresIn: data.expires_in,
+  };
+}
+
+async function refreshHubSpotToken(config: ReturnType<typeof getOAuthConfig> & {}, refreshToken: string): Promise<TokenResponse> {
+  const { data } = await axios.post(
+    config!.tokenUrl,
+    new URLSearchParams({
+      grant_type: 'refresh_token',
+      client_id: config!.clientId,
+      client_secret: config!.clientSecret,
+      refresh_token: refreshToken,
+    }).toString(),
+    {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    }
+  );
+
+  return {
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token || refreshToken,
+    expiresIn: data.expires_in,
+  };
+}
+
