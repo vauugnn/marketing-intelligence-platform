@@ -2,12 +2,17 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+import path from 'path';
+import { validateEnv } from './config/env';
 import integrationsRoutes from './routes/integrations';
 import analyticsRoutes from './routes/analytics';
 import pixelRoutes from './routes/pixel';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from project root
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+
+// Validate environment before starting server
+validateEnv();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
