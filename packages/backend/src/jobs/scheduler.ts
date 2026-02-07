@@ -12,6 +12,7 @@
 import cron, { ScheduledTask } from 'node-cron';
 import { logger } from '../utils/logger';
 import { runDailyAttributionJob } from './attribution.job';
+import { runGeminiRecommendationJob } from './gemini.job';
 
 /**
  * Job status tracking
@@ -107,6 +108,13 @@ export function initializeScheduler(): void {
         runDailyAttributionJob
     );
 
+    // Schedule AI recommendation job at 2 AM
+    scheduleJob(
+        'gemini-recommendations',
+        '0 2 * * *', // Every day at 2:00 AM
+        runGeminiRecommendationJob
+    );
+
     logger.info('Scheduler', 'Job scheduler initialized', {
         jobCount: scheduledJobs.size,
         jobs: Array.from(scheduledJobs.keys()),
@@ -190,6 +198,8 @@ export async function triggerJob(name: string): Promise<boolean> {
     const wrappedJob = wrapJobWithTracking(name, async () => {
         if (name === 'daily-attribution') {
             await runDailyAttributionJob();
+        } else if (name === 'gemini-recommendations') {
+            await runGeminiRecommendationJob();
         }
     });
 
