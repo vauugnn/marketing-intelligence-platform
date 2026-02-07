@@ -33,15 +33,21 @@ export function getOAuthConfig(platform: Platform): OAuthConfig | null {
         redirectUri: OAUTH_REDIRECT_URI,
       };
 
-    case 'paypal':
+    case 'paypal': {
+      const isProduction = process.env.NODE_ENV === 'production';
       return {
-        clientId: process.env.PAYPAL_OAUTH_CLIENT_ID || '',
-        clientSecret: process.env.PAYPAL_OAUTH_CLIENT_SECRET || '',
-        authorizationUrl: 'https://www.sandbox.paypal.com/signin/authorize',
-        tokenUrl: 'https://api-m.sandbox.paypal.com/v1/oauth2/token',
+        clientId: process.env.PAYPAL_CLIENT_ID || '',
+        clientSecret: process.env.PAYPAL_CLIENT_SECRET || '',
+        authorizationUrl: isProduction
+          ? 'https://www.paypal.com/signin/authorize'
+          : 'https://www.sandbox.paypal.com/signin/authorize',
+        tokenUrl: isProduction
+          ? 'https://api-m.paypal.com/v1/oauth2/token'
+          : 'https://api-m.sandbox.paypal.com/v1/oauth2/token',
         scopes: ['https://uri.paypal.com/services/reporting/search/read'],
         redirectUri: OAUTH_REDIRECT_URI,
       };
+    }
 
     case 'mailchimp':
       return {

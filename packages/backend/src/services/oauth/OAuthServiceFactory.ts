@@ -3,6 +3,7 @@ import { BaseOAuthService } from './BaseOAuthService';
 import { GoogleAnalyticsService } from './GoogleAnalyticsService';
 import { MetaService } from './MetaService';
 import { StripeService } from './StripeService';
+import { PayPalService } from './PayPalService';
 
 /**
  * Factory to get the appropriate OAuth service for a platform
@@ -19,6 +20,8 @@ export function getOAuthService(platform: Platform): BaseOAuthService {
       return new StripeService();
 
     case 'paypal':
+      return new PayPalService();
+
     case 'google_ads':
     case 'hubspot':
     case 'mailchimp':
