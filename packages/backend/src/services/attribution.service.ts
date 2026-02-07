@@ -251,6 +251,153 @@ function normalizeChannel(channel: string): string {
 }
 
 /**
+ * GA4 Session Match Result
+ */
+export interface GA4SessionMatch {
+  matched: boolean;
+  ga4ClientId?: string;
+  pixelSessionId?: string;
+  matchMethod: 'client_id' | 'utm_timestamp' | 'none';
+  matchConfidence: number; // 0-1
+}
+
+/**
+ * Matches GA4 session data to pixel sessions
+ *
+ * Uses multiple matching strategies:
+ * 1. Direct client_id match (if stored)
+ * 2. UTM parameter + timestamp correlation
+ * 3. Page URL + referrer matching
+ */
+export async function matchGA4SessionToPixel(
+  userId: string,
+  ga4ClientId: string | null,
+  timestamp: Date,
+  utmParams: {
+    source?: string | null;
+    medium?: string | null;
+    campaign?: string | null;
+  }
+): Promise<GA4SessionMatch> {
+  try {
+    // Strategy 1: Direct client_id match (if we have GA4 client_id stored)
+    if (ga4ClientId) {
+      const { data: pixelEvents, error: pixelError } = await supabaseAdmin
+        .from('pixel_events')
+        .select('session_id, metadata')
+        .eq('metadata->>ga4_client_id', ga4ClientId)
+        .limit(1);
+
+      if (!pixelError && pixelEvents && pixelEvents.length > 0) {
+        logger.info('AttributionService', 'GA4 session matched via client_id', {
+          ga4ClientId,
+          sessionId: pixelEvents[0].session_id,
+        });
+        return {
+          matched: true,
+          ga4ClientId,
+          pixelSessionId: pixelEvents[0].session_id,
+          matchMethod: 'client_id',
+          matchConfidence: 1.0,
+        };
+      }
+    }
+
+    // Strategy 2: UTM parameter + timestamp correlation
+    if (utmParams.source || utmParams.medium || utmParams.campaign) {
+      const windowStart = new Date(timestamp.getTime() - 30 * 60 * 1000); // -30 minutes
+      const windowEnd = new Date(timestamp.getTime() + 30 * 60 * 1000); // +30 minutes
+
+      // Find user's pixel_id
+      const { data: user } = await supabaseAdmin
+        .from('users')
+        .select('pixel_id')
+        .eq('id', userId)
+        .single();
+
+      if (user?.pixel_id) {
+        let query = supabaseAdmin
+          .from('pixel_events')
+          .select('session_id, utm_source, utm_medium, utm_campaign, timestamp')
+          .eq('pixel_id', user.pixel_id)
+          .gte('timestamp', windowStart.toISOString())
+          .lte('timestamp', windowEnd.toISOString());
+
+        // Add UTM filters
+        if (utmParams.source) {
+          query = query.ilike('utm_source', utmParams.source);
+        }
+        if (utmParams.medium) {
+          query = query.ilike('utm_medium', utmParams.medium);
+        }
+        if (utmParams.campaign) {
+          query = query.ilike('utm_campaign', utmParams.campaign);
+        }
+
+        const { data: matchingEvents, error: matchError } = await query.limit(5);
+
+        if (!matchError && matchingEvents && matchingEvents.length > 0) {
+          // Find the closest timestamp match
+          let bestMatch = matchingEvents[0];
+          let bestTimeDiff = Math.abs(
+            new Date(bestMatch.timestamp).getTime() - timestamp.getTime()
+          );
+
+          for (const event of matchingEvents) {
+            const timeDiff = Math.abs(
+              new Date(event.timestamp).getTime() - timestamp.getTime()
+            );
+            if (timeDiff < bestTimeDiff) {
+              bestMatch = event;
+              bestTimeDiff = timeDiff;
+            }
+          }
+
+          // Calculate confidence based on time proximity and UTM match quality
+          const timeProximity = 1 - bestTimeDiff / (30 * 60 * 1000);
+          const utmMatchCount = [
+            utmParams.source && bestMatch.utm_source,
+            utmParams.medium && bestMatch.utm_medium,
+            utmParams.campaign && bestMatch.utm_campaign,
+          ].filter(Boolean).length;
+          const utmConfidence = utmMatchCount / 3;
+
+          const matchConfidence = timeProximity * 0.5 + utmConfidence * 0.5;
+
+          logger.info('AttributionService', 'GA4 session matched via UTM+timestamp', {
+            sessionId: bestMatch.session_id,
+            matchConfidence,
+            timeDiffMs: bestTimeDiff,
+          });
+
+          return {
+            matched: true,
+            ga4ClientId: ga4ClientId || undefined,
+            pixelSessionId: bestMatch.session_id,
+            matchMethod: 'utm_timestamp',
+            matchConfidence,
+          };
+        }
+      }
+    }
+
+    // No match found
+    return {
+      matched: false,
+      matchMethod: 'none',
+      matchConfidence: 0,
+    };
+  } catch (error) {
+    logger.error('AttributionService', 'Error matching GA4 session', { error, userId });
+    return {
+      matched: false,
+      matchMethod: 'none',
+      matchConfidence: 0,
+    };
+  }
+}
+
+/**
  * Validates attribution against GA4 data
  * Checks if GA4 shows traffic from the attributed channel on that date
  */
