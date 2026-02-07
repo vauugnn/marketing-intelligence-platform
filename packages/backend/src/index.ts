@@ -11,6 +11,7 @@ import oauthRoutes from './routes/oauth';
 import syncRoutes from './routes/sync';
 import attributionRoutes from './routes/attribution';
 import { globalErrorHandler } from './middleware/error-handler.middleware';
+import { initializeScheduler } from './jobs/scheduler';
 
 // Validate environment before starting server
 validateEnv();
@@ -54,6 +55,10 @@ app.use(globalErrorHandler);
 app.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+
+  // Initialize background job scheduler
+  initializeScheduler();
+  console.log('Background job scheduler initialized');
 });
 
 export default app;
