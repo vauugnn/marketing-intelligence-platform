@@ -1,0 +1,16 @@
+{
+  "name": "pixel",
+  "version": "1.0.0",
+  "description": "Lightweight tracking pixel script",
+  "main": "dist/track.js",
+  "scripts": {
+    "dev": "webpack --mode development --watch",
+    "build": "webpack --mode production"
+  },
+  "devDependencies": {
+    "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.4",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.3.3"
+  }
+}
