@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface NetworkNode {
   id: string;
@@ -22,6 +22,13 @@ interface ChannelPerformance {
   performance: string;
 }
 
+interface NodeConnection {
+  type: 'incoming' | 'outgoing';
+  fromNode: string;
+  toNode: string;
+  strength: 'strong' | 'medium' | 'weak';
+}
+
 // Performance to color mapping
 const performanceColors: { [key: string]: string } = {
   'Exceptional': '#10b981', // green
@@ -35,39 +42,46 @@ const mockChannels: ChannelPerformance[] = [
   { channel: 'Facebook', revenue: 245000, spend: 45000, roi: 5.44, performance: 'Excellent' },
   { channel: 'Instagram Bio', revenue: 189000, spend: 32000, roi: 5.91, performance: 'Excellent' },
   { channel: 'Google Ads', revenue: 312000, spend: 58000, roi: 5.38, performance: 'Exceptional' },
-  { channel: 'LinkedIn', revenue: 156000, spend: 28000, roi: 5.57, performance: 'Failing' },
-  { channel: 'X (Twitter)', revenue: 98000, spend: 22000, roi: 4.45, performance: 'Failing' },
+  { channel: 'Email', revenue: 156000, spend: 28000, roi: 5.57, performance: 'Satisfactory' },
 ];
 
 export default function SystemMap() {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [animatedNodes, setAnimatedNodes] = useState<Set<string>>(new Set());
 
-  // Desktop positions (centered)
+  // Animate nodes on mount
+  useEffect(() => {
+    const nodes = ['facebook', 'instagram', 'google', 'email'];
+    nodes.forEach((nodeId, index) => {
+      setTimeout(() => {
+        setAnimatedNodes(prev => new Set(prev).add(nodeId));
+      }, index * 200);
+    });
+  }, []);
+
+  // Network positions optimized for better centering and spacing
   const networkNodes: NetworkNode[] = [
-    { id: 'facebook', name: 'Facebook Ads', revenue: 245000, x: 28, y: 42 },
-    { id: 'instagram', name: 'Instagram', revenue: 189000, x: 50, y: 25 },
-    { id: 'google', name: 'Google Ads', revenue: 312000, x: 72, y: 42 },
-    { id: 'linkedin', name: 'LinkedIn', revenue: 156000, x: 58, y: 65 },
-    { id: 'twitter', name: 'X (Twitter)', revenue: 98000, x: 20, y: 62 },
+    { id: 'facebook', name: 'Facebook Ads', revenue: 245000, x: 25, y: 45 },
+    { id: 'instagram', name: 'Instagram', revenue: 189000, x: 50, y: 28 },
+    { id: 'google', name: 'Google Ads', revenue: 312000, x: 75, y: 45 },
+    { id: 'email', name: 'Email', revenue: 156000, x: 50, y: 70 },
   ];
 
   const networkEdges: NetworkEdge[] = [
     { from: 'facebook', to: 'instagram', strength: 'strong' },
     { from: 'instagram', to: 'google', strength: 'strong' },
-    { from: 'google', to: 'linkedin', strength: 'medium' },
+    { from: 'google', to: 'email', strength: 'medium' },
+    { from: 'email', to: 'facebook', strength: 'medium' },
   ];
 
   // Get color for each node based on channel performance
   const getNodeColor = (nodeId: string): string => {
-    if (nodeId === 'tiktok' || nodeId === 'twitter' || nodeId === 'linkedin') {
-      return '#ef4444'; // red
-    }
-
     const channelMap: { [key: string]: string } = {
       'facebook': 'Facebook',
       'instagram': 'Instagram Bio',
       'google': 'Google Ads',
+      'email': 'Email',
     };
 
     const channelName = channelMap[nodeId];
@@ -79,12 +93,18 @@ export default function SystemMap() {
     return '#64748b';
   };
 
-  const maxRevenue = Math.max(...networkNodes.map(n => n.revenue));
+  // Sort nodes by revenue to determine size ranking
+  const sortedByRevenue = [...networkNodes].sort((a, b) => b.revenue - a.revenue);
+  const maxRevenue = sortedByRevenue[0].revenue;
+  const minRevenue = sortedByRevenue[sortedByRevenue.length - 1].revenue;
   
   const getNodeSize = (revenue: number) => {
-    const minSize = 80;
-    const maxSize = 140;
-    return minSize + (revenue / maxRevenue) * (maxSize - minSize);
+    // More dramatic size difference based on ranking
+    const minSize = 70;
+    const maxSize = 160;
+    const range = maxRevenue - minRevenue;
+    const normalized = range > 0 ? (revenue - minRevenue) / range : 0.5;
+    return minSize + (normalized * (maxSize - minSize));
   };
 
   const getEdgeStyle = (strength: string) => {
@@ -122,16 +142,10 @@ export default function SystemMap() {
             <path fill="white" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
           </svg>
         );
-      case 'linkedin':
+      case 'email':
         return (
           <svg {...iconProps}>
-            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-          </svg>
-        );
-      case 'twitter':
-        return (
-          <svg {...iconProps}>
-            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
           </svg>
         );
       default:
@@ -145,8 +159,7 @@ export default function SystemMap() {
       'facebook': 'Facebook',
       'instagram': 'Instagram Bio',
       'google': 'Google Ads',
-      'linkedin': 'LinkedIn',
-      'twitter': 'X (Twitter)',
+      'email': 'Email',
     };
 
     const channelName = channelMap[nodeId];
@@ -155,285 +168,506 @@ export default function SystemMap() {
     return { node, channel };
   };
 
+  const getNodeConnections = (nodeId: string): NodeConnection[] => {
+    const connections: NodeConnection[] = [];
+    
+    // Find outgoing connections
+    networkEdges.forEach(edge => {
+      if (edge.from === nodeId) {
+        connections.push({
+          type: 'outgoing',
+          fromNode: edge.from,
+          toNode: edge.to,
+          strength: edge.strength
+        });
+      }
+      if (edge.to === nodeId) {
+        connections.push({
+          type: 'incoming',
+          fromNode: edge.from,
+          toNode: edge.to,
+          strength: edge.strength
+        });
+      }
+    });
+    
+    return connections;
+  };
+
+  const getNodeNameById = (nodeId: string): string => {
+    return networkNodes.find(n => n.id === nodeId)?.name || nodeId;
+  };
+
+  const getStrengthColor = (strength: string): string => {
+    switch (strength) {
+      case 'strong': return '#10b981';
+      case 'medium': return '#f59e0b';
+      case 'weak': return '#ef4444';
+      default: return '#64748b';
+    }
+  };
+
+  // Mock connection metrics (hardcoded for now)
+  const getConnectionMetrics = (fromNode: string, toNode: string) => {
+    const metrics: { [key: string]: { conversions: number; revenue: number; ctr: number } } = {
+      'facebook-instagram': { conversions: 234, revenue: 45000, ctr: 3.2 },
+      'instagram-google': { conversions: 312, revenue: 58000, ctr: 4.1 },
+      'google-email': { conversions: 189, revenue: 32000, ctr: 2.8 },
+      'email-facebook': { conversions: 156, revenue: 28000, ctr: 2.3 },
+    };
+
+    const key = `${fromNode}-${toNode}`;
+    return metrics[key] || { conversions: 0, revenue: 0, ctr: 0 };
+  };
+
   return (
-    <div className="h-screen flex bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
-      {/* Left side - Graph and Legend */}
-      <div className="flex-1 flex flex-col p-4">
-        <div className="flex-1 bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 rounded-xl overflow-hidden flex flex-col">
-          {/* Network Graph */}
-          <div className="flex-1 grid-pattern relative">
-            <svg className="w-full h-full">
-              {/* Draw edges */}
-              {networkEdges.map((edge, idx) => {
-                const fromNode = networkNodes.find(n => n.id === edge.from);
-                const toNode = networkNodes.find(n => n.id === edge.to);
-                if (!fromNode || !toNode) return null;
-
-                const style = getEdgeStyle(edge.strength);
-                return (
-                  <line
-                    key={idx}
-                    x1={`${fromNode.x}%`}
-                    y1={`${fromNode.y}%`}
-                    x2={`${toNode.x}%`}
-                    y2={`${toNode.y}%`}
-                    stroke={style.stroke}
-                    strokeWidth={style.strokeWidth}
-                    strokeDasharray={style.strokeDasharray}
-                    opacity={style.opacity}
-                    className="transition-all duration-300"
-                  />
-                );
-              })}
-
-              {/* Draw nodes */}
-              {networkNodes.map((node) => {
-                const size = getNodeSize(node.revenue);
-                const isHovered = hoveredNode === node.id;
-                const isSelected = selectedNode === node.id;
-                const nodeColor = getNodeColor(node.id);
-                
-                return (
-                  <g key={node.id}>
-                    {/* Outer glow effect for hovered/selected node */}
-                    {(isHovered || isSelected) && (
-                      <circle
-                        cx={`${node.x}%`}
-                        cy={`${node.y}%`}
-                        r={size / 2 + 15}
-                        fill={nodeColor}
-                        className="node-glow-hover"
-                        style={{ opacity: 0.3 }}
-                      />
-                    )}
-                    
-                    {/* Glassmorphism background circle */}
-                    <circle
-                      cx={`${node.x}%`}
-                      cy={`${node.y}%`}
-                      r={size / 2}
-                      fill={nodeColor}
-                      fillOpacity="0.2"
-                      stroke={nodeColor}
-                      strokeWidth={isSelected ? "3" : "2"}
-                      className="glassmorphism-node"
-                    />
-                    
-                    {/* Main colored circle */}
-                    <circle
-                      cx={`${node.x}%`}
-                      cy={`${node.y}%`}
-                      r={size / 2 - 2}
-                      fill={nodeColor}
-                      opacity="0.8"
-                      className="node-circle cursor-pointer transition-all"
-                      onMouseEnter={() => setHoveredNode(node.id)}
-                      onMouseLeave={() => setHoveredNode(null)}
-                      onClick={() => setSelectedNode(selectedNode === node.id ? null : node.id)}
-                      style={{
-                        filter: (isHovered || isSelected) ? 'brightness(1.2)' : 'brightness(1)',
-                      }}
-                    />
-                    
-                    {/* Social media icon in center */}
-                    <foreignObject
-                      x={`${node.x - 3}%`}
-                      y={`${node.y - 3}%`}
-                      width="6%"
-                      height="6%"
-                      className="pointer-events-none"
-                    >
-                      <div className="w-full h-full flex items-center justify-center text-white opacity-90">
-                        {getSocialIcon(node.id)}
-                      </div>
-                    </foreignObject>
-                    
-                    {/* Node name */}
-                    <text
-                      x={`${node.x}%`}
-                      y={`${node.y - (size / 2 / 4.5) - 6.5}%`}
-                      textAnchor="middle"
-                      fill="white"
-                      fontSize="14"
-                      fontWeight="700"
-                      className="pointer-events-none"
-                    >
-                      {node.name}
-                    </text>
-                    
-                    {/* Revenue label */}
-                    <text
-                      x={`${node.x}%`}
-                      y={`${node.y - (size / 2 / 4.5) - 3.5}%`}
-                      textAnchor="middle"
-                      fill="rgba(255, 255, 255, 0.7)"
-                      fontSize="12"
-                      fontFamily="JetBrains Mono, monospace"
-                      fontWeight="500"
-                      className="pointer-events-none"
-                    >
-                      ₱{(node.revenue / 1000).toFixed(0)}K
-                    </text>
-                  </g>
-                );
-              })}
-            </svg>
-          </div>
-
-          {/* Legend - Below graph */}
-          <div className="border-t border-gray-800 p-6 bg-gray-900/50">
-            <div className="mb-4">
-              <h4 className="font-bold text-base mb-1 flex items-center text-blue-400">
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Legend
-              </h4>
-              <p className="text-xs text-gray-500">Understand the connections</p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div className="flex items-start">
-                <div className="w-12 h-1 bg-green-500 mr-3 mt-2 flex-shrink-0 rounded"></div>
-                <div>
-                  <p className="text-white font-semibold">Green solid</p>
-                  <p className="text-gray-400 text-xs">Strong synergy</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start">
-                <div className="w-12 h-1 bg-yellow-500 mr-3 mt-2 flex-shrink-0 rounded"></div>
-                <div>
-                  <p className="text-white font-semibold">Yellow solid</p>
-                  <p className="text-gray-400 text-xs">Some reinforcement</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start">
-                <div className="w-12 h-1 bg-red-500 mr-3 mt-2 flex-shrink-0 rounded"></div>
-                <div>
-                  <p className="text-white font-semibold">Red solid</p>
-                  <p className="text-gray-400 text-xs">Weak connection</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start">
-                <div className="flex items-center mr-3 mt-1 flex-shrink-0">
-                  <div className="w-8 h-8 rounded-full bg-blue-500"></div>
-                  <div className="w-5 h-5 rounded-full bg-blue-500 -ml-2"></div>
-                </div>
-                <div>
-                  <p className="text-white font-semibold">Node size</p>
-                  <p className="text-gray-400 text-xs">Revenue volume indicator</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 pt-4 border-t border-gray-800">
-              <p className="text-xs text-gray-500">
-                Click on nodes to see detailed information. Larger nodes indicate higher revenue.
-              </p>
-            </div>
-          </div>
-        </div>
+    <div className="h-screen flex flex-col lg:flex-row bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+      {/* Header - Full width on mobile */}
+      <div className="p-4 sm:p-6 border-b lg:border-b-0 border-gray-800/50 lg:absolute lg:top-0 lg:left-0 lg:right-0 lg:z-10">
+        <h2 className="text-xl sm:text-2xl font-bold text-white">System Map</h2>
+        <p className="text-gray-400 text-xs sm:text-sm mt-1">Platform relationships and revenue flow</p>
       </div>
 
-      {/* Right side - Details Panel (appears when node is selected) */}
-      {selectedNode && (
-        <div className="w-96 p-4 pl-0">
-          <div className="h-full bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 rounded-xl overflow-hidden">
-            <div className="p-6">
-              {/* Header with close button */}
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="w-12 h-12 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: getNodeColor(selectedNode) }}
-                  >
-                    <div className="text-white">
-                      {getSocialIcon(selectedNode)}
-                    </div>
+      {/* Main Content - Responsive Layout */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden lg:pt-20">
+        {/* Left side - Graph and Legend */}
+        <div className="flex-1 flex flex-col p-2 sm:p-4 overflow-hidden">
+          <div className="flex-1 bg-gray-800/40 backdrop-blur-sm border border-gray-700/50 rounded-xl overflow-hidden flex flex-col min-h-0">
+            {/* Network Graph with Grid Background - Now with proper centering */}
+            <div 
+              className="flex-1 relative overflow-hidden" 
+              style={{
+                backgroundImage: `
+                  linear-gradient(rgba(75, 85, 99, 0.1) 1px, transparent 1px),
+                  linear-gradient(90deg, rgba(75, 85, 99, 0.1) 1px, transparent 1px)
+                `,
+                backgroundSize: '40px 40px',
+                backgroundPosition: 'center center'
+              }}
+            >
+              <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                {/* Draw edges with animation */}
+                {networkEdges.map((edge, idx) => {
+                  const fromNode = networkNodes.find(n => n.id === edge.from);
+                  const toNode = networkNodes.find(n => n.id === edge.to);
+                  if (!fromNode || !toNode) return null;
+
+                  const style = getEdgeStyle(edge.strength);
+                  const isConnectedToSelected = selectedNode === edge.from || selectedNode === edge.to;
+                  
+                  return (
+                    <g key={idx}>
+                      <line
+                        x1={fromNode.x}
+                        y1={fromNode.y}
+                        x2={toNode.x}
+                        y2={toNode.y}
+                        stroke={style.stroke}
+                        strokeWidth={isConnectedToSelected ? 0.6 : 0.4}
+                        strokeDasharray={style.strokeDasharray}
+                        opacity={isConnectedToSelected ? 1 : style.opacity}
+                        className="transition-all duration-500 ease-out"
+                      />
+                      {/* Arrow head */}
+                      <defs>
+                        <marker
+                          id={`arrow-${idx}`}
+                          markerWidth="4"
+                          markerHeight="4"
+                          refX="3.5"
+                          refY="2"
+                          orient="auto"
+                          markerUnits="strokeWidth"
+                        >
+                          <path d="M0,0 L0,4 L4,2 z" fill={style.stroke} />
+                        </marker>
+                      </defs>
+                      <line
+                        x1={fromNode.x}
+                        y1={fromNode.y}
+                        x2={toNode.x}
+                        y2={toNode.y}
+                        stroke={style.stroke}
+                        strokeWidth={isConnectedToSelected ? 0.6 : 0.4}
+                        opacity={isConnectedToSelected ? 1 : style.opacity}
+                        markerEnd={`url(#arrow-${idx})`}
+                        className="transition-all duration-500"
+                      />
+                    </g>
+                  );
+                })}
+
+                {/* Draw nodes with enhanced animation */}
+                {networkNodes.map((node) => {
+                  const baseSize = getNodeSize(node.revenue);
+                  const size = baseSize / 15; // Scale down for viewBox
+                  const isHovered = hoveredNode === node.id;
+                  const isSelected = selectedNode === node.id;
+                  const nodeColor = getNodeColor(node.id);
+                  const isAnimated = animatedNodes.has(node.id);
+                  
+                  return (
+                    <g 
+                      key={node.id}
+                      style={{
+                        opacity: isAnimated ? 1 : 0,
+                        transform: isAnimated ? 'scale(1)' : 'scale(0)',
+                        transformOrigin: `${node.x}px ${node.y}px`,
+                        transition: 'all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                      }}
+                    >
+                      {/* Pulsing glow for selected/hovered */}
+                      {(isHovered || isSelected) && (
+                        <>
+                          <circle
+                            cx={node.x}
+                            cy={node.y}
+                            r={size + 2}
+                            fill={nodeColor}
+                            opacity="0.15"
+                            className="animate-pulse"
+                          />
+                          <circle
+                            cx={node.x}
+                            cy={node.y}
+                            r={size + 1.2}
+                            fill={nodeColor}
+                            opacity="0.25"
+                            className="animate-pulse"
+                            style={{ animationDelay: '0.15s' }}
+                          />
+                        </>
+                      )}
+                      
+                      {/* Outer ring */}
+                      <circle
+                        cx={node.x}
+                        cy={node.y}
+                        r={size + 0.3}
+                        fill="none"
+                        stroke={nodeColor}
+                        strokeWidth={isSelected ? "0.3" : "0.15"}
+                        opacity={isSelected ? 0.8 : 0.4}
+                        className="transition-all duration-300"
+                      />
+                      
+                      {/* Glassmorphism background circle */}
+                      <circle
+                        cx={node.x}
+                        cy={node.y}
+                        r={size}
+                        fill={nodeColor}
+                        fillOpacity="0.15"
+                        stroke={nodeColor}
+                        strokeWidth={isSelected ? "0.25" : "0.15"}
+                        className="backdrop-blur-sm transition-all duration-300"
+                      />
+                      
+                      {/* Main colored circle */}
+                      <circle
+                        cx={node.x}
+                        cy={node.y}
+                        r={size - 0.3}
+                        fill={nodeColor}
+                        opacity="0.9"
+                        className="cursor-pointer transition-all duration-300 hover:opacity-100"
+                        onMouseEnter={() => setHoveredNode(node.id)}
+                        onMouseLeave={() => setHoveredNode(null)}
+                        onClick={() => setSelectedNode(selectedNode === node.id ? null : node.id)}
+                        style={{
+                          filter: (isHovered || isSelected) ? 'brightness(1.3)' : 'brightness(1)',
+                        }}
+                      />
+                      
+                      {/* Social media icon in center */}
+                      <foreignObject
+                        x={node.x - 1.5}
+                        y={node.y - 1.5}
+                        width="3"
+                        height="3"
+                        className="pointer-events-none"
+                      >
+                        <div className="w-full h-full flex items-center justify-center text-white opacity-95">
+                          {getSocialIcon(node.id)}
+                        </div>
+                      </foreignObject>
+                      
+                      {/* Node name */}
+                      <text
+                        x={node.x}
+                        y={node.y - size - 1}
+                        textAnchor="middle"
+                        fill="white"
+                        fontSize="1.8"
+                        fontWeight="700"
+                        className="pointer-events-none drop-shadow-lg"
+                      >
+                        {node.name}
+                      </text>
+                      
+                      {/* Revenue label */}
+                      <text
+                        x={node.x}
+                        y={node.y - size - 0.2}
+                        textAnchor="middle"
+                        fill="rgba(255, 255, 255, 0.8)"
+                        fontSize="1.5"
+                        fontFamily="JetBrains Mono, monospace"
+                        fontWeight="600"
+                        className="pointer-events-none drop-shadow"
+                      >
+                        ₱{(node.revenue / 1000).toFixed(0)}K
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+
+            {/* Legend - Below graph, hidden on mobile when details panel is open */}
+            <div className={`border-t border-gray-800 p-3 sm:p-6 bg-gray-900/50 ${selectedNode ? 'hidden lg:block' : 'block'}`}>
+              <div className="mb-3 sm:mb-4">
+                <h4 className="font-bold text-sm sm:text-base mb-1 flex items-center text-blue-400">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Legend
+                </h4>
+                <p className="text-xs text-gray-500">Understand the connections</p>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
+                <div className="flex items-start">
+                  <div className="w-10 sm:w-12 h-1 bg-green-500 mr-2 sm:mr-3 mt-1.5 sm:mt-2 flex-shrink-0 rounded"></div>
+                  <div>
+                    <p className="text-white font-semibold">Green solid</p>
+                    <p className="text-gray-400 text-xs">Strong synergy</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start">
+                  <div className="w-10 sm:w-12 h-1 bg-yellow-500 mr-2 sm:mr-3 mt-1.5 sm:mt-2 flex-shrink-0 rounded"></div>
+                  <div>
+                    <p className="text-white font-semibold">Yellow solid</p>
+                    <p className="text-gray-400 text-xs">Some reinforcement</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start">
+                  <div className="w-10 sm:w-12 h-1 bg-red-500 mr-2 sm:mr-3 mt-1.5 sm:mt-2 flex-shrink-0 rounded"></div>
+                  <div>
+                    <p className="text-white font-semibold">Red solid</p>
+                    <p className="text-gray-400 text-xs">Weak connection</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start">
+                  <div className="flex items-center mr-2 sm:mr-3 mt-1 flex-shrink-0">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-500"></div>
+                    <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-blue-500 -ml-2 sm:-ml-3"></div>
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg text-white">
-                      {getNodeDetails(selectedNode).node?.name}
-                    </h3>
-                    <p className="text-sm text-gray-400">Platform Details</p>
+                    <p className="text-white font-semibold">Node size</p>
+                    <p className="text-gray-400 text-xs">Revenue volume indicator</p>
                   </div>
                 </div>
-                <button
-                  onClick={() => setSelectedNode(null)}
-                  className="w-8 h-8 rounded-lg bg-gray-700/50 hover:bg-red-500/30 border border-gray-600 hover:border-red-500/50 flex items-center justify-center transition-colors text-gray-400 hover:text-red-400"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
               </div>
 
-              {/* Performance Metrics */}
-              {getNodeDetails(selectedNode).channel ? (
-                <div className="space-y-4">
-                  <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                    <div className="text-xs text-gray-400 mb-1">Revenue Generated</div>
-                    <div className="text-2xl font-bold text-white">
-                      ₱{(getNodeDetails(selectedNode).node?.revenue || 0).toLocaleString()}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                      <div className="text-xs text-gray-400 mb-1">Ad Spend</div>
-                      <div className="text-lg font-bold text-white">
-                        ₱{(getNodeDetails(selectedNode).channel?.spend || 0).toLocaleString()}
-                      </div>
-                    </div>
-
-                    <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                      <div className="text-xs text-gray-400 mb-1">ROI</div>
-                      <div className="text-lg font-bold text-white">
-                        {getNodeDetails(selectedNode).channel?.roi.toFixed(2)}x
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                    <div className="text-xs text-gray-400 mb-2">Performance Status</div>
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: performanceColors[getNodeDetails(selectedNode).channel?.performance || ''] }}
-                      ></div>
-                      <div className="text-base font-semibold text-white">
-                        {getNodeDetails(selectedNode).channel?.performance}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-                    <p className="text-xs text-blue-200/80">
-                      This platform is{' '}
-                      {getNodeDetails(selectedNode).channel?.performance === 'Exceptional' || 
-                       getNodeDetails(selectedNode).channel?.performance === 'Excellent' 
-                        ? 'performing well' 
-                        : 'underperforming'}{' '}
-                      and generating{' '}
-                      {((getNodeDetails(selectedNode).node?.revenue || 0) / networkNodes.reduce((sum, n) => sum + n.revenue, 0) * 100).toFixed(1)}%{' '}
-                      of total revenue.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-gray-800/50 rounded-lg p-6 text-center border border-gray-700">
-                  <div className="text-gray-400 text-sm">
-                    No detailed metrics available for this platform yet.
-                  </div>
-                </div>
-              )}
+              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-800">
+                <p className="text-xs text-gray-500">
+                  Click on nodes to see detailed information and relationships. Larger nodes indicate higher revenue.
+                </p>
+              </div>
             </div>
           </div>
         </div>
-      )}
+
+        {/* Right side - Details Panel (Desktop) / Bottom Panel (Mobile) */}
+        {selectedNode && (
+          <div className="lg:w-96 p-2 sm:p-4 lg:pl-0 animate-slide-in lg:overflow-auto">
+            <div className="h-full bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 rounded-xl overflow-auto max-h-[60vh] lg:max-h-none">
+              <div className="p-4 sm:p-6">
+                {/* Header with close button */}
+                <div className="flex items-start justify-between mb-4 sm:mb-6">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div 
+                      className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-lg"
+                      style={{ backgroundColor: getNodeColor(selectedNode) }}
+                    >
+                      <div className="text-white">
+                        {getSocialIcon(selectedNode)}
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-base sm:text-xl text-white">
+                        {getNodeDetails(selectedNode).node?.name}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-gray-400">Platform Details</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedNode(null)}
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gray-700/50 hover:bg-red-500/30 border border-gray-600 hover:border-red-500/50 flex items-center justify-center transition-all text-gray-400 hover:text-red-400"
+                  >
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Performance Metrics */}
+                {getNodeDetails(selectedNode).channel ? (
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="bg-gradient-to-br from-gray-800/80 to-gray-800/40 rounded-lg p-3 sm:p-4 border border-gray-700 shadow-lg">
+                      <div className="text-xs text-gray-400 mb-1">Revenue Generated</div>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">
+                        ₱{(getNodeDetails(selectedNode).node?.revenue || 0).toLocaleString()}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                      <div className="bg-gray-800/50 rounded-lg p-3 sm:p-4 border border-gray-700">
+                        <div className="text-xs text-gray-400 mb-1">Ad Spend</div>
+                        <div className="text-base sm:text-lg font-bold text-white">
+                          ₱{(getNodeDetails(selectedNode).channel?.spend || 0).toLocaleString()}
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-800/50 rounded-lg p-3 sm:p-4 border border-gray-700">
+                        <div className="text-xs text-gray-400 mb-1">ROI</div>
+                        <div className="text-base sm:text-lg font-bold text-white">
+                          {getNodeDetails(selectedNode).channel?.roi.toFixed(2)}x
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-800/50 rounded-lg p-3 sm:p-4 border border-gray-700">
+                      <div className="text-xs text-gray-400 mb-2">Performance Status</div>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full animate-pulse"
+                          style={{ backgroundColor: performanceColors[getNodeDetails(selectedNode).channel?.performance || ''] }}
+                        ></div>
+                        <div className="text-sm sm:text-base font-semibold text-white">
+                          {getNodeDetails(selectedNode).channel?.performance}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Node Connections/Relations */}
+                    <div className="bg-gray-800/50 rounded-lg p-3 sm:p-4 border border-gray-700">
+                      <div className="text-xs text-gray-400 mb-3 font-semibold flex items-center">
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                        Platform Connections
+                      </div>
+                      <div className="space-y-3">
+                        {getNodeConnections(selectedNode).map((conn, idx) => {
+                          const metrics = getConnectionMetrics(conn.fromNode, conn.toNode);
+                          return (
+                            <div key={idx} className="bg-gray-900/50 p-3 rounded border border-gray-700/50">
+                              {/* Connection header */}
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-1 flex-1 text-xs sm:text-sm">
+                                  <span className="text-gray-300 font-medium truncate">
+                                    {getNodeNameById(conn.fromNode)}
+                                  </span>
+                                  <svg className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                  </svg>
+                                  <span className="text-gray-300 font-medium truncate">
+                                    {getNodeNameById(conn.toNode)}
+                                  </span>
+                                </div>
+                                <div 
+                                  className="px-2 py-1 rounded text-xs font-semibold flex-shrink-0 ml-2"
+                                  style={{ 
+                                    backgroundColor: `${getStrengthColor(conn.strength)}20`,
+                                    color: getStrengthColor(conn.strength)
+                                  }}
+                                >
+                                  {conn.strength}
+                                </div>
+                              </div>
+                              
+                              {/* Connection metrics */}
+                              <div className="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-gray-700/50">
+                                <div>
+                                  <div className="text-xs text-gray-500 mb-0.5">Conversions</div>
+                                  <div className="text-sm font-bold text-white">{metrics.conversions}</div>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-gray-500 mb-0.5">Revenue</div>
+                                  <div className="text-sm font-bold text-green-400">₱{(metrics.revenue / 1000).toFixed(0)}K</div>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-gray-500 mb-0.5">CTR</div>
+                                  <div className="text-sm font-bold text-blue-400">{metrics.ctr}%</div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 sm:p-4">
+                      <p className="text-xs text-blue-200/80">
+                        This platform is{' '}
+                        {getNodeDetails(selectedNode).channel?.performance === 'Exceptional' || 
+                         getNodeDetails(selectedNode).channel?.performance === 'Excellent' 
+                          ? 'performing well' 
+                          : getNodeDetails(selectedNode).channel?.performance === 'Satisfactory'
+                          ? 'performing adequately'
+                          : 'underperforming'}{' '}
+                        and generating{' '}
+                        {((getNodeDetails(selectedNode).node?.revenue || 0) / networkNodes.reduce((sum, n) => sum + n.revenue, 0) * 100).toFixed(1)}%{' '}
+                        of total revenue.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-800/50 rounded-lg p-6 text-center border border-gray-700">
+                    <div className="text-gray-400 text-sm">
+                      No detailed metrics available for this platform yet.
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <style jsx>{`
+        @keyframes dash {
+          to {
+            stroke-dashoffset: -1000;
+          }
+        }
+        
+        @keyframes slide-in {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-slide-in {
+          animation: slide-in 0.3s ease-out;
+        }
+
+        @media (min-width: 1024px) {
+          .animate-slide-in {
+            animation: slide-in 0.3s ease-out;
+          }
+        }
+      `}</style>
     </div>
   );
 }
