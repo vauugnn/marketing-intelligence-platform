@@ -3,9 +3,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { pixelService } from '../services/pixel.service';
 import { PixelEventSchema } from '../validators/pixel.validator';
 import { z } from 'zod';
-import { pixelService } from '../services/pixel.service';
-import { PixelEventSchema } from '../validators/pixel.validator';
-import { z } from 'zod';
 
 const router = Router();
 
