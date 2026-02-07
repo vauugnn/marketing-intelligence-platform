@@ -31,6 +31,7 @@ export interface PlatformConnection {
   metadata?: Record<string, any>;
   connected_at: string;
   last_synced_at?: string;
+  sync_progress?: number | null;
 }
 
 // Raw Events (from platforms)
