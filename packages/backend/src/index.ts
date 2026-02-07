@@ -1,18 +1,16 @@
 import 'dotenv/config';
-import dotenv from 'dotenv'
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import session from 'express-session';
+import { validateEnv } from './config/env';
 import integrationsRoutes from './routes/integrations';
 import analyticsRoutes from './routes/analytics';
 import pixelRoutes from './routes/pixel';
 import oauthRoutes from './routes/oauth';
-import oauthRoutes from './routes/oauth';
 import syncRoutes from './routes/sync';
 import attributionRoutes from './routes/attribution';
 import { globalErrorHandler } from './middleware/error-handler.middleware';
-
-// 'dotenv/config' automatically loads .env from project root
 
 // Validate environment before starting server
 validateEnv();
@@ -44,7 +42,6 @@ app.use('/api/oauth', oauthRoutes);
 app.use('/api/integrations', integrationsRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/pixel', pixelRoutes);
-app.use('/api/oauth', oauthRoutes);
 app.use('/api/sync', syncRoutes);
 app.use('/api/attribution', attributionRoutes);
 
