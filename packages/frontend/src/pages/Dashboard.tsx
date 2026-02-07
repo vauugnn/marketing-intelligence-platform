@@ -188,7 +188,7 @@ export default function Dashboard() {
         }
       `}</style>
 
-      <div className="max-w-7xl mx-auto p-4 sm:p-6">
+      <div className="p-4 sm:p-6">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-1">
@@ -312,7 +312,7 @@ export default function Dashboard() {
           {/* System Map Preview */}
           <div className="lg:col-span-1">
             <div 
-              className={`system-map-container rounded-xl overflow-hidden cursor-pointer ${mapExpanded ? 'system-map-expanded' : ''}`}
+              className={`system-map-container rounded-xl overflow-hidden ${mapExpanded ? 'system-map-expanded cursor-default' : 'cursor-pointer'}`}
               onClick={() => !mapExpanded && setMapExpanded(true)}
             >
               <div className="p-4 border-b border-gray-800 flex items-center justify-between">
@@ -335,7 +335,7 @@ export default function Dashboard() {
                 )}
               </div>
 
-              <div className={`grid-pattern relative ${mapExpanded ? 'h-[calc(100%-64px)]' : 'h-56 sm:h-64'}`}>
+              <div className={`grid-pattern relative ${mapExpanded ? 'h-[calc(100%-140px)]' : 'h-56 sm:h-64'}`}>
                 <svg className="w-full h-full">
                   {/* Draw edges */}
                   {networkEdges.map((edge, idx) => {
@@ -436,37 +436,39 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Legend */}
-        <div className="metric-card p-4 rounded-xl">
-          <h4 className="font-bold text-base mb-3 flex items-center">
-            <svg className="w-4 h-4 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            System Map Legend
-          </h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-            <div className="flex items-center">
-              <div className="w-6 h-0.5 bg-white opacity-80 mr-2"></div>
-              <span className="text-gray-300"><strong>Thick solid</strong> = Strong synergy</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-6 h-0.5 bg-white opacity-50 mr-2"></div>
-              <span className="text-gray-300"><strong>Medium</strong> = Some reinforcement</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-6 h-0.5 bg-white opacity-30 mr-2" style={{ backgroundImage: 'repeating-linear-gradient(to right, white 0, white 2px, transparent 2px, transparent 6px)' }}></div>
-              <span className="text-gray-300"><strong>Dashed</strong> = Weak connection</span>
-            </div>
-            <div className="flex items-center">
-              <div className="flex items-center mr-2">
-                <div className="w-5 h-5 rounded-full bg-blue-500"></div>
-                <div className="w-3 h-3 rounded-full bg-blue-500 -ml-1.5"></div>
-              </div>
-              <span className="text-gray-300"><strong>Node size</strong> = Revenue volume</span>
+              {/* Legend - only visible when expanded */}
+              {mapExpanded && (
+                <div className="p-4 border-t border-gray-800">
+                  <h4 className="font-bold text-sm mb-3 flex items-center">
+                    <svg className="w-4 h-4 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Legend
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="flex items-center">
+                      <div className="w-6 h-0.5 bg-white opacity-80 mr-2"></div>
+                      <span className="text-gray-300"><strong>Thick solid</strong> = Strong synergy</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-6 h-0.5 bg-white opacity-50 mr-2"></div>
+                      <span className="text-gray-300"><strong>Medium</strong> = Some reinforcement</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-6 h-0.5 bg-white opacity-30 mr-2" style={{ backgroundImage: 'repeating-linear-gradient(to right, white 0, white 2px, transparent 2px, transparent 6px)' }}></div>
+                      <span className="text-gray-300"><strong>Dashed</strong> = Weak connection</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="flex items-center mr-2">
+                        <div className="w-5 h-5 rounded-full bg-blue-500"></div>
+                        <div className="w-3 h-3 rounded-full bg-blue-500 -ml-1.5"></div>
+                      </div>
+                      <span className="text-gray-300"><strong>Node size</strong> = Revenue volume</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
