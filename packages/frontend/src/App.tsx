@@ -4,7 +4,6 @@ import Dashboard from './pages/Dashboard';
 import Integrations from './pages/Integrations';
 import SystemMap from './pages/SystemMap';
 import Recommendations from './pages/Recommendations';
-import { ToastContainer } from './components/ui/Toast';
 
 function App() {
   return (
@@ -21,7 +20,6 @@ function App() {
           </Routes>
         </main>
       </div>
-      <ToastContainer />
     </Router>
   );
 }
