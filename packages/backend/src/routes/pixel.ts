@@ -3,6 +3,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { pixelService } from '../services/pixel.service';
 import { PixelEventSchema } from '../validators/pixel.validator';
 import { z } from 'zod';
+import { pixelService } from '../services/pixel.service';
+import { PixelEventSchema } from '../validators/pixel.validator';
+import { z } from 'zod';
 
 const router = Router();
 
@@ -10,12 +13,6 @@ const router = Router();
 router.post('/generate', async (req, res) => {
   try {
     const pixelId = `pix_${uuidv4().replace(/-/g, '')}`;
-
-    // TODO: If user is authenticated, associate pixel with user
-    // const userId = req.user?.id;
-    // if (userId) {
-    //   await pixelService.associatePixelWithUser(pixelId, userId);
-    // }
 
     res.json({
       success: true,

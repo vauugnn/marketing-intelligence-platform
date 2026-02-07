@@ -3,6 +3,8 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
+import path from 'path';
+import { validateEnv } from './config/env';
 import integrationsRoutes from './routes/integrations';
 import analyticsRoutes from './routes/analytics';
 import pixelRoutes from './routes/pixel';
