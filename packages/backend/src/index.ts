@@ -11,6 +11,11 @@ import syncRoutes from './routes/sync';
 import { globalErrorHandler } from './middleware/error-handler.middleware';
 
 
+// Load environment variables from project root
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+
+// Validate environment before starting server
+validateEnv();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
