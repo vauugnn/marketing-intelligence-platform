@@ -6,8 +6,11 @@ import { googleAnalyticsService } from './platforms/google-analytics.service';
 import { metaService } from './platforms/meta.service';
 import { stripeService } from './platforms/stripe.service';
 import { paypalService } from './platforms/paypal.service';
+import { mailchimpService } from './platforms/mailchimp.service';
+import { hubspotService } from './platforms/hubspot.service';
 import { getHistoricalDateRange } from '../utils/date';
 import { logger } from '../utils/logger';
+import * as attributionService from './attribution.service';
 
 /**
  * Maps platform names to their service implementations.
@@ -18,6 +21,8 @@ function getPlatformService(platform: Platform): PlatformService | null {
     case 'meta': return metaService;
     case 'stripe': return stripeService;
     case 'paypal': return paypalService;
+    case 'mailchimp': return mailchimpService;
+    case 'hubspot': return hubspotService;
     default: return null;
   }
 }
@@ -85,6 +90,17 @@ export async function syncHistoricalData(userId: string, platform: Platform): Pr
       }
 
       logger.info('SyncService', `Inserted ${events.length} events into raw_events for ${platform}`);
+
+      // Trigger attribution for payment platforms
+      if (platform === 'stripe' || platform === 'paypal') {
+        logger.info('SyncService', `Triggering attribution for ${platform} transactions`, { userId });
+        try {
+          await attributionService.attributeRecentTransactions(userId, events);
+        } catch (attributionError) {
+          // Log but don't fail the sync
+          logger.error('SyncService', `Attribution failed for ${platform}`, attributionError);
+        }
+      }
     }
 
     // 5. Update connection status to 'connected' and set last_synced_at
