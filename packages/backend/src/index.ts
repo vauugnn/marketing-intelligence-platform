@@ -1,8 +1,8 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
-import dotenv from 'dotenv';
 import integrationsRoutes from './routes/integrations';
 import analyticsRoutes from './routes/analytics';
 import pixelRoutes from './routes/pixel';
@@ -10,8 +10,7 @@ import oauthRoutes from './routes/oauth';
 import syncRoutes from './routes/sync';
 import { globalErrorHandler } from './middleware/error-handler.middleware';
 
-// Load environment variables
-dotenv.config();
+
 
 const app = express();
 const PORT = process.env.PORT || 3001;
