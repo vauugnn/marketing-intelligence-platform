@@ -26,6 +26,22 @@ export function formatCurrency(amount: number, currency: string = 'PHP'): string
   }).format(amount);
 }
 
+export function normalizeChannel(channel: string): string {
+  const normalized = channel.toLowerCase().trim();
+
+  const channelMap: Record<string, string> = {
+    fb: 'facebook',
+    ig: 'instagram',
+    'organic search': 'google',
+    'paid search': 'google',
+    cpc: 'google',
+    email: 'email',
+    'social media': 'social',
+  };
+
+  return channelMap[normalized] || normalized;
+}
+
 export function parseUTMParams(url: string): {
   utm_source?: string;
   utm_medium?: string;

@@ -1,67 +1,79 @@
 import { Router } from 'express';
+import { authMiddleware } from '../middleware/auth.middleware';
+import { asyncHandler } from '../middleware/error-handler.middleware';
+import {
+  getChannelPerformance,
+  analyzeChannelSynergies,
+  generateRecommendations,
+  getJourneyPatterns,
+  identifyChannelRoles,
+} from '../services/synergy.service';
+import type { DateRange } from '@shared/types';
 
 const router = Router();
 
+/** Parses startDate/endDate query params, defaulting to last 30 days. */
+function parseDateRange(query: Record<string, any>): DateRange {
+  const end = query.endDate ? String(query.endDate) : new Date().toISOString();
+  const start = query.startDate
+    ? String(query.startDate)
+    : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  return { start, end };
+}
+
 // GET /api/analytics/performance - Get channel performance data
-router.get('/performance', (req, res) => {
-  res.json({
-    success: true,
-    data: [
-      { channel: 'Email', revenue: 40000, spend: 1000, roi: 3900, performance: 'Exceptional' },
-      { channel: 'Facebook', revenue: 35000, spend: 5000, roi: 600, performance: 'Excellent' },
-      { channel: 'Google Ads', revenue: 25000, spend: 8000, roi: 212, performance: 'Satisfactory' },
-      { channel: 'Instagram Bio', revenue: 12000, spend: 0, roi: Infinity, performance: 'Exceptional' },
-      { channel: 'Instagram Ads', revenue: 2000, spend: 4000, roi: -50, performance: 'Failing' }
-    ]
-  });
-});
+router.get(
+  '/performance',
+  authMiddleware,
+  asyncHandler(async (req, res) => {
+    const dateRange = parseDateRange(req.query);
+    const data = await getChannelPerformance(req.userId!, dateRange);
+    res.json({ success: true, data });
+  })
+);
 
 // GET /api/analytics/synergies - Get channel synergy data
-router.get('/synergies', (req, res) => {
-  res.json({
-    success: true,
-    data: [
-      { channel_a: 'Facebook', channel_b: 'Email', synergy_score: 5.0, frequency: 45 },
-      { channel_a: 'Facebook', channel_b: 'Google', synergy_score: 2.5, frequency: 45 },
-      { channel_a: 'Email', channel_b: 'Purchase', synergy_score: 3.2, frequency: 70 }
-    ]
-  });
-});
+router.get(
+  '/synergies',
+  authMiddleware,
+  asyncHandler(async (req, res) => {
+    const dateRange = parseDateRange(req.query);
+    const data = await analyzeChannelSynergies(req.userId!, dateRange);
+    res.json({ success: true, data });
+  })
+);
 
 // GET /api/analytics/recommendations - Get AI recommendations
-router.get('/recommendations', (req, res) => {
-  res.json({
-    success: true,
-    data: [
-      {
-        type: 'scale',
-        channel: 'Facebook + Email',
-        action: 'Email Facebook clickers within 24 hours',
-        reason: '5x synergy detected',
-        estimated_impact: 50000,
-        confidence: 95,
-        priority: 'high'
-      },
-      {
-        type: 'optimize',
-        channel: 'Google Ads',
-        action: 'Reduce cost or improve landing pages',
-        reason: 'Low ROI (212%) but captures 45% of Facebook viewers',
-        estimated_impact: 15000,
-        confidence: 80,
-        priority: 'medium'
-      },
-      {
-        type: 'stop',
-        channel: 'Instagram Ads',
-        action: 'Cut Instagram Ads budget',
-        reason: 'Isolated (96% alone), losing money (-50% ROI)',
-        estimated_impact: 4000,
-        confidence: 95,
-        priority: 'high'
-      }
-    ]
-  });
-});
+router.get(
+  '/recommendations',
+  authMiddleware,
+  asyncHandler(async (req, res) => {
+    const dateRange = parseDateRange(req.query);
+    const data = await generateRecommendations(req.userId!, dateRange);
+    res.json({ success: true, data });
+  })
+);
+
+// GET /api/analytics/journeys - Get journey patterns
+router.get(
+  '/journeys',
+  authMiddleware,
+  asyncHandler(async (req, res) => {
+    const dateRange = parseDateRange(req.query);
+    const data = await getJourneyPatterns(req.userId!, dateRange);
+    res.json({ success: true, data });
+  })
+);
+
+// GET /api/analytics/channel-roles - Get channel role classifications
+router.get(
+  '/channel-roles',
+  authMiddleware,
+  asyncHandler(async (req, res) => {
+    const dateRange = parseDateRange(req.query);
+    const data = await identifyChannelRoles(req.userId!, dateRange);
+    res.json({ success: true, data });
+  })
+);
 
 export default router;
