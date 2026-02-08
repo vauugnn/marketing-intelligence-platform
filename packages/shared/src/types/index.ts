@@ -1,3 +1,6 @@
+// Business Type
+export type BusinessType = 'sales' | 'leads';
+
 // Platform Types
 export type Platform =
   | 'google_analytics_4'
@@ -111,6 +114,7 @@ export interface ChannelPerformance {
   spend: number;
   roi: number;
   conversions: number;
+  cpl?: number;
   performance_rating: 'exceptional' | 'excellent' | 'satisfactory' | 'poor' | 'failing';
 }
 
@@ -169,6 +173,8 @@ export interface JourneyPattern {
   frequency: number;
   total_revenue: number;
   avg_revenue: number;
+  total_conversions?: number;
+  avg_conversions?: number;
 }
 
 export interface ChannelRole {

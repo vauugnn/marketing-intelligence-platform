@@ -11,6 +11,8 @@ import {
   normalizeChannel,
   calculateROI,
   getPerformanceRating,
+  calculateCPL,
+  getLeadsPerformanceRating,
 } from '@shared/utils';
 import type {
   ConversionJourney,
@@ -21,6 +23,7 @@ import type {
   ChannelRole,
   AIRecommendation,
   DateRange,
+  BusinessType,
 } from '@shared/types';
 
 /**
@@ -168,7 +171,8 @@ export async function getConversionJourneys(
  */
 export async function getChannelPerformance(
   userId: string,
-  dateRange: DateRange
+  dateRange: DateRange,
+  businessType: BusinessType = 'sales'
 ): Promise<ChannelPerformance[]> {
   logger.info('SynergyService', 'Calculating channel performance', { userId, dateRange });
 
@@ -233,21 +237,39 @@ export async function getChannelPerformance(
   const performance: ChannelPerformance[] = [];
   for (const [channel, stats] of channelStats.entries()) {
     const spend = channelSpend.get(channel) || 0;
-    const roi = calculateROI(stats.revenue, spend);
-    const rating = getPerformanceRating(roi) as ChannelPerformance['performance_rating'];
 
-    performance.push({
-      channel,
-      revenue: stats.revenue,
-      spend,
-      roi,
-      conversions: stats.conversions,
-      performance_rating: rating,
-    });
+    if (businessType === 'leads') {
+      const cpl = calculateCPL(spend, stats.conversions);
+      const rating = getLeadsPerformanceRating(cpl, stats.conversions) as ChannelPerformance['performance_rating'];
+      performance.push({
+        channel,
+        revenue: 0,
+        spend,
+        roi: 0,
+        conversions: stats.conversions,
+        cpl: cpl === Infinity ? 0 : Math.round(cpl * 100) / 100,
+        performance_rating: rating,
+      });
+    } else {
+      const roi = calculateROI(stats.revenue, spend);
+      const rating = getPerformanceRating(roi) as ChannelPerformance['performance_rating'];
+      performance.push({
+        channel,
+        revenue: stats.revenue,
+        spend,
+        roi,
+        conversions: stats.conversions,
+        performance_rating: rating,
+      });
+    }
   }
 
-  // Sort by revenue descending
-  performance.sort((a, b) => b.revenue - a.revenue);
+  // Sort by conversions for leads, revenue for sales
+  if (businessType === 'leads') {
+    performance.sort((a, b) => b.conversions - a.conversions);
+  } else {
+    performance.sort((a, b) => b.revenue - a.revenue);
+  }
 
   return performance;
 }
@@ -258,7 +280,8 @@ export async function getChannelPerformance(
  */
 export async function analyzeChannelSynergies(
   userId: string,
-  dateRange: DateRange
+  dateRange: DateRange,
+  businessType: BusinessType = 'sales'
 ): Promise<ChannelSynergy[]> {
   logger.info('SynergyService', 'Analyzing channel synergies', { userId, dateRange });
 
@@ -302,18 +325,26 @@ export async function analyzeChannelSynergies(
   const synergies: ChannelSynergy[] = [];
   for (const [pairKey, stats] of pairStats.entries()) {
     const [channelA, channelB] = pairKey.split('|');
-    const avgPairRevenue = stats.totalRevenue / stats.count;
 
-    // Best solo average between the two channels
-    const soloA = soloRevenue.get(channelA);
-    const soloB = soloRevenue.get(channelB);
-    const bestSoloAvg = Math.max(
-      soloA ? soloA.total / soloA.count : 0,
-      soloB ? soloB.total / soloB.count : 0
-    );
+    let synergyScore: number;
 
-    // Synergy multiplier: how much better together vs best solo
-    const synergyScore = bestSoloAvg > 0 ? avgPairRevenue / bestSoloAvg : 1;
+    if (businessType === 'leads') {
+      // Leads: co-occurrence frequency vs expected (lift)
+      const soloACount = soloRevenue.get(channelA)?.count || 0;
+      const soloBCount = soloRevenue.get(channelB)?.count || 0;
+      const denominator = Math.sqrt(soloACount * soloBCount);
+      synergyScore = denominator > 0 ? stats.count / denominator : 1;
+    } else {
+      // Sales: revenue multiplier
+      const avgPairRevenue = stats.totalRevenue / stats.count;
+      const soloA = soloRevenue.get(channelA);
+      const soloB = soloRevenue.get(channelB);
+      const bestSoloAvg = Math.max(
+        soloA ? soloA.total / soloA.count : 0,
+        soloB ? soloB.total / soloB.count : 0
+      );
+      synergyScore = bestSoloAvg > 0 ? avgPairRevenue / bestSoloAvg : 1;
+    }
 
     // Confidence from sample size: min(95, 20 + 25 * log2(frequency))
     const confidence = Math.min(95, Math.round(20 + 25 * Math.log2(stats.count)));
@@ -339,7 +370,8 @@ export async function analyzeChannelSynergies(
  */
 export async function getJourneyPatterns(
   userId: string,
-  dateRange: DateRange
+  dateRange: DateRange,
+  businessType: BusinessType = 'sales'
 ): Promise<JourneyPattern[]> {
   logger.info('SynergyService', 'Analyzing journey patterns', { userId, dateRange });
 
@@ -364,12 +396,24 @@ export async function getJourneyPatterns(
   // Convert to JourneyPattern array
   const patterns: JourneyPattern[] = [];
   for (const stats of patternMap.values()) {
-    patterns.push({
-      pattern: stats.pattern,
-      frequency: stats.count,
-      total_revenue: stats.totalRevenue,
-      avg_revenue: Math.round((stats.totalRevenue / stats.count) * 100) / 100,
-    });
+    if (businessType === 'leads') {
+      patterns.push({
+        pattern: stats.pattern,
+        frequency: stats.count,
+        total_revenue: 0,
+        avg_revenue: 0,
+        total_conversions: stats.count,
+        avg_conversions: 1,
+      });
+    } else {
+      patterns.push({
+        pattern: stats.pattern,
+        frequency: stats.count,
+        total_revenue: stats.totalRevenue,
+        avg_revenue: Math.round((stats.totalRevenue / stats.count) * 100) / 100,
+        total_conversions: stats.count,
+      });
+    }
   }
 
   // Sort by frequency descending
@@ -483,16 +527,17 @@ export interface AnalysisData {
 export async function generateRecommendations(
   userId: string,
   dateRange: DateRange,
-  prefetched?: AnalysisData
+  prefetched?: AnalysisData,
+  businessType: BusinessType = 'sales'
 ): Promise<AIRecommendation[]> {
-  logger.info('SynergyService', 'Generating recommendations', { userId, dateRange });
+  logger.info('SynergyService', 'Generating recommendations', { userId, dateRange, businessType });
 
   // Use pre-fetched data or run analyses in parallel
   const [synergies, performance, roles] = prefetched
     ? [prefetched.synergies, prefetched.performance, prefetched.roles]
     : await Promise.all([
-      analyzeChannelSynergies(userId, dateRange),
-      getChannelPerformance(userId, dateRange),
+      analyzeChannelSynergies(userId, dateRange, businessType),
+      getChannelPerformance(userId, dateRange, businessType),
       identifyChannelRoles(userId, dateRange),
     ]);
 
@@ -506,42 +551,54 @@ export async function generateRecommendations(
   // Rule 1: Scale — synergy pairs with score >= 2.0 and confidence >= 50
   for (const syn of synergies) {
     if (syn.synergy_score >= 2.0 && syn.confidence >= 50) {
+      const estimatedImpact = businessType === 'leads'
+        ? Math.round(syn.synergy_score * syn.frequency)
+        : Math.round(
+            syn.synergy_score * syn.frequency * ((perfMap.get(syn.channel_a)?.revenue || 0) + (perfMap.get(syn.channel_b)?.revenue || 0)) / Math.max(1, (perfMap.get(syn.channel_a)?.conversions || 0) + (perfMap.get(syn.channel_b)?.conversions || 0))
+          );
+
       recommendations.push({
         id: `rec-${idCounter++}`,
         type: 'scale',
         channel: `${syn.channel_a} + ${syn.channel_b}`,
         action: `Combine ${syn.channel_a} and ${syn.channel_b} campaigns — run ${syn.channel_b} retargeting on ${syn.channel_a} audience`,
         reason: `${syn.synergy_score}x synergy detected across ${syn.frequency} conversions`,
-        estimated_impact: Math.round(
-          syn.synergy_score * syn.frequency * ((perfMap.get(syn.channel_a)?.revenue || 0) + (perfMap.get(syn.channel_b)?.revenue || 0)) / Math.max(1, (perfMap.get(syn.channel_a)?.conversions || 0) + (perfMap.get(syn.channel_b)?.conversions || 0))
-        ),
+        estimated_impact: estimatedImpact,
         confidence: syn.confidence,
         priority: syn.synergy_score >= 3.0 ? 'high' : 'medium',
         why_it_matters: [
           `Strong synergy (${syn.synergy_score}x) detected between these channels`,
           `Verified across ${syn.frequency} conversion journeys`,
-          `Combined approach yields better ROI than solo performance`
+          businessType === 'leads'
+            ? `Combined approach yields more conversions than solo performance`
+            : `Combined approach yields better ROI than solo performance`
         ],
       });
     }
   }
 
-  // Rule 2: Stop — isolated channels with poor/failing ROI
+  // Rule 2: Stop — isolated channels with poor/failing performance
   for (const role of roles) {
     if (role.primary_role === 'isolated') {
       const perf = perfMap.get(role.channel);
       if (perf && (perf.performance_rating === 'poor' || perf.performance_rating === 'failing')) {
+        const metricLabel = businessType === 'leads'
+          ? `CPL (₱${Math.round(perf.cpl || 0)})`
+          : `ROI (${Math.round(perf.roi)}%)`;
+
         recommendations.push({
           id: `rec-${idCounter++}`,
           type: 'stop',
           channel: role.channel,
           action: `Cut ${role.channel} budget — reallocate to synergistic channels`,
-          reason: `Isolated channel (${role.solo_conversions} solo / ${role.solo_conversions + role.assisted_conversions} total), ${perf.performance_rating} ROI (${Math.round(perf.roi)}%)`,
+          reason: `Isolated channel (${role.solo_conversions} solo / ${role.solo_conversions + role.assisted_conversions} total), ${perf.performance_rating} ${metricLabel}`,
           estimated_impact: perf.spend,
           confidence: 90,
           priority: perf.performance_rating === 'failing' ? 'high' : 'medium',
           why_it_matters: [
-            `Channel acts in isolation with ${perf.performance_rating} ROI`,
+            businessType === 'leads'
+              ? `Channel acts in isolation with ${perf.performance_rating} CPL`
+              : `Channel acts in isolation with ${perf.performance_rating} ROI`,
             `Low contribution to other channel conversions`,
             `Budget can be better utilized in synergistic channels`
           ],
@@ -550,23 +607,33 @@ export async function generateRecommendations(
     }
   }
 
-  // Rule 3: Optimize — non-isolated channels with below-target ROI (poor/failing)
+  // Rule 3: Optimize — non-isolated channels with below-target performance
   for (const role of roles) {
     if (role.primary_role !== 'isolated') {
       const perf = perfMap.get(role.channel);
       if (perf && (perf.performance_rating === 'poor' || perf.performance_rating === 'failing')) {
+        const metricLabel = businessType === 'leads'
+          ? `CPL is ${perf.performance_rating} (₱${Math.round(perf.cpl || 0)})`
+          : `ROI is ${perf.performance_rating} (${Math.round(perf.roi)}%)`;
+        const estimatedImpact = businessType === 'leads'
+          ? Math.round(perf.conversions * 0.2)
+          : Math.round(perf.revenue * 0.2);
+        const currentMetric = businessType === 'leads'
+          ? `Current CPL (₱${Math.round(perf.cpl || 0)}) is above target`
+          : `Current ROI (${Math.round(perf.roi)}%) is below potential`;
+
         recommendations.push({
           id: `rec-${idCounter++}`,
           type: 'optimize',
           channel: role.channel,
           action: `Optimize ${role.channel} — improve targeting or reduce cost per acquisition`,
-          reason: `Active in ${role.assisted_conversions} assisted conversions but ROI is ${perf.performance_rating} (${Math.round(perf.roi)}%)`,
-          estimated_impact: Math.round(perf.revenue * 0.2),
+          reason: `Active in ${role.assisted_conversions} assisted conversions but ${metricLabel}`,
+          estimated_impact: estimatedImpact,
           confidence: 75,
           priority: 'medium',
           why_it_matters: [
             `Critical support role in ${role.assisted_conversions} conversions`,
-            `Current ROI (${Math.round(perf.roi)}%) is below potential`,
+            currentMetric,
             `Optimization could improve overall funnel efficiency`
           ],
         });

@@ -21,6 +21,7 @@ import type {
   ChannelSynergy,
   ChannelRole,
   JourneyPattern,
+  BusinessType,
 } from '@shared/types';
 
 // Compatibility exports / wrappers for legacy tests
@@ -68,8 +69,8 @@ interface CacheEntry {
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const cache = new Map<string, CacheEntry>();
 
-function getCacheKey(userId: string, dateRange: DateRange): string {
-  return `${userId}:${dateRange.start}:${dateRange.end}`;
+function getCacheKey(userId: string, dateRange: DateRange, businessType: BusinessType = 'sales'): string {
+  return `${userId}:${dateRange.start}:${dateRange.end}:${businessType}`;
 }
 
 function getCached(key: string): AIRecommendation[] | null {
@@ -136,9 +137,14 @@ function buildPrompt(
   synergies: ChannelSynergy[],
   roles: ChannelRole[],
   patterns: JourneyPattern[],
-  ruleBasedRecs: AIRecommendation[]
+  ruleBasedRecs: AIRecommendation[],
+  businessType: BusinessType = 'sales'
 ): string {
-  return `You are a senior marketing analytics consultant advising a Philippine business (₱ PHP currency).
+  const intro = businessType === 'leads'
+    ? `You are a senior marketing analytics consultant advising a Philippine lead generation business (₱ PHP currency). This business measures success by conversion volume and cost-per-lead (CPL), NOT by revenue.`
+    : `You are a senior marketing analytics consultant advising a Philippine business (₱ PHP currency).`;
+
+  return `${intro}
 
 ## Input Data
 
@@ -173,6 +179,7 @@ ${JSON.stringify(ruleBasedRecs, null, 2)}
 - Use ₱ symbol for currency values
 - Keep "action" under 120 characters
 - Keep "ai_explanation" under 300 characters
+${businessType === 'leads' ? '- Focus on conversion counts and CPL, not revenue or ROI' : ''}
 
 ## Output Format
 Return strictly valid JSON matching this schema:
@@ -253,14 +260,15 @@ function mergeResults(
 
 export async function enhanceRecommendationsWithAI(
   userId: string,
-  dateRange: DateRange
+  dateRange: DateRange,
+  businessType: BusinessType = 'sales'
 ): Promise<AIRecommendation[]> {
   // 1. Fetch all analysis data once
   const [performance, synergies, roles, patterns] = await Promise.all([
-    getChannelPerformance(userId, dateRange),
-    analyzeChannelSynergies(userId, dateRange),
+    getChannelPerformance(userId, dateRange, businessType),
+    analyzeChannelSynergies(userId, dateRange, businessType),
     identifyChannelRoles(userId, dateRange),
-    getJourneyPatterns(userId, dateRange),
+    getJourneyPatterns(userId, dateRange, businessType),
   ]);
 
   // 2. Generate rule-based recommendations with pre-fetched data (no duplicate queries)
@@ -268,12 +276,12 @@ export async function enhanceRecommendationsWithAI(
     synergies,
     performance,
     roles,
-  });
+  }, businessType);
 
   if (ruleBasedRecs.length === 0) return [];
 
   // 3. Check cache
-  const cacheKey = getCacheKey(userId, dateRange);
+  const cacheKey = getCacheKey(userId, dateRange, businessType);
   const cached = getCached(cacheKey);
   if (cached) {
     logger.info('GeminiService', 'Returning cached AI recommendations', { userId });
@@ -294,7 +302,7 @@ export async function enhanceRecommendationsWithAI(
       generationConfig,
     });
 
-    const prompt = buildPrompt(performance, synergies, roles, patterns, ruleBasedRecs);
+    const prompt = buildPrompt(performance, synergies, roles, patterns, ruleBasedRecs, businessType);
     const result = await model.generateContent(prompt);
     const text = result.response.text();
 

@@ -1,12 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import { supabase } from '../config/supabase';
+import type { BusinessType } from '@shared/types';
 
-// Augment Express Request type to include userId and userEmail
+// Augment Express Request type to include userId, userEmail, and businessType
 declare global {
   namespace Express {
     interface Request {
       userId?: string;
       userEmail?: string;
+      businessType?: BusinessType;
     }
   }
 }
@@ -40,6 +42,7 @@ export async function authMiddleware(
 
     req.userId = user.id;
     req.userEmail = user.email;
+    req.businessType = user.user_metadata?.business_type === 'leads' ? 'leads' : 'sales';
     next();
   } catch {
     res.status(401).json({ success: false, error: 'Authentication failed' });
