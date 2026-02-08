@@ -73,23 +73,23 @@ export default function Recommendations() {
 
   const priorityMeta: Record<
     Priority,
-    { label: string; icon: string; gradient: string; count: number }
+    { label: string; dot: string; gradient: string; count: number }
   > = {
     high: {
       label: 'High Priority',
-      icon: '🔥',
+      dot: '#ef4444',
       gradient: 'from-red-400 to-orange-400',
       count: grouped.high.length,
     },
     medium: {
       label: 'Medium Priority',
-      icon: '⚡',
+      dot: '#f59e0b',
       gradient: 'from-yellow-400 to-amber-400',
       count: grouped.medium.length,
     },
     low: {
       label: 'Low Priority',
-      icon: '💡',
+      dot: '#3b82f6',
       gradient: 'from-blue-400 to-cyan-400',
       count: grouped.low.length,
     },
@@ -101,7 +101,6 @@ export default function Recommendations() {
       bg: 'rgba(16, 185, 129, 0.08)',
       border: 'rgba(16, 185, 129, 0.25)',
       text: 'text-emerald-400',
-      icon: '🟢',
       label: 'Scale',
       btnBg:
         'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500',
@@ -111,7 +110,6 @@ export default function Recommendations() {
       bg: 'rgba(245, 158, 11, 0.08)',
       border: 'rgba(245, 158, 11, 0.25)',
       text: 'text-amber-400',
-      icon: '🟡',
       label: 'Optimize',
       btnBg:
         'bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500',
@@ -121,7 +119,6 @@ export default function Recommendations() {
       bg: 'rgba(239, 68, 68, 0.08)',
       border: 'rgba(239, 68, 68, 0.25)',
       text: 'text-red-400',
-      icon: '🔴',
       label: 'Stop',
       btnBg:
         'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500',
@@ -151,233 +148,200 @@ export default function Recommendations() {
           isApplied ? 'opacity-60' : ''
         }`}
         style={{
-          background: `linear-gradient(135deg, rgba(30,30,40,0.8) 0%, rgba(20,20,30,0.9) 100%)`,
+          background: 'linear-gradient(135deg, rgba(30,30,40,0.8) 0%, rgba(20,20,30,0.9) 100%)',
           backdropFilter: 'blur(10px)',
           border: `1px solid ${theme.border}`,
-          borderLeft: `4px solid ${theme.accent}`,
         }}
       >
-        {/* Card header */}
-        <div className="p-5">
-          <div className="flex items-start gap-3">
-            {/* Type icon */}
-            <span className="text-2xl mt-0.5 shrink-0">{theme.icon}</span>
-
-            <div className="flex-1 min-w-0">
-              {/* Top row: title + badges */}
-              <div className="flex items-center flex-wrap gap-2 mb-1">
-                <h3 className="font-bold text-base text-white truncate">
-                  {rec.channel}
-                </h3>
-                <span
-                  className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                  style={{
-                    background: theme.bg,
-                    color: theme.accent,
-                    border: `1px solid ${theme.border}`,
-                  }}
-                >
-                  {theme.label}
+        <div className="p-4">
+          {/* Top: type dot + badge + confidence */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                style={{ background: theme.accent }}
+              />
+              <span
+                className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                style={{
+                  background: theme.bg,
+                  color: theme.accent,
+                  border: `1px solid ${theme.border}`,
+                }}
+              >
+                {theme.label}
+              </span>
+              {isApplied && (
+                <span className="text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                  Applied
                 </span>
-                {isApplied && (
-                  <span className="text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                    Applied
-                  </span>
-                )}
-              </div>
-
-              {/* Action description */}
-              <p className="text-sm text-gray-400 leading-relaxed">
-                {rec.action}
-              </p>
-
-              {/* Metrics row */}
-              <div className="mt-4 grid grid-cols-3 gap-3">
-                {/* ROI Impact */}
-                <div
-                  className="rounded-lg p-3"
-                  style={{
-                    background: 'rgba(0,0,0,0.3)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                  }}
-                >
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-1">
-                    Est. Impact
-                  </p>
-                  <p className={`text-lg font-bold font-mono ${theme.text}`}>
-                    {rec.type === 'stop' ? '-' : '+'}₱
-                    {rec.estimated_impact.toLocaleString()}
-                  </p>
-                  <p className="text-[10px] text-gray-500">per month</p>
-                </div>
-
-                {/* Confidence */}
-                <div
-                  className="rounded-lg p-3"
-                  style={{
-                    background: 'rgba(0,0,0,0.3)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                  }}
-                >
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-1">
-                    Confidence
-                  </p>
-                  <div className="flex items-end gap-1.5">
-                    <span className="text-lg font-bold font-mono text-white">
-                      {rec.confidence}%
-                    </span>
-                  </div>
-                  {/* Visual bar */}
-                  <div className="mt-1.5 w-full h-1.5 rounded-full bg-gray-700/60 overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${rec.confidence}%`,
-                        background: `linear-gradient(90deg, ${theme.accent}88, ${theme.accent})`,
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Projected trend */}
-                <div
-                  className="rounded-lg p-3"
-                  style={{
-                    background: 'rgba(0,0,0,0.3)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                  }}
-                >
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-1">
-                    6-mo Trend
-                  </p>
-                  <div className="flex items-end gap-[3px] h-8">
-                    {sparkData(idx).map((v, i) => (
-                      <div
-                        key={i}
-                        className="flex-1 rounded-sm transition-all"
-                        style={{
-                          height: `${Math.max(v * 100, 10)}%`,
-                          background:
-                            i === sparkData(idx).length - 1
-                              ? theme.accent
-                              : `${theme.accent}55`,
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-[10px] text-gray-500 mt-1">
-                    {priority === 'high'
-                      ? '↗ Strong upside'
-                      : priority === 'medium'
-                      ? '→ Moderate gain'
-                      : '↗ Gradual lift'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Expanded details */}
-              {isExpanded && (
-                <div className="mt-4 space-y-3 animate-[fadeIn_0.2s_ease-out]">
-                  {/* Before / After */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div
-                      className="rounded-lg p-3"
-                      style={{
-                        background: 'rgba(0,0,0,0.35)',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                      }}
-                    >
-                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                        Current State
-                      </p>
-                      <p className="text-sm text-gray-300 leading-relaxed">
-                        {rec.reason}
-                      </p>
-                    </div>
-                    <div
-                      className="rounded-lg p-3"
-                      style={{
-                        background: 'rgba(0,0,0,0.35)',
-                        border: `1px solid ${theme.border}`,
-                      }}
-                    >
-                      <p
-                        className="text-[10px] font-semibold uppercase tracking-wider mb-1"
-                        style={{ color: theme.accent }}
-                      >
-                        After Implementation
-                      </p>
-                      <p className="text-sm text-gray-300 leading-relaxed">
-                        {rec.type === 'scale' &&
-                          `Increased budget will capture ${Math.round(
-                            rec.confidence * 1.2
-                          )}% more conversions with optimized targeting.`}
-                        {rec.type === 'optimize' &&
-                          `Optimized campaign will improve efficiency by ${rec.confidence}% through better targeting and ad creative.`}
-                        {rec.type === 'stop' &&
-                          `Resources reallocated to high-performing channels, eliminating ${rec.confidence}% of wasted spend.`}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Reasoning */}
-                  <div
-                    className="rounded-lg p-3"
-                    style={{
-                      background: 'rgba(0,0,0,0.35)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                    }}
-                  >
-                    <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                      Why This Matters
-                    </p>
-                    <ul className="text-sm text-gray-400 space-y-1.5">
-                      <li className="flex items-start gap-2">
-                        <span className="text-gray-600 mt-0.5">&#8226;</span>
-                        Based on {30 + ((idx * 13) % 60)} days of performance
-                        data
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-gray-600 mt-0.5">&#8226;</span>
-                        Analyzed {1000 + ((idx * 317) % 4000)} conversions
-                        across channel
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-gray-600 mt-0.5">&#8226;</span>
-                        Industry benchmark:{' '}
-                        {rec.confidence > 70
-                          ? 'Above average'
-                          : 'Below average'}
-                      </li>
-                    </ul>
-                  </div>
-                </div>
               )}
+            </div>
+            <span className="text-xs text-gray-500 font-mono">{rec.confidence}%</span>
+          </div>
 
-              {/* Actions */}
-              <div className="mt-4 flex items-center gap-2">
-                <button
-                  onClick={() => applyRecommendation(idx)}
-                  disabled={isApplied}
-                  className={`${theme.btnBg} text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed`}
-                >
-                  {isApplied ? '✓ Applied' : '✓ Apply'}
-                </button>
-                <button
-                  onClick={() => toggleExpand(idx)}
-                  className="bg-white/[0.06] hover:bg-white/[0.1] text-gray-300 text-xs font-medium px-3.5 py-1.5 rounded-lg transition-all border border-white/[0.08]"
-                >
-                  {isExpanded ? '▲ Less' : '▼ Learn More'}
-                </button>
-                <button
-                  onClick={() => dismissRecommendation(idx)}
-                  className="bg-white/[0.04] hover:bg-red-500/10 text-gray-500 hover:text-red-400 text-xs font-medium px-3.5 py-1.5 rounded-lg transition-all border border-white/[0.06]"
-                >
-                  ✕ Dismiss
-                </button>
+          {/* Channel name */}
+          <h3 className="font-bold text-sm text-white truncate mb-1">{rec.channel}</h3>
+
+          {/* Action text — clamped in square mode */}
+          <p className="text-xs text-gray-400 leading-relaxed">
+            {rec.action}
+          </p>
+
+          {/* Metrics row */}
+          <div className="mt-4 grid grid-cols-3 gap-3">
+            <div
+              className="rounded-lg p-3"
+              style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-1">
+                Est. Impact
+              </p>
+              <p className={`text-lg font-bold font-mono ${theme.text}`}>
+                {rec.type === 'stop' ? '-' : '+'}₱{rec.estimated_impact.toLocaleString()}
+              </p>
+              <p className="text-[10px] text-gray-500">per month</p>
+            </div>
+
+            <div
+              className="rounded-lg p-3"
+              style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-1">
+                Confidence
+              </p>
+              <div className="flex items-end gap-1.5">
+                <span className="text-lg font-bold font-mono text-white">{rec.confidence}%</span>
+              </div>
+              <div className="mt-1.5 w-full h-1.5 rounded-full bg-gray-700/60 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${rec.confidence}%`,
+                    background: `linear-gradient(90deg, ${theme.accent}88, ${theme.accent})`,
+                  }}
+                />
               </div>
             </div>
+
+            <div
+              className="rounded-lg p-3"
+              style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-1">
+                6-mo Trend
+              </p>
+              <div className="flex items-end gap-[3px] h-8">
+                {sparkData(idx).map((v, i) => (
+                  <div
+                    key={i}
+                    className="flex-1 rounded-sm transition-all"
+                    style={{
+                      height: `${Math.max(v * 100, 10)}%`,
+                      background:
+                        i === sparkData(idx).length - 1
+                          ? theme.accent
+                          : `${theme.accent}55`,
+                    }}
+                  />
+                ))}
+              </div>
+              <p className="text-[10px] text-gray-500 mt-1">
+                {priority === 'high'
+                  ? '↗ Strong upside'
+                  : priority === 'medium'
+                  ? '→ Moderate gain'
+                  : '↗ Gradual lift'}
+              </p>
+            </div>
           </div>
+
+          {/* Actions */}
+          <div className="mt-3 flex items-center gap-1.5">
+            <button
+              onClick={() => applyRecommendation(idx)}
+              disabled={isApplied}
+              className={`${theme.btnBg} text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-lg transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed`}
+            >
+              {isApplied ? 'Applied' : 'Apply'}
+            </button>
+            <button
+              onClick={() => toggleExpand(idx)}
+              className="bg-white/[0.06] hover:bg-white/[0.1] text-gray-300 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-all border border-white/[0.08]"
+            >
+              {isExpanded ? 'Less' : 'More'}
+            </button>
+            <button
+              onClick={() => dismissRecommendation(idx)}
+              className="bg-white/[0.04] hover:bg-red-500/10 text-gray-500 hover:text-red-400 text-[11px] px-2 py-1.5 rounded-lg transition-all border border-white/[0.06] ml-auto"
+            >
+              ×
+            </button>
+          </div>
+
+          {/* Expanded details */}
+          {isExpanded && (
+            <div className="mt-4 space-y-3 animate-[fadeIn_0.2s_ease-out]">
+              {/* Before / After */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div
+                  className="rounded-lg p-3"
+                  style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.06)' }}
+                >
+                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                    Current State
+                  </p>
+                  <p className="text-sm text-gray-300 leading-relaxed">{rec.reason}</p>
+                </div>
+                <div
+                  className="rounded-lg p-3"
+                  style={{ background: 'rgba(0,0,0,0.35)', border: `1px solid ${theme.border}` }}
+                >
+                  <p
+                    className="text-[10px] font-semibold uppercase tracking-wider mb-1"
+                    style={{ color: theme.accent }}
+                  >
+                    After Implementation
+                  </p>
+                  <p className="text-sm text-gray-300 leading-relaxed">
+                    {rec.type === 'scale' &&
+                      `Increased budget will capture ${Math.round(
+                        rec.confidence * 1.2
+                      )}% more conversions with optimized targeting.`}
+                    {rec.type === 'optimize' &&
+                      `Optimized campaign will improve efficiency by ${rec.confidence}% through better targeting and ad creative.`}
+                    {rec.type === 'stop' &&
+                      `Resources reallocated to high-performing channels, eliminating ${rec.confidence}% of wasted spend.`}
+                  </p>
+                </div>
+              </div>
+
+              {/* Reasoning */}
+              <div
+                className="rounded-lg p-3"
+                style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.06)' }}
+              >
+                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                  Why This Matters
+                </p>
+                <ul className="text-sm text-gray-400 space-y-1.5">
+                  <li className="flex items-start gap-2">
+                    <span className="text-gray-600 mt-0.5">&#8226;</span>
+                    Based on {30 + ((idx * 13) % 60)} days of performance data
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-gray-600 mt-0.5">&#8226;</span>
+                    Analyzed {1000 + ((idx * 317) % 4000)} conversions across channel
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-gray-600 mt-0.5">&#8226;</span>
+                    Industry benchmark:{' '}
+                    {rec.confidence > 70 ? 'Above average' : 'Below average'}
+                  </li>
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -402,8 +366,29 @@ export default function Recommendations() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
         * { font-family: 'Outfit', sans-serif; }
-        .rec-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .rec-card:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,0,0,0.35); }
+
+        .rec-metric {
+          background: linear-gradient(135deg, rgba(30, 30, 40, 0.8) 0%, rgba(20, 20, 30, 0.9) 100%);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .rec-metric:hover {
+          transform: translateY(-2px);
+          border-color: rgba(255, 255, 255, 0.2);
+          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .rec-card {
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .rec-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+        }
+
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
 
@@ -420,15 +405,7 @@ export default function Recommendations() {
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-          <div
-            className="rounded-xl p-4"
-            style={{
-              background:
-                'linear-gradient(135deg, rgba(30,30,40,0.8), rgba(20,20,30,0.9))',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255,255,255,0.1)',
-            }}
-          >
+          <div className="rec-metric rounded-xl p-4">
             <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">
               Total Impact
             </p>
@@ -437,15 +414,7 @@ export default function Recommendations() {
             </p>
             <p className="text-[10px] text-gray-500 mt-0.5">per month</p>
           </div>
-          <div
-            className="rounded-xl p-4"
-            style={{
-              background:
-                'linear-gradient(135deg, rgba(30,30,40,0.8), rgba(20,20,30,0.9))',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255,255,255,0.1)',
-            }}
-          >
+          <div className="rec-metric rounded-xl p-4">
             <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">
               Active
             </p>
@@ -454,15 +423,7 @@ export default function Recommendations() {
             </p>
             <p className="text-[10px] text-gray-500 mt-0.5">recommendations</p>
           </div>
-          <div
-            className="rounded-xl p-4"
-            style={{
-              background:
-                'linear-gradient(135deg, rgba(30,30,40,0.8), rgba(20,20,30,0.9))',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255,255,255,0.1)',
-            }}
-          >
+          <div className="rec-metric rounded-xl p-4">
             <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">
               Applied
             </p>
@@ -471,15 +432,7 @@ export default function Recommendations() {
             </p>
             <p className="text-[10px] text-gray-500 mt-0.5">implemented</p>
           </div>
-          <div
-            className="rounded-xl p-4"
-            style={{
-              background:
-                'linear-gradient(135deg, rgba(30,30,40,0.8), rgba(20,20,30,0.9))',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255,255,255,0.1)',
-            }}
-          >
+          <div className="rec-metric rounded-xl p-4">
             <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">
               Dismissed
             </p>
@@ -527,7 +480,10 @@ export default function Recommendations() {
           return (
             <div key={priority} className="mb-6">
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-base">{meta.icon}</span>
+                <div
+                  className="w-3 h-3 rounded-full flex-shrink-0"
+                  style={{ background: meta.dot }}
+                />
                 <h2
                   className={`text-sm font-bold bg-gradient-to-r ${meta.gradient} bg-clip-text text-transparent uppercase tracking-wider`}
                 >
