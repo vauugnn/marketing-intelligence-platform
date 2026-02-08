@@ -75,6 +75,7 @@ export class PixelService {
         metadata: event.metadata || null,
         dedup_key: dedupKey,
         // Extract metadata fields if available
+        page_title: event.metadata?.page_title || null,
         visitor_id: event.metadata?.visitor_id || null,
         visitor_email: event.metadata?.email || null,
         visitor_name: event.metadata?.name || null,

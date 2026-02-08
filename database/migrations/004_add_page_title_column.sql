@@ -1,0 +1,2 @@
+ALTER TABLE pixel_events
+ADD COLUMN IF NOT EXISTS page_title TEXT;
