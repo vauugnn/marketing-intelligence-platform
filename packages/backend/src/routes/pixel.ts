@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { v4 as uuidv4 } from 'uuid';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import { authMiddleware } from '../middleware/auth.middleware';
 import { pixelService } from '../services/pixel.service';
 import { PixelEventSchema } from '../validators/pixel.validator';
 import { z } from 'zod';
@@ -19,9 +19,10 @@ const trackRateLimiter = rateLimit({
 
 // POST /api/pixel/generate - Generate new pixel ID for user
 router.options('/generate', cors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000', credentials: true }));
-router.post('/generate', cors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000', credentials: true }), async (req, res) => {
+router.post('/generate', cors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000', credentials: true }), authMiddleware, async (req, res) => {
   try {
-    const pixelId = `pix_${uuidv4().replace(/-/g, '')}`;
+    const userId = req.userId!;
+    const pixelId = await pixelService.getOrCreatePixel(userId);
 
     res.json({
       success: true,
@@ -34,15 +35,20 @@ router.post('/generate', cors({ origin: process.env.FRONTEND_URL || 'http://loca
     console.error('Pixel generation failed:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to generate pixel'
+      error: 'Failed to retrieve or generate pixel'
     });
   }
 });
 
 // POST /api/pixel/track - Receive pixel events
 // CORS: allow any origin (customer websites embed the pixel cross-origin)
-router.options('/track', cors());
-router.post('/track', cors(), trackRateLimiter, async (req, res) => {
+const pixelCors: cors.CorsOptions = {
+  origin: true,
+  methods: ['POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type'],
+};
+router.options('/track', cors(pixelCors), (_req, res) => res.sendStatus(204));
+router.post('/track', cors(pixelCors), trackRateLimiter, async (req, res) => {
   try {
     // Validate input
     const validatedEvent = PixelEventSchema.parse(req.body);

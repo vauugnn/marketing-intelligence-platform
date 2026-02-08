@@ -318,8 +318,8 @@ export default function Integrations() {
   const loadOrGeneratePixel = async () => {
     try {
       const result = await api.generatePixel();
-      if (result.success) {
-        setPixelData(result.data);
+      if (result) {
+        setPixelData(result);
       }
     } catch (error) {
       console.error('Failed to generate pixel:', error);
@@ -499,7 +499,7 @@ export default function Integrations() {
                         <p className="text-xs text-muted-foreground">
                           Paste in your{' '}
                           <code className="bg-primary/10 px-1 py-0.5 rounded text-primary text-xs">&lt;head&gt;</code>{' '}
-                          tag or use Google Tag Manager.
+                          tag
                         </p>
                       </div>
                     </div>

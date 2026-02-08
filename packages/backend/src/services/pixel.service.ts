@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { supabase } from '../config/supabase';
+import { supabase, supabaseAdmin } from '../config/supabase';
 import { PixelEventInput } from '../validators/pixel.validator';
 
 export class PixelService {
@@ -9,6 +9,41 @@ export class PixelService {
   private generateDedupKey(event: PixelEventInput): string {
     const raw = `${event.pixel_id}|${event.session_id}|${event.event_type}|${event.page_url}|${event.timestamp}`;
     return crypto.createHash('sha256').update(raw).digest('hex');
+  }
+
+  /**
+   * Get existing pixel ID for user or create a new one
+   */
+  async getOrCreatePixel(userId: string): Promise<string> {
+    // Check for existing pixel
+    const { data: user, error: fetchError } = await supabaseAdmin
+      .from('users')
+      .select('pixel_id')
+      .eq('id', userId)
+      .single();
+
+    if (fetchError) {
+      throw new Error(`Failed to fetch user: ${fetchError.message}`);
+    }
+
+    if (user?.pixel_id) {
+      return user.pixel_id;
+    }
+
+    // Generate new pixel ID
+    const pixelId = `pix_${crypto.randomUUID().replace(/-/g, '')}`;
+
+    // Store in user profile
+    const { error: updateError } = await supabaseAdmin
+      .from('users')
+      .update({ pixel_id: pixelId })
+      .eq('id', userId);
+
+    if (updateError) {
+      throw new Error(`Failed to assign pixel ID: ${updateError.message}`);
+    }
+
+    return pixelId;
   }
 
   /**
