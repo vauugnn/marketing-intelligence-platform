@@ -192,7 +192,7 @@ function GettingStartedWalkthrough({
   ];
 
   return (
-    <div className="mb-6 bg-blue-500/5 border border-blue-500/20 rounded-xl p-5">
+    <div className="mb-6 integration-section rounded-xl p-5">
       <div className="flex items-center gap-2 mb-1">
         <Zap className="w-5 h-5 text-blue-400" />
         <h3 className="text-base font-bold text-blue-300">Getting Started</h3>
@@ -244,7 +244,7 @@ function TroubleshootingSection() {
         <HelpCircle className="w-4 h-4 text-gray-500" />
         <h3 className="text-sm font-semibold text-gray-300">Troubleshooting</h3>
       </div>
-      <div className="bg-gray-900 rounded-xl border border-gray-800 divide-y divide-gray-800">
+      <div className="integration-section rounded-xl divide-y divide-gray-800/50">
         {troubleshootingItems.map((item, index) => {
           const isOpen = openIndex === index;
           const ItemIcon = item.icon;
@@ -277,10 +277,10 @@ function TroubleshootingSection() {
 
 function PlatformCardSkeleton() {
   return (
-    <div className="bg-gray-900 p-4 rounded-xl border border-gray-800 animate-pulse flex flex-col">
-      <div className="w-10 h-10 bg-gray-800 rounded-lg mb-3" />
-      <div className="h-4 bg-gray-800 rounded w-24 mb-2" />
-      <div className="h-3 bg-gray-800 rounded w-32" />
+    <div className="integration-card p-4 rounded-xl animate-pulse flex flex-col">
+      <div className="w-10 h-10 bg-white/5 rounded-lg mb-3" />
+      <div className="h-4 bg-white/5 rounded w-24 mb-2" />
+      <div className="h-3 bg-white/5 rounded w-32" />
     </div>
   );
 }
@@ -310,7 +310,37 @@ export default function Integrations() {
   const hasPixel = !!pixelData;
 
   return (
-    <div className="p-4 sm:p-6 min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-white">
+      <style>{`
+        .integration-card {
+          background: linear-gradient(135deg, rgba(30, 30, 40, 0.8) 0%, rgba(20, 20, 30, 0.9) 100%);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .integration-card:hover {
+          transform: translateY(-2px);
+          border-color: rgba(255, 255, 255, 0.2);
+          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .integration-card-error {
+          border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .integration-card-error:hover {
+          border-color: rgba(239, 68, 68, 0.5);
+        }
+
+        .integration-section {
+          background: linear-gradient(135deg, rgba(30, 30, 40, 0.8) 0%, rgba(20, 20, 30, 0.9) 100%);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+      `}</style>
+
+      <div className="p-4 sm:p-6">
       {/* Page Header */}
       <div className="mb-6 ml-14 lg:ml-0">
         <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-1">
@@ -325,7 +355,7 @@ export default function Integrations() {
       )}
 
       {/* Tracking Pixel - Critical First Step */}
-      <div className="mb-6 bg-purple-500/5 border border-purple-500/20 rounded-xl p-4 sm:p-5">
+      <div className="mb-6 integration-section rounded-xl p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -341,7 +371,7 @@ export default function Integrations() {
 
         {pixelData && (
           <div className="mt-3">
-            <div className="bg-gray-900/80 rounded-lg p-3 border border-gray-800">
+            <div className="bg-black/30 rounded-lg p-3 border border-white/5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
                 <span className="text-xs font-medium text-gray-400">Pixel ID</span>
                 <code className="bg-purple-500/10 px-2.5 py-0.5 rounded text-purple-300 font-mono text-xs break-all">
@@ -458,8 +488,8 @@ export default function Integrations() {
               <div
                 key={platform.platform}
                 className={cn(
-                  'bg-gray-900 p-4 rounded-xl border border-gray-800 transition-all hover:border-gray-700 flex flex-col',
-                  isError && 'border-red-500/30 hover:border-red-500/50'
+                  'integration-card p-4 rounded-xl flex flex-col',
+                  isError && 'integration-card-error'
                 )}
               >
                 <div className="flex items-start justify-between mb-3">
@@ -545,6 +575,7 @@ export default function Integrations() {
 
       {/* Troubleshooting */}
       <TroubleshootingSection />
+      </div>
     </div>
   );
 }
