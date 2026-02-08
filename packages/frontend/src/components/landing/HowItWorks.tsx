@@ -1,7 +1,16 @@
-import { motion } from 'framer-motion';
+import { useRef } from 'react';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { Eye, Shield, Network, Sparkles, RefreshCw, Zap } from 'lucide-react';
 
 export default function HowItWorks() {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const { scrollYProgress } = useScroll({
+        target: containerRef,
+        offset: ["start end", "end start"]
+    });
+
+    const lineHeight = useTransform(scrollYProgress, [0, 0.5], ["0%", "100%"]);
+
     const steps = [
         {
             icon: Eye,
@@ -36,7 +45,7 @@ export default function HowItWorks() {
     ];
 
     return (
-        <section id="how-it-works" className="py-32 bg-gradient-to-b from-gray-50 to-white dark:from-[#0a0e27] dark:to-[#0f1535]">
+        <section ref={containerRef} id="how-it-works" className="py-32 bg-gradient-to-b from-gray-50 to-white dark:from-[#0a0e27] dark:to-[#0f1535]">
             <div className="max-w-7xl mx-auto px-6 lg:px-8">
                 <motion.div
                     initial={{ opacity: 0, y: 40 }}
@@ -57,7 +66,14 @@ export default function HowItWorks() {
                 </motion.div>
 
                 <div className="relative">
-                    <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#fc763f] via-[#e05a2b] to-[#fc763f] hidden lg:block" />
+                    {/* Background Line (Gray/Faint) */}
+                    <div className="absolute left-1/2 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-800 hidden lg:block" />
+
+                    {/* Animated Progress Line */}
+                    <motion.div
+                        style={{ height: lineHeight }}
+                        className="absolute left-1/2 top-0 w-0.5 bg-gradient-to-b from-[#fc763f] via-[#e05a2b] to-[#fc763f] hidden lg:block origin-top"
+                    />
 
                     <div className="space-y-12 lg:space-y-24">
                         {steps.map((step, index) => (
@@ -71,25 +87,22 @@ export default function HowItWorks() {
                                     }`}
                             >
                                 <div className={`flex-1 ${index % 2 === 0 ? 'lg:text-right' : 'lg:text-left'}`}>
-                                    <motion.div
-                                        whileHover={{ scale: 1.02 }}
-                                        className="bg-white dark:bg-[#162044] p-8 rounded-3xl shadow-lg shadow-gray-200/50 border border-gray-100 dark:border-gray-700 inline-block"
+                                    <div
+                                        className="bg-white dark:bg-[#162044] p-8 rounded-3xl shadow-lg shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-gray-700 inline-block"
                                     >
                                         <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">{step.title}</h3>
                                         <p className="text-gray-600 dark:text-gray-300 max-w-md">{step.description}</p>
-                                    </motion.div>
+                                    </div>
                                 </div>
 
-                                <motion.div
+                                <div
                                     className="relative z-10 flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-[#fc763f] to-[#e05a2b] shadow-xl shadow-orange-500/30"
-                                    whileHover={{ scale: 1.1, rotate: 360 }}
-                                    transition={{ duration: 0.5 }}
                                 >
                                     <step.icon className="w-8 h-8 text-white" />
                                     <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white dark:bg-[#162044] flex items-center justify-center shadow-lg">
                                         <span className="text-sm font-bold text-[#fc763f]">{index + 1}</span>
                                     </div>
-                                </motion.div>
+                                </div>
 
                                 <div className="flex-1" />
                             </motion.div>

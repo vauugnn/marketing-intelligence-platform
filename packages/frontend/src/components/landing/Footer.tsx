@@ -15,22 +15,13 @@ export default function Footer() {
                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#fc763f] to-[#e05a2b] flex items-center justify-center">
                                 <Network className="w-5 h-5 text-white" />
                             </div>
-                            <span className="font-bold text-xl">Marketing Intelligence Platform</span>
+                            <span className="font-bold text-xl">Neuralys</span>
                         </div>
-                        <p className="text-gray-400 mb-6">
-                            See your marketing as a system, not scattered channels.
+                        <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-sm">
+                            The complete marketing intelligence platform for modern growth teams.
                         </p>
                         <div className="flex gap-4">
-                            {[Twitter, Linkedin, Github, Mail].map((Icon, i) => (
-                                <motion.a
-                                    key={i}
-                                    href="#"
-                                    whileHover={{ scale: 1.1, y: -2 }}
-                                    className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-[#fc763f] transition-colors"
-                                >
-                                    <Icon className="w-5 h-5" />
-                                </motion.a>
-                            ))}
+                            {/* Social links would go here */}
                         </div>
                     </motion.div>
 

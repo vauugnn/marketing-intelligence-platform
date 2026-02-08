@@ -4,6 +4,7 @@ import Hero from '../components/landing/Hero';
 import HowItWorks from '../components/landing/HowItWorks';
 import WorkflowSolutions from '../components/landing/WorkflowSolutions';
 import Features from '../components/landing/Features';
+import FAQ from '../components/landing/FAQ';
 import CTA from '../components/landing/CTA';
 import Footer from '../components/landing/Footer';
 
@@ -19,6 +20,7 @@ export default function LandingPage() {
       <HowItWorks />
       <WorkflowSolutions />
       <Features />
+      <FAQ />
       <CTA />
       <Footer />
     </div>

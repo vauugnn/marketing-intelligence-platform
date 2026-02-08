@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart3, Target, TrendingUp, Shield, CheckCircle2, Network } from 'lucide-react';
+import LandingPipeline from './LandingPipeline';
 
 const fadeInUp = {
     initial: { opacity: 0, y: 60 },
@@ -106,73 +107,10 @@ export default function WorkflowSolutions() {
                         transition={{ duration: 0.8 }}
                         className="relative"
                     >
-                        <div className="relative bg-gradient-to-br from-gray-50 to-white rounded-3xl p-8 border border-gray-100 dark:border-gray-700">
-                            <motion.div
-                                className="absolute inset-0 bg-gradient-to-br from-[#fc763f]/5 to-[#e05a2b]/5 rounded-3xl"
-                                animate={{
-                                    background: [
-                                        'linear-gradient(to bottom right, rgba(252, 118, 63, 0.05), rgba(224, 90, 43, 0.05))',
-                                        'linear-gradient(to bottom right, rgba(224, 90, 43, 0.05), rgba(252, 118, 63, 0.05))',
-                                        'linear-gradient(to bottom right, rgba(252, 118, 63, 0.05), rgba(224, 90, 43, 0.05))'
-                                    ]
-                                }}
-                                transition={{ duration: 4, repeat: Infinity }}
-                            />
-
-                            <svg viewBox="0 0 400 400" className="w-full relative z-10">
-                                <defs>
-                                    <linearGradient id="sphereGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" stopColor="#fc763f" />
-                                        <stop offset="50%" stopColor="#e05a2b" />
-                                        <stop offset="100%" stopColor="#fc763f" />
-                                    </linearGradient>
-                                </defs>
-
-                                <motion.circle
-                                    cx="200" cy="200" r="80"
-                                    fill="url(#sphereGrad)"
-                                    opacity="0.9"
-                                    animate={{
-                                        scale: [1, 1.05, 1],
-                                    }}
-                                    transition={{ duration: 3, repeat: Infinity }}
-                                />
-
-                                <motion.ellipse
-                                    cx="200" cy="200" rx="120" ry="40"
-                                    fill="none"
-                                    stroke="#fc763f"
-                                    strokeWidth="2"
-                                    opacity="0.4"
-                                    animate={{ rotate: 360 }}
-                                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                                    style={{ transformOrigin: '200px 200px' }}
-                                />
-
-                                <motion.ellipse
-                                    cx="200" cy="200" rx="40" ry="120"
-                                    fill="none"
-                                    stroke="#e05a2b"
-                                    strokeWidth="2"
-                                    opacity="0.4"
-                                    animate={{ rotate: -360 }}
-                                    transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-                                    style={{ transformOrigin: '200px 200px' }}
-                                />
-
-                                {[0, 60, 120, 180, 240, 300].map((angle, i) => (
-                                    <motion.circle
-                                        key={angle}
-                                        cx={200 + 140 * Math.cos((angle * Math.PI) / 180)}
-                                        cy={200 + 140 * Math.sin((angle * Math.PI) / 180)}
-                                        r="8"
-                                        fill="#fc763f"
-                                        initial={{ scale: 0 }}
-                                        animate={{ scale: [0, 1, 0.8, 1] }}
-                                        transition={{ duration: 0.5, delay: i * 0.1 }}
-                                    />
-                                ))}
-                            </svg>
+                        {/* Replaced DataPipelineFlow with simpler LandingPipeline (graph only) - removed box styling */}
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-gradient-to-r from-[#fc763f]/10 to-[#e05a2b]/10 blur-3xl -z-10 rounded-full opacity-60" />
+                            <LandingPipeline />
                         </div>
                     </motion.div>
                 </div>
@@ -210,7 +148,7 @@ export default function WorkflowSolutions() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
                         transition={{ duration: 0.3 }}
-                        className="mt-12 p-8 bg-gray-50 dark:bg-[#111936] rounded-3xl"
+                        className="mt-12 p-8 bg-gray-50 dark:bg-[#111936] rounded-3xl border border-gray-100 dark:border-gray-800"
                     >
                         <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{teams[activeTeam].title}</h3>
                         <p className="text-gray-600 dark:text-gray-300 mb-6">{teams[activeTeam].description}</p>
@@ -221,7 +159,7 @@ export default function WorkflowSolutions() {
                                     initial={{ opacity: 0, x: -10 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: i * 0.1 }}
-                                    className="flex items-center gap-3 text-gray-700"
+                                    className="flex items-center gap-3 text-gray-700 dark:text-gray-300"
                                 >
                                     <div className="w-6 h-6 rounded-full bg-[#fc763f]/20 flex items-center justify-center flex-shrink-0">
                                         <CheckCircle2 className="w-4 h-4 text-[#fc763f]" />
