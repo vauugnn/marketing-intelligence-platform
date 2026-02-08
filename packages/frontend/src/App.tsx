@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import LandingPage from './pages/LandingPage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Sidebar from './components/layout/Sidebar';
 import Dashboard from './pages/Dashboard';
@@ -48,30 +49,32 @@ function App() {
         <Router>
           <Routes>
             {/* Public routes */}
+            <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
 
-          {/* Protected routes */}
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/integrations" element={<Integrations />} />
-                    <Route path="/system-map" element={<SystemMap />} />
-                    <Route path="/recommendations" element={<Recommendations />} />
-                    <Route path="/data-flow" element={<DataFlow />} />
-                  </Routes>
-                </AppLayout>
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-        <ToastContainer />
-      </Router>
-    </QueryClientProvider>
+            {/* Protected routes */}
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Routes>
+                      <Route path="/dashboard" element={<Dashboard />} />
+                      <Route path="/integrations" element={<Integrations />} />
+                      <Route path="/system-map" element={<SystemMap />} />
+                      <Route path="/recommendations" element={<Recommendations />} />
+                      <Route path="/data-flow" element={<DataFlow />} />
+                      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                    </Routes>
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+          <ToastContainer />
+        </Router>
+      </QueryClientProvider>
     </ThemeProvider>
   );
 }
