@@ -11,6 +11,9 @@ export type Platform =
 
 export type ConnectionStatus = 'connected' | 'disconnected' | 'error' | 'pending' | 'syncing';
 
+// Business Type (onboarding)
+export type BusinessType = 'sales' | 'leads';
+
 // User & Account
 export interface User {
   id: string;
@@ -111,6 +114,7 @@ export interface ChannelPerformance {
   spend: number;
   roi: number;
   conversions: number;
+  cpl?: number;
   performance_rating: 'exceptional' | 'excellent' | 'satisfactory' | 'poor' | 'failing';
 }
 
@@ -169,6 +173,8 @@ export interface JourneyPattern {
   frequency: number;
   total_revenue: number;
   avg_revenue: number;
+  total_conversions?: number;
+  avg_conversions?: number;
 }
 
 export interface ChannelRole {

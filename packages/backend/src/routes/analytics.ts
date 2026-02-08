@@ -27,7 +27,8 @@ router.get(
   authMiddleware,
   asyncHandler(async (req, res) => {
     const dateRange = parseDateRange(req.query);
-    const data = await getChannelPerformance(req.userId!, dateRange);
+    const businessType = req.businessType || 'sales';
+    const data = await getChannelPerformance(req.userId!, dateRange, businessType);
     res.json({ success: true, data });
   })
 );
@@ -38,7 +39,8 @@ router.get(
   authMiddleware,
   asyncHandler(async (req, res) => {
     const dateRange = parseDateRange(req.query);
-    const data = await analyzeChannelSynergies(req.userId!, dateRange);
+    const businessType = req.businessType || 'sales';
+    const data = await analyzeChannelSynergies(req.userId!, dateRange, businessType);
     res.json({ success: true, data });
   })
 );
@@ -49,7 +51,8 @@ router.get(
   authMiddleware,
   asyncHandler(async (req, res) => {
     const dateRange = parseDateRange(req.query);
-    const data = await enhanceRecommendationsWithAI(req.userId!, dateRange);
+    const businessType = req.businessType || 'sales';
+    const data = await enhanceRecommendationsWithAI(req.userId!, dateRange, businessType);
     res.json({ success: true, data });
   })
 );
@@ -60,7 +63,8 @@ router.get(
   authMiddleware,
   asyncHandler(async (req, res) => {
     const dateRange = parseDateRange(req.query);
-    const data = await getJourneyPatterns(req.userId!, dateRange);
+    const businessType = req.businessType || 'sales';
+    const data = await getJourneyPatterns(req.userId!, dateRange, businessType);
     res.json({ success: true, data });
   })
 );

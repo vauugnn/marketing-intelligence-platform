@@ -19,6 +19,7 @@ import {
   Globe,
   ShoppingBag,
   FileCode,
+  Tags,
 } from 'lucide-react';
 import {
   GoogleAnalyticsLogo,
@@ -296,7 +297,7 @@ export default function Integrations() {
   const [loading, setLoading] = useState(true);
   const [pixelData, setPixelData] = useState<any>(null);
   const [showPixelCode, setShowPixelCode] = useState(false);
-  const [installTab, setInstallTab] = useState<'wordpress' | 'shopify' | 'manual'>('wordpress');
+  const [installTab, setInstallTab] = useState<'wordpress' | 'shopify' | 'gtm' | 'manual'>('wordpress');
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null);
   const addToast = useToastStore((state) => state.addToast);
 
@@ -439,7 +440,7 @@ export default function Integrations() {
                 <Code className="w-5 h-5 text-primary flex-shrink-0" />
                 <h3 className="text-sm sm:text-base font-bold text-foreground">Your Tracking Pixel</h3>
               </div>
-              <p className="text-muted-foreground mt-0.5 text-xs">Install this on your website to track customer journeys</p>
+              <p className="text-muted-foreground mt-0.5 text-xs">Install this on your website to track visitor activity and campaign performance</p>
             </div>
             <span className="bg-primary/20 text-primary text-xs px-2.5 py-0.5 rounded-full font-medium flex-shrink-0">
               Required
@@ -475,6 +476,7 @@ export default function Integrations() {
                       {([
                         { key: 'wordpress' as const, label: 'WordPress', icon: Globe },
                         { key: 'shopify' as const, label: 'Shopify', icon: ShoppingBag },
+                        { key: 'gtm' as const, label: 'Google Tag Manager', icon: Tags },
                         { key: 'manual' as const, label: 'Manual', icon: FileCode },
                       ]).map((tab) => {
                         const TabIcon = tab.icon;
@@ -557,7 +559,7 @@ export default function Integrations() {
 
                         <div className="bg-muted/50 border border-border rounded-lg p-2.5 ml-8">
                           <p className="text-xs text-muted-foreground">
-                            No plugin? You can also paste the snippet in <code className="bg-primary/10 px-1 py-0.5 rounded text-primary text-xs">Appearance &gt; Theme Editor &gt; header.php</code> — find your GA4/Meta code and paste it right below, before the <code className="bg-primary/10 px-1 py-0.5 rounded text-primary text-xs">&lt;/head&gt;</code> tag.
+                            Tracks page views, UTM parameters, and visitor activity across your site. No plugin? You can also paste the snippet in <code className="bg-primary/10 px-1 py-0.5 rounded text-primary text-xs">Appearance &gt; Theme Editor &gt; header.php</code> before the <code className="bg-primary/10 px-1 py-0.5 rounded text-primary text-xs">&lt;/head&gt;</code> tag.
                           </p>
                         </div>
                       </div>
@@ -606,7 +608,56 @@ export default function Integrations() {
 
                         <div className="bg-muted/50 border border-border rounded-lg p-2.5 ml-8">
                           <p className="text-xs text-muted-foreground">
-                            Lightweight script (&lt;5KB) — sits alongside your existing tracking codes. No impact on store performance.
+                            Tracks page views, UTM parameters, and purchase journeys. No impact on store performance.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* GTM tab */}
+                    {installTab === 'gtm' && (
+                      <div className="space-y-3">
+                        <div className="flex gap-2.5">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center text-xs font-semibold text-primary">1</div>
+                          <div className="flex-1">
+                            <h4 className="text-xs font-semibold text-foreground mb-1.5">Copy the code snippet</h4>
+                            {snippetBlock}
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2.5">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center text-xs font-semibold text-primary">2</div>
+                          <div className="flex-1">
+                            <h4 className="text-xs font-semibold text-foreground mb-0.5">Create a new tag</h4>
+                            <p className="text-xs text-muted-foreground">
+                              In your GTM workspace, go to <code className="bg-primary/10 px-1 py-0.5 rounded text-primary text-xs">Tags &gt; New</code>, choose <strong className="text-foreground">Custom HTML</strong> as the tag type, and paste the snippet into the HTML field.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2.5">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center text-xs font-semibold text-primary">3</div>
+                          <div className="flex-1">
+                            <h4 className="text-xs font-semibold text-foreground mb-0.5">Set the trigger</h4>
+                            <p className="text-xs text-muted-foreground">
+                              Click <strong className="text-foreground">Triggering</strong>, then select <strong className="text-foreground">All Pages</strong> so the pixel fires on every page load.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2.5">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center text-xs font-semibold text-primary">4</div>
+                          <div className="flex-1">
+                            <h4 className="text-xs font-semibold text-foreground mb-0.5">Publish</h4>
+                            <p className="text-xs text-muted-foreground">
+                              Save the tag, then click <strong className="text-foreground">Submit &gt; Publish</strong> to push the changes live. Use GTM's Preview mode to verify the tag fires correctly.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="bg-muted/50 border border-border rounded-lg p-2.5 ml-8">
+                          <p className="text-xs text-muted-foreground">
+                            Works across all websites in your GTM container — manage tracking for multiple client sites from one place.
                           </p>
                         </div>
                       </div>
@@ -647,7 +698,7 @@ export default function Integrations() {
 
                         <div className="bg-muted/50 border border-border rounded-lg p-2.5 ml-8">
                           <p className="text-xs text-muted-foreground">
-                            Lightweight script (&lt;5KB) — tracks page views, UTM parameters, and customer journeys.
+                            Lightweight script (&lt;5KB) — tracks page views, UTM parameters, and site activity.
                           </p>
                         </div>
                       </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { ChannelPerformance } from '@shared/types';
+import { useBusinessType } from '../../hooks/useBusinessType';
 
 interface Props {
   channels: ChannelPerformance[];
@@ -14,49 +15,6 @@ interface PipelineNode {
   color: string;
   description: string;
 }
-
-// Stage 1: E-commerce site (left)
-const siteNode: PipelineNode = {
-  id: 'ecommerce', label: 'E-Commerce Site', x: 6, y: 50, color: '#10b981',
-  description: 'A customer makes a purchase on your website — the starting point of all attribution data',
-};
-
-// Stage 2: Tracking pixel captures data
-const pixelNode: PipelineNode = {
-  id: 'pixel', label: 'Tracking Pixel', x: 25, y: 50, color: '#8b5cf6',
-  description: 'Captures purchase details, email, session data, UTM parameters, and page interactions in real time',
-};
-
-// Stage 3: Platforms verify the data
-const platformDefs = [
-  { id: 'ga4', label: 'Google Analytics', color: '#10b981', description: 'Verifies if the user session originated from Google search or ads' },
-  { id: 'meta', label: 'Meta', color: '#3b82f6', description: 'Checks if the user interacted with Facebook or Instagram ads before purchasing' },
-  { id: 'payment_systems', label: 'Payment Systems', color: '#6366f1', description: 'Confirms payment transaction details and cross-references payment providers for verification' },
-  { id: 'hubspot', label: 'Email Systems', color: '#f97316', description: 'Validates CRM contact records and deal associations for the customer' },
-];
-
-const platformNodes: PipelineNode[] = platformDefs.map((d, i) => {
-  const x = 46;
-  const startY = 18; // top-most platform Y
-  const spacing = 22; // vertical spacing between platform nodes
-  const y = startY + i * spacing;
-  return { id: d.id, label: d.label, x, y, color: d.color, description: d.description };
-});
-
-// Stage 4: Attribution engine
-const engineNode: PipelineNode = {
-  id: 'engine', label: 'Attribution Engine', x: 78, y: 50, color: '#f59e0b',
-  description: 'Cross-references platform responses, scores confidence (85-95% accuracy), and builds verified conversion records',
-};
-
-// Stage 5: Insights output
-const insightNodes: PipelineNode[] = [
-  { id: 'performance', label: 'Performance', x: 97, y: 22, color: '#10b981', description: 'Revenue, spend, ROI, and performance ratings per channel' },
-  { id: 'synergy', label: 'Synergies', x: 97, y: 50, color: '#3b82f6', description: 'How channels amplify each other — synergy scores and frequencies' },
-  { id: 'recommendations', label: 'AI Actions', x: 97, y: 78, color: '#f59e0b', description: 'Scale, optimize, or stop — AI-powered budget decisions' },
-];
-
-const allNodes: PipelineNode[] = [siteNode, pixelNode, ...platformNodes, engineNode, ...insightNodes];
 
 const platformIcons: Record<string, JSX.Element> = {
   ga4: (
@@ -103,9 +61,53 @@ const platformIcons: Record<string, JSX.Element> = {
 
 export default function DataPipelineFlow({ channels, isLoading }: Props) {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const { type, copy } = useBusinessType();
 
   const totalConversions = channels.reduce((sum, ch) => sum + ch.conversions, 0);
   const activeChannels = channels.length;
+
+  // Split siteLabel for SVG text (e.g. "Your Store" → ["Your", "Store"])
+  const siteLabelParts = copy.siteLabel.split(' ');
+
+  // --- Build nodes using copy map ---
+
+  const siteNode: PipelineNode = {
+    id: 'ecommerce', label: copy.siteLabel, x: 6, y: 50, color: '#10b981',
+    description: copy.siteDescription,
+  };
+
+  const pixelNode: PipelineNode = {
+    id: 'pixel', label: 'Tracking Pixel', x: 25, y: 50, color: '#8b5cf6',
+    description: copy.pixelDescription,
+  };
+
+  const platformDefs = [
+    { id: 'ga4', label: 'Google Analytics', color: '#10b981', description: 'Verifies if the user session originated from Google search or ads' },
+    { id: 'meta', label: 'Meta', color: '#3b82f6', description: copy.metaDescription },
+    { id: 'payment_systems', label: 'Payment Systems', color: '#6366f1', description: 'Confirms payment transaction details and cross-references payment providers for verification' },
+    { id: 'hubspot', label: 'Email Systems', color: '#f97316', description: 'Validates CRM contact records and deal associations' },
+  ];
+
+  const platformNodes: PipelineNode[] = platformDefs.map((d, i) => {
+    const x = 46;
+    const startY = 18;
+    const spacing = 22;
+    const y = startY + i * spacing;
+    return { id: d.id, label: d.label, x, y, color: d.color, description: d.description };
+  });
+
+  const engineNode: PipelineNode = {
+    id: 'engine', label: 'Attribution Engine', x: 78, y: 50, color: '#f59e0b',
+    description: 'Cross-references platform responses, scores confidence (85-95% accuracy), and builds verified conversion records',
+  };
+
+  const insightNodes: PipelineNode[] = [
+    { id: 'performance', label: 'Performance', x: 97, y: 22, color: '#10b981', description: 'Revenue, spend, ROI, and performance ratings per channel' },
+    { id: 'synergy', label: 'Synergies', x: 97, y: 50, color: '#3b82f6', description: 'How channels amplify each other — synergy scores and frequencies' },
+    { id: 'recommendations', label: 'AI Actions', x: 97, y: 78, color: '#f59e0b', description: 'Scale, optimize, or stop — AI-powered budget decisions' },
+  ];
+
+  const allNodes: PipelineNode[] = [siteNode, pixelNode, ...platformNodes, engineNode, ...insightNodes];
 
   const hoveredInfo = allNodes.find(n => n.id === hoveredNode);
 
@@ -114,7 +116,7 @@ export default function DataPipelineFlow({ channels, isLoading }: Props) {
       <div className="p-4 border-b border-gray-800 flex items-center justify-between">
         <div>
           <h3 className="text-lg font-bold">Data Pipeline</h3>
-          <p className="text-gray-400 text-xs mt-0.5">End-to-end: purchase capture → platform verification → attribution insights</p>
+          <p className="text-gray-400 text-xs mt-0.5">{copy.pipelineSubtitle}</p>
         </div>
         {!isLoading && (
           <div className="flex items-center gap-4">
@@ -265,7 +267,7 @@ export default function DataPipelineFlow({ channels, isLoading }: Props) {
                 </g>
               ))}
 
-              {/* ---- E-Commerce Site node ---- */}
+              {/* ---- Site node ---- */}
               <g
                 onMouseEnter={() => setHoveredNode('ecommerce')}
                 onMouseLeave={() => setHoveredNode(null)}
@@ -278,13 +280,19 @@ export default function DataPipelineFlow({ channels, isLoading }: Props) {
                 <circle cx={siteNode.x} cy={siteNode.y} r="4.5" fill={siteNode.color} opacity="0.6" />
                 <foreignObject x={siteNode.x - 1.8} y={siteNode.y - 1.8} width="3.6" height="3.6">
                   <div className="w-full h-full flex items-center justify-center">
-                    <svg className="w-4 h-4" fill="white" viewBox="0 0 24 24">
-                      <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
-                    </svg>
+                    {type === 'leads' ? (
+                      <svg className="w-4 h-4" fill="white" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="white" viewBox="0 0 24 24">
+                        <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
+                      </svg>
+                    )}
                   </div>
                 </foreignObject>
-                <text x={siteNode.x} y={siteNode.y + 8.5} fill="#d1d5db" fontSize="2" fontWeight="600" textAnchor="middle">E-Commerce</text>
-                <text x={siteNode.x} y={siteNode.y + 11} fill="#9ca3af" fontSize="1.6" textAnchor="middle">Site</text>
+                <text x={siteNode.x} y={siteNode.y + 8.5} fill="#d1d5db" fontSize="2" fontWeight="600" textAnchor="middle">{siteLabelParts[0] ?? ''}</text>
+                <text x={siteNode.x} y={siteNode.y + 11} fill="#9ca3af" fontSize="1.6" textAnchor="middle">{siteLabelParts[1] ?? ''}</text>
               </g>
 
               {/* ---- Tracking Pixel node ---- */}
@@ -408,7 +416,7 @@ export default function DataPipelineFlow({ channels, isLoading }: Props) {
             {/* Step labels along the bottom */}
             <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-2 px-4">
               {[
-                { step: '1', text: 'Customer purchases', color: '#10b981' },
+                { step: '1', text: copy.stepOneLabel, color: '#10b981' },
                 { step: '2', text: 'Pixel captures data', color: '#8b5cf6' },
                 { step: '3', text: 'Platforms verify user', color: '#3b82f6' },
                 { step: '4', text: 'Confirm attribution', color: '#f59e0b' },

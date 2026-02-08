@@ -42,6 +42,26 @@
     });
   }
 
+  function getPageMetadata(): Record<string, string> {
+    const meta: Record<string, string> = {};
+
+    meta.page_title = document.title || '';
+
+    const desc = document.querySelector('meta[name="description"]');
+    if (desc) meta.page_description = desc.getAttribute('content') || '';
+
+    const canonical = document.querySelector('link[rel="canonical"]');
+    if (canonical) meta.canonical_url = canonical.getAttribute('href') || '';
+
+    const ogType = document.querySelector('meta[property="og:type"]');
+    if (ogType) meta.og_type = ogType.getAttribute('content') || '';
+
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) meta.og_title = ogTitle.getAttribute('content') || '';
+
+    return meta;
+  }
+
   function getUTMParams(): Record<string, string> {
     const params = new URLSearchParams(window.location.search);
     const utm: Record<string, string> = {};
@@ -54,9 +74,10 @@
     return utm;
   }
 
-  function trackEvent(eventType: string = 'page_view'): void {
+  function trackEvent(eventType: string = 'page_view', data?: Record<string, any>): void {
     const sessionId = getSessionId();
     const utmParams = getUTMParams();
+    const pageMetadata = getPageMetadata();
 
     const event = {
       pixel_id: pixelId,
@@ -65,6 +86,7 @@
       page_url: window.location.href,
       referrer: document.referrer || undefined,
       timestamp: new Date().toISOString(),
+      metadata: { ...pageMetadata, ...data },
       ...utmParams
     };
 
