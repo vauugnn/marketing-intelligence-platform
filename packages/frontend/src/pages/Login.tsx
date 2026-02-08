@@ -16,7 +16,7 @@ export default function Login() {
     e.preventDefault();
     try {
       await login({ email, password });
-      navigate('/');
+      navigate('/dashboard');
     } catch {
       // Error is captured in loginError
     }
