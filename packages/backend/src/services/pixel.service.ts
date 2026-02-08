@@ -81,7 +81,7 @@ export class PixelService {
         visitor_id: event.metadata?.visitor_id || null,
         visitor_email: event.metadata?.email || null,
         visitor_name: event.metadata?.name || null,
-        value: event.metadata?.value || null,
+        value: event.metadata?.value ? parseFloat(event.metadata.value) || null : null,
         currency: event.metadata?.currency || 'PHP',
       }, { onConflict: 'dedup_key' })
       .select('id')

@@ -172,7 +172,7 @@
   }
 
   // Track initial page view
-  if (shouldTrack('page_view')) trackEvent('page_view');
+  trackEvent('page_view');
 
   // Expose global tracking function
   (window as any).__pixelTrack = trackEvent;
