@@ -364,278 +364,278 @@ export default function Integrations() {
   const hasPixel = !!pixelData;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-white">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       <style>{`
         .integration-card {
-          background: linear-gradient(135deg, rgba(30, 30, 40, 0.8) 0%, rgba(20, 20, 30, 0.9) 100%);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background-color: hsl(var(--card));
+          color: hsl(var(--card-foreground));
+          border: 1px solid hsl(var(--border));
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .integration-card:hover {
           transform: translateY(-2px);
-          border-color: rgba(255, 255, 255, 0.2);
-          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+          border-color: hsl(var(--primary) / 0.5);
+          box-shadow: 0 10px 20px -10px hsl(var(--primary) / 0.2);
         }
 
         .integration-card-error {
-          border-color: rgba(239, 68, 68, 0.3);
+          border-color: hsl(var(--destructive) / 0.3);
         }
 
         .integration-card-error:hover {
-          border-color: rgba(239, 68, 68, 0.5);
+          border-color: hsl(var(--destructive) / 0.5);
         }
 
         .integration-section {
-          background: linear-gradient(135deg, rgba(30, 30, 40, 0.8) 0%, rgba(20, 20, 30, 0.9) 100%);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background-color: hsl(var(--card));
+          color: hsl(var(--card-foreground));
+          border: 1px solid hsl(var(--border));
         }
       `}</style>
 
       <div className="p-4 sm:p-6">
-      {/* Page Header */}
-      <div className="mb-6 ml-14 lg:ml-0">
-        <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-1">
-          Integrations
-        </h2>
-        <p className="text-gray-400 text-sm">Connect your marketing tools to get started</p>
-      </div>
-
-      {/* Getting Started Walkthrough */}
-      {!loading && connectedCount === 0 && (
-        <GettingStartedWalkthrough hasPixel={hasPixel} connectedCount={connectedCount} />
-      )}
-
-      {/* Tracking Pixel - Critical First Step */}
-      <div className="mb-6 integration-section rounded-xl p-4 sm:p-5">
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <Code className="w-5 h-5 text-purple-400 flex-shrink-0" />
-              <h3 className="text-sm sm:text-base font-bold text-purple-200">Your Tracking Pixel</h3>
-            </div>
-            <p className="text-purple-400/70 mt-0.5 text-xs">Install this on your website to track customer journeys</p>
-          </div>
-          <span className="bg-purple-500/20 text-purple-300 text-xs px-2.5 py-0.5 rounded-full font-medium flex-shrink-0">
-            Required
-          </span>
+        {/* Page Header */}
+        <div className="mb-6 ml-14 lg:ml-0">
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
+            Integrations
+          </h2>
+          <p className="text-muted-foreground text-sm">Connect your marketing tools to get started</p>
         </div>
 
-        {pixelData && (
-          <div className="mt-3">
-            <div className="bg-black/30 rounded-lg p-3 border border-white/5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
-                <span className="text-xs font-medium text-gray-400">Pixel ID</span>
-                <code className="bg-purple-500/10 px-2.5 py-0.5 rounded text-purple-300 font-mono text-xs break-all">
-                  {pixelData.pixel_id}
-                </code>
+        {/* Getting Started Walkthrough */}
+        {!loading && connectedCount === 0 && (
+          <GettingStartedWalkthrough hasPixel={hasPixel} connectedCount={connectedCount} />
+        )}
+
+        {/* Tracking Pixel - Critical First Step */}
+        <div className="mb-6 integration-section rounded-xl p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <Code className="w-5 h-5 text-primary flex-shrink-0" />
+                <h3 className="text-sm sm:text-base font-bold text-foreground">Your Tracking Pixel</h3>
               </div>
+              <p className="text-muted-foreground mt-0.5 text-xs">Install this on your website to track customer journeys</p>
+            </div>
+            <span className="bg-primary/20 text-primary text-xs px-2.5 py-0.5 rounded-full font-medium flex-shrink-0">
+              Required
+            </span>
+          </div>
 
-              <button
-                onClick={() => setShowPixelCode(!showPixelCode)}
-                className="flex items-center gap-1 text-blue-400 hover:text-blue-300 text-xs font-medium"
-              >
-                {showPixelCode ? (
-                  <ChevronDown className="w-3.5 h-3.5" />
-                ) : (
-                  <ChevronRight className="w-3.5 h-3.5" />
-                )}
-                {showPixelCode ? 'Hide' : 'Show'} installation guide
-              </button>
+          {pixelData && (
+            <div className="mt-3">
+              <div className="bg-muted/30 rounded-lg p-3 border border-border">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
+                  <span className="text-xs font-medium text-muted-foreground">Pixel ID</span>
+                  <code className="bg-primary/10 px-2.5 py-0.5 rounded text-primary font-mono text-xs break-all">
+                    {pixelData.pixel_id}
+                  </code>
+                </div>
 
-              {showPixelCode && (
-                <div className="mt-3 space-y-3">
-                  {/* Step 1 */}
-                  <div className="flex gap-2.5">
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/15 flex items-center justify-center">
-                      <Copy className="w-3 h-3 text-blue-400" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="text-xs font-semibold text-gray-300 mb-1.5">Step 1: Copy the code snippet</h4>
-                      <div className="relative">
-                        <pre className="bg-black/50 text-gray-300 p-3 rounded-lg overflow-x-auto text-xs border border-gray-800">
-                          <code>{pixelData.snippet}</code>
-                        </pre>
-                        <button
-                          onClick={() => copyToClipboard(pixelData.snippet)}
-                          className="absolute top-1.5 right-1.5 bg-blue-600 hover:bg-blue-500 text-white px-2 py-0.5 rounded text-xs flex items-center gap-1"
-                        >
-                          <Copy className="w-2.5 h-2.5" />
-                          Copy
-                        </button>
+                <button
+                  onClick={() => setShowPixelCode(!showPixelCode)}
+                  className="flex items-center gap-1 text-primary hover:text-primary/80 text-xs font-medium"
+                >
+                  {showPixelCode ? (
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  ) : (
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  )}
+                  {showPixelCode ? 'Hide' : 'Show'} installation guide
+                </button>
+
+                {showPixelCode && (
+                  <div className="mt-3 space-y-3">
+                    {/* Step 1 */}
+                    <div className="flex gap-2.5">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center">
+                        <Copy className="w-3 h-3 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-xs font-semibold text-foreground mb-1.5">Step 1: Copy the code snippet</h4>
+                        <div className="relative">
+                          <pre className="bg-muted text-muted-foreground p-3 rounded-lg overflow-x-auto text-xs border border-border">
+                            <code>{pixelData.snippet}</code>
+                          </pre>
+                          <button
+                            onClick={() => copyToClipboard(pixelData.snippet)}
+                            className="absolute top-1.5 right-1.5 bg-primary hover:bg-primary/90 text-primary-foreground px-2 py-0.5 rounded text-xs flex items-center gap-1"
+                          >
+                            <Copy className="w-2.5 h-2.5" />
+                            Copy
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Step 2 */}
-                  <div className="flex gap-2.5">
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/15 flex items-center justify-center">
-                      <MonitorSmartphone className="w-3 h-3 text-blue-400" />
+                    {/* Step 2 */}
+                    <div className="flex gap-2.5">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center">
+                        <MonitorSmartphone className="w-3 h-3 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-xs font-semibold text-foreground mb-0.5">Step 2: Add to your website</h4>
+                        <p className="text-xs text-muted-foreground">
+                          Paste in your{' '}
+                          <code className="bg-primary/10 px-1 py-0.5 rounded text-primary text-xs">&lt;head&gt;</code>{' '}
+                          tag or use Google Tag Manager.
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <h4 className="text-xs font-semibold text-gray-300 mb-0.5">Step 2: Add to your website</h4>
-                      <p className="text-xs text-gray-500">
-                        Paste in your{' '}
-                        <code className="bg-blue-500/10 px-1 py-0.5 rounded text-blue-300 text-xs">&lt;head&gt;</code>{' '}
-                        tag or use Google Tag Manager.
+
+                    {/* Step 3 */}
+                    <div className="flex gap-2.5">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center">
+                        <CheckCircle className="w-3 h-3 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-xs font-semibold text-foreground mb-0.5">Step 3: Verify installation</h4>
+                        <p className="text-xs text-muted-foreground">
+                          Check browser Network tab for pixel requests. Data appears within minutes.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-muted/50 border border-border rounded-lg p-2.5 ml-8">
+                      <p className="text-xs text-muted-foreground">
+                        Lightweight script (&lt;5KB) — tracks page views, UTM parameters, and customer journeys.
                       </p>
                     </div>
                   </div>
-
-                  {/* Step 3 */}
-                  <div className="flex gap-2.5">
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/15 flex items-center justify-center">
-                      <CheckCircle className="w-3 h-3 text-blue-400" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="text-xs font-semibold text-gray-300 mb-0.5">Step 3: Verify installation</h4>
-                      <p className="text-xs text-gray-500">
-                        Check browser Network tab for pixel requests. Data appears within minutes.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-2.5 ml-8">
-                    <p className="text-xs text-gray-500">
-                      Lightweight script (&lt;5KB) — tracks page views, UTM parameters, and customer journeys.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Platform Integrations */}
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-300">Platform Connections</h3>
-        {!loading && (
-          <span className="text-xs text-gray-500">
-            {connectedCount}/{platforms.length} connected
-          </span>
-        )}
-      </div>
-
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <PlatformCardSkeleton key={i} />
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {platforms.map((platform) => {
-            const config = platformConfig[platform.platform] || {
-              name: platform.platform,
-              description: '',
-              logo: BarChart3,
-              color: 'bg-gray-800',
-              category: 'analytics' as const,
-            };
-            const Logo = config.logo;
-            const isConnected = platform.status === 'connected';
-            const isError = platform.status === 'error';
-            const isPending = platform.status === 'pending';
-            const isConnecting = connectingPlatform === platform.platform;
-
-            return (
-              <div
-                key={platform.platform}
-                className={cn(
-                  'integration-card p-4 rounded-xl flex flex-col',
-                  isError && 'integration-card-error'
                 )}
-              >
-                {/* Icon + Status */}
-                <div className="flex items-start justify-between mb-3">
-                  <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center p-1.5', config.color)}>
-                    <Logo className="w-full h-full" />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Platform Integrations */}
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-foreground">Platform Connections</h3>
+          {!loading && (
+            <span className="text-xs text-muted-foreground">
+              {connectedCount}/{platforms.length} connected
+            </span>
+          )}
+        </div>
+
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <PlatformCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {platforms.map((platform) => {
+              const config = platformConfig[platform.platform] || {
+                name: platform.platform,
+                description: '',
+                logo: BarChart3,
+                color: 'bg-muted',
+                category: 'analytics' as const,
+              };
+              const Logo = config.logo;
+              const isConnected = platform.status === 'connected';
+              const isError = platform.status === 'error';
+              const isPending = platform.status === 'pending';
+              const isConnecting = connectingPlatform === platform.platform;
+
+              return (
+                <div
+                  key={platform.platform}
+                  className={cn(
+                    'integration-card p-4 rounded-xl flex flex-col',
+                    isError && 'integration-card-error'
+                  )}
+                >
+                  {/* Icon + Status */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center p-1.5', 'bg-muted')}>
+                      <Logo className="w-full h-full text-foreground" />
+                    </div>
+                    <StatusBadge status={platform.status} />
                   </div>
-                  <StatusBadge status={platform.status} />
-                </div>
 
-                {/* Name + Description */}
-                <h3 className="font-semibold text-sm text-gray-100 mb-0.5">{config.name}</h3>
-                <p className="text-gray-500 text-xs mb-2">{config.description}</p>
+                  {/* Name + Description */}
+                  <h3 className="font-semibold text-sm text-foreground mb-0.5">{config.name}</h3>
+                  <p className="text-muted-foreground text-xs mb-2">{config.description}</p>
 
-                {/* Last synced / Error */}
-                <div className="flex-1">
-                  {platform.last_synced_at && (
-                    <p className="text-xs text-gray-600 flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {formatDistanceToNow(new Date(platform.last_synced_at), { addSuffix: true })}
-                    </p>
-                  )}
-                  {isError && (
-                    <p className="text-xs text-red-400/80 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
-                      Try reconnecting
-                    </p>
-                  )}
-                  {platform.sync_progress != null && <SyncProgressBar progress={platform.sync_progress} />}
-                </div>
+                  {/* Last synced / Error */}
+                  <div className="flex-1">
+                    {platform.last_synced_at && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {formatDistanceToNow(new Date(platform.last_synced_at), { addSuffix: true })}
+                      </p>
+                    )}
+                    {isError && (
+                      <p className="text-xs text-destructive/80 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Try reconnecting
+                      </p>
+                    )}
+                    {platform.sync_progress != null && <SyncProgressBar progress={platform.sync_progress} />}
+                  </div>
 
-                {/* Action button */}
-                <div className="mt-3 pt-2 border-t border-gray-800">
-                  {isConnected || isError ? (
-                    <div className="flex gap-1.5">
+                  {/* Action button */}
+                  <div className="mt-3 pt-2 border-t border-border">
+                    {isConnected || isError ? (
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() => handleConnect(platform.platform)}
+                          disabled={isConnecting}
+                          className="flex-1 px-2 py-2 sm:py-1.5 rounded-lg font-medium text-xs bg-muted text-foreground hover:bg-muted/80 active:bg-muted/60 transition-colors disabled:opacity-50"
+                        >
+                          {isConnecting ? (
+                            <span className="flex items-center justify-center gap-1">
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            </span>
+                          ) : (
+                            'Reconnect'
+                          )}
+                        </button>
+                        <button
+                          onClick={() => handleDisconnect(platform.platform)}
+                          className="px-2 py-2 sm:py-1.5 rounded-lg text-xs text-destructive hover:bg-destructive/10 active:bg-destructive/20 transition-colors"
+                        >
+                          Disconnect
+                        </button>
+                      </div>
+                    ) : isPending ? (
+                      <button
+                        disabled
+                        className="w-full px-2 py-2 sm:py-1.5 rounded-lg font-medium text-xs bg-yellow-500/10 text-yellow-500 cursor-not-allowed"
+                      >
+                        <span className="flex items-center justify-center gap-1">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          Setting up...
+                        </span>
+                      </button>
+                    ) : (
                       <button
                         onClick={() => handleConnect(platform.platform)}
                         disabled={isConnecting}
-                        className="flex-1 px-2 py-2 sm:py-1.5 rounded-lg font-medium text-xs bg-gray-800 text-gray-300 hover:bg-gray-700 active:bg-gray-600 transition-colors disabled:opacity-50"
+                        className="w-full px-2 py-2 sm:py-1.5 rounded-lg font-medium text-xs bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80 transition-colors disabled:opacity-50"
                       >
                         {isConnecting ? (
                           <span className="flex items-center justify-center gap-1">
                             <Loader2 className="w-3 h-3 animate-spin" />
                           </span>
                         ) : (
-                          'Reconnect'
+                          'Connect'
                         )}
                       </button>
-                      <button
-                        onClick={() => handleDisconnect(platform.platform)}
-                        className="px-2 py-2 sm:py-1.5 rounded-lg text-xs text-red-400 hover:bg-red-500/10 active:bg-red-500/20 transition-colors"
-                      >
-                        Disconnect
-                      </button>
-                    </div>
-                  ) : isPending ? (
-                    <button
-                      disabled
-                      className="w-full px-2 py-2 sm:py-1.5 rounded-lg font-medium text-xs bg-yellow-500/10 text-yellow-400 cursor-not-allowed"
-                    >
-                      <span className="flex items-center justify-center gap-1">
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        Setting up...
-                      </span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleConnect(platform.platform)}
-                      disabled={isConnecting}
-                      className="w-full px-2 py-2 sm:py-1.5 rounded-lg font-medium text-xs bg-blue-600 text-white hover:bg-blue-500 active:bg-blue-400 transition-colors disabled:opacity-50"
-                    >
-                      {isConnecting ? (
-                        <span className="flex items-center justify-center gap-1">
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        </span>
-                      ) : (
-                        'Connect'
-                      )}
-                    </button>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
 
-      {/* Troubleshooting */}
-      <TroubleshootingSection />
+        {/* Troubleshooting */}
+        <TroubleshootingSection />
       </div>
     </div>
   );

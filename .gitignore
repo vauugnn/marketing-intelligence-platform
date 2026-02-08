@@ -45,3 +45,5 @@ coverage/
 .supabase/
 .env.example
 .env.example
+
+packages/backend/.env

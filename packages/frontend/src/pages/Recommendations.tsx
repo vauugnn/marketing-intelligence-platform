@@ -126,12 +126,11 @@ export default function Recommendations() {
     return (
       <div
         key={idx}
-        className={`rec-card rounded-xl overflow-hidden transition-all duration-300 ${
-          isApplied ? 'opacity-60' : ''
-        }`}
+        className={`rec-card rounded-xl overflow-hidden transition-all duration-300 ${isApplied ? 'opacity-60' : ''
+          }`}
         style={{
-          background: 'linear-gradient(135deg, rgba(30,30,40,0.8) 0%, rgba(20,20,30,0.9) 100%)',
-          backdropFilter: 'blur(10px)',
+          backgroundColor: 'hsl(var(--card))',
+          color: 'hsl(var(--card-foreground))',
           border: `1px solid ${theme.border}`,
         }}
       >
@@ -154,48 +153,46 @@ export default function Recommendations() {
                 {theme.label}
               </span>
               {isApplied && (
-                <span className="text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                <span className="text-[10px] font-semibold bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 px-2 py-0.5 rounded-full">
                   Applied
                 </span>
               )}
             </div>
-            <span className="text-xs text-gray-500 font-mono">{rec.confidence}%</span>
+            <span className="text-xs text-muted-foreground font-mono">{rec.confidence}%</span>
           </div>
 
           {/* Channel name */}
-          <h3 className="font-bold text-sm text-white truncate mb-1">{rec.channel}</h3>
+          <h3 className="font-bold text-sm text-foreground truncate mb-1">{rec.channel}</h3>
 
           {/* Action text — clamped in square mode */}
-          <p className="text-xs text-gray-400 leading-relaxed">
+          <p className="text-xs text-muted-foreground leading-relaxed">
             {rec.action}
           </p>
 
           {/* Metrics row */}
           <div className="mt-4 grid grid-cols-3 gap-3">
             <div
-              className="rounded-lg p-3"
-              style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)' }}
+              className="rounded-lg p-3 bg-muted/30 border border-border"
             >
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-1">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1">
                 Est. Impact
               </p>
               <p className={`text-lg font-bold font-mono ${theme.text}`}>
                 {rec.type === 'stop' ? '-' : '+'}₱{rec.estimated_impact.toLocaleString()}
               </p>
-              <p className="text-[10px] text-gray-500">per month</p>
+              <p className="text-[10px] text-muted-foreground">per month</p>
             </div>
 
             <div
-              className="rounded-lg p-3"
-              style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)' }}
+              className="rounded-lg p-3 bg-muted/30 border border-border"
             >
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-1">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1">
                 Confidence
               </p>
               <div className="flex items-end gap-1.5">
-                <span className="text-lg font-bold font-mono text-white">{rec.confidence}%</span>
+                <span className="text-lg font-bold font-mono text-foreground">{rec.confidence}%</span>
               </div>
-              <div className="mt-1.5 w-full h-1.5 rounded-full bg-gray-700/60 overflow-hidden">
+              <div className="mt-1.5 w-full h-1.5 rounded-full bg-muted overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500"
                   style={{
@@ -207,10 +204,9 @@ export default function Recommendations() {
             </div>
 
             <div
-              className="rounded-lg p-3"
-              style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)' }}
+              className="rounded-lg p-3 bg-muted/30 border border-border"
             >
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider font-medium mb-1">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium mb-1">
                 6-mo Trend
               </p>
               <div className="flex items-end gap-[3px] h-8">
@@ -228,12 +224,12 @@ export default function Recommendations() {
                   />
                 ))}
               </div>
-              <p className="text-[10px] text-gray-500 mt-1">
+              <p className="text-[10px] text-muted-foreground mt-1">
                 {priority === 'high'
                   ? '↗ Strong upside'
                   : priority === 'medium'
-                  ? '→ Moderate gain'
-                  : '↗ Gradual lift'}
+                    ? '→ Moderate gain'
+                    : '↗ Gradual lift'}
               </p>
             </div>
           </div>
@@ -249,13 +245,13 @@ export default function Recommendations() {
             </button>
             <button
               onClick={() => toggleExpand(idx)}
-              className="bg-white/[0.06] hover:bg-white/[0.1] text-gray-300 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-all border border-white/[0.08]"
+              className="bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-all border border-border"
             >
               {isExpanded ? 'Less' : 'More'}
             </button>
             <button
               onClick={() => dismissRecommendation(idx)}
-              className="bg-white/[0.04] hover:bg-red-500/10 text-gray-500 hover:text-red-400 text-[11px] px-2 py-1.5 rounded-lg transition-all border border-white/[0.06] ml-auto"
+              className="bg-muted/50 hover:bg-destructive/10 text-muted-foreground hover:text-destructive text-[11px] px-2 py-1.5 rounded-lg transition-all border border-border ml-auto"
             >
               ×
             </button>
@@ -267,17 +263,16 @@ export default function Recommendations() {
               {/* Before / After */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div
-                  className="rounded-lg p-3"
-                  style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.06)' }}
+                  className="rounded-lg p-3 bg-muted/50 border border-border"
                 >
-                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
                     Current State
                   </p>
-                  <p className="text-sm text-gray-300 leading-relaxed">{rec.reason}</p>
+                  <p className="text-sm text-foreground leading-relaxed">{rec.reason}</p>
                 </div>
                 <div
-                  className="rounded-lg p-3"
-                  style={{ background: 'rgba(0,0,0,0.35)', border: `1px solid ${theme.border}` }}
+                  className="rounded-lg p-3 bg-muted/50"
+                  style={{ border: `1px solid ${theme.border}` }}
                 >
                   <p
                     className="text-[10px] font-semibold uppercase tracking-wider mb-1"
@@ -285,7 +280,7 @@ export default function Recommendations() {
                   >
                     After Implementation
                   </p>
-                  <p className="text-sm text-gray-300 leading-relaxed">
+                  <p className="text-sm text-foreground leading-relaxed">
                     {rec.type === 'scale' &&
                       `Increased budget will capture ${Math.round(
                         rec.confidence * 1.2
@@ -300,23 +295,22 @@ export default function Recommendations() {
 
               {/* Reasoning */}
               <div
-                className="rounded-lg p-3"
-                style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.06)' }}
+                className="rounded-lg p-3 bg-muted/50 border border-border"
               >
-                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                   Why This Matters
                 </p>
-                <ul className="text-sm text-gray-400 space-y-1.5">
+                <ul className="text-sm text-muted-foreground space-y-1.5">
                   <li className="flex items-start gap-2">
-                    <span className="text-gray-600 mt-0.5">&#8226;</span>
+                    <span className="text-muted-foreground mt-0.5">&#8226;</span>
                     Based on {30 + ((idx * 13) % 60)} days of performance data
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-gray-600 mt-0.5">&#8226;</span>
+                    <span className="text-muted-foreground mt-0.5">&#8226;</span>
                     Analyzed {1000 + ((idx * 317) % 4000)} conversions across channel
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-gray-600 mt-0.5">&#8226;</span>
+                    <span className="text-muted-foreground mt-0.5">&#8226;</span>
                     Industry benchmark:{' '}
                     {rec.confidence > 70 ? 'Above average' : 'Below average'}
                   </li>
@@ -360,31 +354,34 @@ export default function Recommendations() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-white">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
         * { font-family: 'Outfit', sans-serif; }
 
         .rec-metric {
-          background: linear-gradient(135deg, rgba(30, 30, 40, 0.8) 0%, rgba(20, 20, 30, 0.9) 100%);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background-color: hsl(var(--card));
+          color: hsl(var(--card-foreground));
+          border: 1px solid hsl(var(--border));
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .rec-metric:hover {
           transform: translateY(-2px);
-          border-color: rgba(255, 255, 255, 0.2);
-          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+          border-color: hsl(var(--primary) / 0.5);
+          box-shadow: 0 10px 20px -10px hsl(var(--primary) / 0.2);
         }
 
         .rec-card {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+           background-color: hsl(var(--card));
+           color: hsl(var(--card-foreground));
+           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .rec-card:hover {
           transform: translateY(-2px);
-          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+           border-color: hsl(var(--primary) / 0.5);
+           box-shadow: 0 10px 20px -10px hsl(var(--primary) / 0.2);
         }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
@@ -393,10 +390,10 @@ export default function Recommendations() {
       <div className="p-4 sm:p-6 max-w-5xl mx-auto">
         {/* Header */}
         <div className="mb-6 ml-14 lg:ml-0">
-          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
             AI Recommendations
           </h1>
-          <p className="text-gray-400 text-sm">
+          <p className="text-muted-foreground text-sm">
             Data-driven actions to improve your marketing ROI
           </p>
         </div>
@@ -404,40 +401,40 @@ export default function Recommendations() {
         {/* Summary cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           <div className="rec-metric rounded-xl p-4">
-            <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
               Total Impact
             </p>
-            <p className="text-xl sm:text-2xl font-bold font-mono text-emerald-400 mt-1">
+            <p className="text-xl sm:text-2xl font-bold font-mono text-emerald-500 mt-1">
               ₱{totalImpact.toLocaleString()}
             </p>
-            <p className="text-[10px] text-gray-500 mt-0.5">per month</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">per month</p>
           </div>
           <div className="rec-metric rounded-xl p-4">
-            <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
               Active
             </p>
-            <p className="text-xl sm:text-2xl font-bold font-mono text-white mt-1">
+            <p className="text-xl sm:text-2xl font-bold font-mono text-foreground mt-1">
               {visibleRecs.length}
             </p>
-            <p className="text-[10px] text-gray-500 mt-0.5">recommendations</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">recommendations</p>
           </div>
           <div className="rec-metric rounded-xl p-4">
-            <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
               Applied
             </p>
-            <p className="text-xl sm:text-2xl font-bold font-mono text-blue-400 mt-1">
+            <p className="text-xl sm:text-2xl font-bold font-mono text-blue-500 mt-1">
               {appliedRecs.size}
             </p>
-            <p className="text-[10px] text-gray-500 mt-0.5">implemented</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">implemented</p>
           </div>
           <div className="rec-metric rounded-xl p-4">
-            <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
               Dismissed
             </p>
-            <p className="text-xl sm:text-2xl font-bold font-mono text-gray-500 mt-1">
+            <p className="text-xl sm:text-2xl font-bold font-mono text-muted-foreground mt-1">
               {dismissedRecs.size}
             </p>
-            <p className="text-[10px] text-gray-500 mt-0.5">skipped</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">skipped</p>
           </div>
         </div>
 
@@ -456,14 +453,13 @@ export default function Recommendations() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-all ${
-                activeTab === tab.key
-                  ? 'bg-white/[0.1] text-white border border-white/[0.15]'
-                  : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.04] border border-transparent'
-              }`}
+              className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-all ${activeTab === tab.key
+                ? 'bg-primary/10 text-primary border border-primary/20'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
+                }`}
             >
               {tab.label}
-              <span className="ml-1.5 text-gray-600">{tab.count}</span>
+              <span className="ml-1.5 opacity-70">{tab.count}</span>
             </button>
           ))}
         </div>
@@ -487,7 +483,7 @@ export default function Recommendations() {
                 >
                   {meta.label}
                 </h2>
-                <span className="text-xs text-gray-600">
+                <span className="text-xs text-muted-foreground">
                   {meta.count}
                 </span>
               </div>
@@ -500,7 +496,7 @@ export default function Recommendations() {
         {/* Empty state */}
         {visibleRecs.length === 0 && (
           <div className="text-center py-16">
-            <p className="text-gray-500 text-sm">
+            <p className="text-muted-foreground text-sm">
               No active recommendations. Check back when new data arrives.
             </p>
           </div>

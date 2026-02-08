@@ -29,44 +29,48 @@ const queryClient = new QueryClient({
   },
 });
 
+import { ThemeProvider } from './components/theme-provider';
+
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+    <div className="flex min-h-screen bg-background text-foreground transition-colors duration-300">
       <Sidebar />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 overflow-y-auto">{children}</main>
     </div>
   );
 }
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Router>
-        <Routes>
-          {/* Public routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
 
-          {/* Protected routes */}
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/integrations" element={<Integrations />} />
-                    <Route path="/system-map" element={<SystemMap />} />
-                    <Route path="/recommendations" element={<Recommendations />} />
-                  </Routes>
-                </AppLayout>
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-        <ToastContainer />
-      </Router>
-    </QueryClientProvider>
+            {/* Protected routes */}
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/integrations" element={<Integrations />} />
+                      <Route path="/system-map" element={<SystemMap />} />
+                      <Route path="/recommendations" element={<Recommendations />} />
+                    </Routes>
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+          <ToastContainer />
+        </Router>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 
