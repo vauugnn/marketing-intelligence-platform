@@ -1,0 +1,89 @@
+{
+  "user_template": {
+    "id": "<uuid>",
+    "email": "<email>",
+    "pixel_id": "pix_<32hex>",
+    "created_at": "<iso>",
+    "updated_at": "<iso>"
+  },
+
+  "platform_connections_template": [
+    { "platform": "google_analytics_4", "status": "connected", "access_token": "ga4-seed-token", "platform_account_id": "ga_account_<id>" },
+    { "platform": "meta", "status": "connected", "access_token": "meta-seed-token", "platform_account_id": "meta_account_<id>" },
+    { "platform": "stripe", "status": "connected", "access_token": "stripe-seed-token", "platform_account_id": "stripe_account_<id>" }
+  ],
+
+  "raw_event_templates": {
+    "ga4_traffic_source": { "platform": "google_analytics_4", "event_type": "ga4_traffic_source", "recommended_count": 15 },
+    "stripe_charge": { "platform": "stripe", "event_type": "stripe_charge", "recommended_count": 30 },
+    "ad_spend_meta": { "platform": "meta", "event_type": "ad_spend", "recommended_count": 8 },
+    "ad_spend_google_ads": { "platform": "google_ads", "event_type": "ad_spend", "recommended_count": 8 }
+  },
+
+  "pixel_event_templates": {
+    "session": {
+      "pixel_id": "<pixel_id>",
+      "session_id": "<uuid>",
+      "event_type": "page_view",
+      "page_url": "https://example.com/product",
+      "utm_source": "<channel>",
+      "utm_medium": "<medium>",
+      "utm_campaign": "<campaign>",
+      "timestamp": "<iso>",
+      "user_agent": "Mozilla/5.0"
+    },
+    "conversion": {
+      "pixel_id": "<pixel_id>",
+      "session_id": "<uuid>",
+      "event_type": "conversion",
+      "page_url": "https://example.com/checkout/complete",
+      "utm_source": "<channel>",
+      "utm_medium": "<medium>",
+      "utm_campaign": "<campaign>",
+      "timestamp": "<iso>",
+      "metadata": { "order_id": "ORDER-<n>" }
+    }
+  },
+
+  "verified_conversion_template": {
+    "transaction_id": "<txn>",
+    "user_id": "<user_id>",
+    "email": "<email>",
+    "amount": 1000,
+    "currency": "PHP",
+    "pixel_session_id": "<session_id>",
+    "attributed_channel": "<channel>",
+    "confidence_score": 80,
+    "confidence_level": "high",
+    "attribution_method": "dual_verified",
+    "timestamp": "<iso>",
+    "metadata": { "journey_channels": ["<channels>"] }
+  },
+
+  "profiles": {
+    "google-heavy": {
+      "description": "High revenue from Google, moderate Facebook, some email and Instagram",
+      "channel_distribution": { "google": 0.6, "facebook": 0.2, "email": 0.1, "instagram": 0.1 },
+      "journey_mix": ["google", "facebook>google", "email>google", "google"],
+      "recommended_counts": { "journeys": 35, "stripe_charges": 50 }
+    },
+    "social-first": {
+      "description": "High Facebook revenue and spend, Instagram moderate, Google lower",
+      "channel_distribution": { "facebook": 0.5, "instagram": 0.25, "google": 0.15, "email": 0.1 },
+      "journey_mix": ["facebook>google", "facebook", "instagram", "email>google"],
+      "recommended_counts": { "journeys": 35, "stripe_charges": 45 }
+    },
+    "balanced": {
+      "description": "Mixed channels: Google, Facebook, Email moderate; TikTok low value/high spend",
+      "channel_distribution": { "google": 0.33, "facebook": 0.33, "email": 0.2, "tiktok": 0.14 },
+      "journey_mix": ["facebook>google", "email>google", "google", "tiktok"],
+      "recommended_counts": { "journeys": 35, "stripe_charges": 40 }
+    },
+    "personal-demo": {
+      "description": "Small demo dataset tailored to a single demo user",
+      "channel_distribution": { "google": 0.5, "email": 0.3, "facebook": 0.2 },
+      "journey_mix": ["email>google", "google", "facebook>google"],
+      "recommended_counts": { "journeys": 30, "stripe_charges": 30 }
+    }
+  }
+}

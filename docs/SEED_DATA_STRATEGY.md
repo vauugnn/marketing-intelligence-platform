@@ -22,7 +22,7 @@ Each user requires data in 5 tables. Below is the structure for each.
 
 Each user gets 3 simulated connected platforms:
 
-| Platform | Status | Purpose |
+| Platform | Status | Purpose |  
 |----------|--------|---------|
 | `google_analytics_4` | `connected` | Traffic source data, session tracking |
 | `meta` | `connected` | Facebook/Instagram ad spend and conversions |
