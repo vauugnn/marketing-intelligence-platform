@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { api } from '../services/api';
+import { useState } from 'react';
+import { usePlatforms, usePixel, useConnectPlatform, useDisconnectPlatform } from '../hooks/useIntegrations';
 import { useToastStore } from '../components/ui/Toast';
 import { cn } from '../lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -290,70 +290,16 @@ function PlatformCardSkeleton() {
 // ---------------------------------------------------------------------------
 
 export default function Integrations() {
-  const [platforms, setPlatforms] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [pixelData, setPixelData] = useState<any>(null);
+  const { data: platforms = [], isLoading: loading } = usePlatforms();
+  const { data: pixelData } = usePixel();
+  const connectMutation = useConnectPlatform();
+  const disconnectMutation = useDisconnectPlatform();
   const [showPixelCode, setShowPixelCode] = useState(false);
-  const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null);
   const addToast = useToastStore((state) => state.addToast);
 
-  useEffect(() => {
-    loadIntegrations();
-    loadOrGeneratePixel();
-  }, []);
-
-  const loadIntegrations = async () => {
-    try {
-      const result = await api.getIntegrations();
-      if (result.success) {
-        setPlatforms(result.data);
-      }
-    } catch (error) {
-      console.error('Failed to load integrations:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadOrGeneratePixel = async () => {
-    try {
-      const result = await api.generatePixel();
-      if (result.success) {
-        setPixelData(result.data);
-      }
-    } catch (error) {
-      console.error('Failed to generate pixel:', error);
-    }
-  };
-
-  const handleConnect = async (platformId: string) => {
-    setConnectingPlatform(platformId);
-    try {
-      const result = await api.connectPlatform(platformId);
-      if (result.success) {
-        addToast(`Connection to ${platformConfig[platformId]?.name || platformId} initiated!`, 'success');
-        setPlatforms((prev) => prev.map((p) => (p.platform === platformId ? { ...p, ...result.data } : p)));
-      } else {
-        addToast(result.message || 'Connection failed', 'error');
-      }
-    } catch (error) {
-      addToast('Failed to connect. Please try again.', 'error');
-    } finally {
-      setConnectingPlatform(null);
-    }
-  };
-
-  const handleDisconnect = async (platformId: string) => {
-    try {
-      const result = await api.disconnectPlatform(platformId);
-      if (result.success) {
-        addToast(`Disconnected from ${platformConfig[platformId]?.name || platformId}`, 'info');
-        setPlatforms((prev) => prev.map((p) => (p.platform === platformId ? { ...p, ...result.data } : p)));
-      }
-    } catch (error) {
-      addToast('Failed to disconnect. Please try again.', 'error');
-    }
-  };
+  const handleConnect = (platformId: string) => connectMutation.mutate(platformId);
+  const handleDisconnect = (platformId: string) => disconnectMutation.mutate(platformId);
+  const connectingPlatform = connectMutation.isPending ? (connectMutation.variables as string) : null;
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -417,7 +363,6 @@ export default function Integrations() {
 
               {showPixelCode && (
                 <div className="mt-3 space-y-3">
-                  {/* Step 1 */}
                   <div className="flex gap-2.5">
                     <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/15 flex items-center justify-center">
                       <Copy className="w-3 h-3 text-blue-400" />
@@ -439,7 +384,6 @@ export default function Integrations() {
                     </div>
                   </div>
 
-                  {/* Step 2 */}
                   <div className="flex gap-2.5">
                     <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/15 flex items-center justify-center">
                       <MonitorSmartphone className="w-3 h-3 text-blue-400" />
@@ -454,7 +398,6 @@ export default function Integrations() {
                     </div>
                   </div>
 
-                  {/* Step 3 */}
                   <div className="flex gap-2.5">
                     <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500/15 flex items-center justify-center">
                       <CheckCircle className="w-3 h-3 text-blue-400" />
@@ -519,7 +462,6 @@ export default function Integrations() {
                   isError && 'border-red-500/30 hover:border-red-500/50'
                 )}
               >
-                {/* Icon + Status */}
                 <div className="flex items-start justify-between mb-3">
                   <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center p-1.5', config.color)}>
                     <Logo className="w-full h-full" />
@@ -527,11 +469,9 @@ export default function Integrations() {
                   <StatusBadge status={platform.status} />
                 </div>
 
-                {/* Name + Description */}
                 <h3 className="font-semibold text-sm text-gray-100 mb-0.5">{config.name}</h3>
                 <p className="text-gray-500 text-xs mb-2">{config.description}</p>
 
-                {/* Last synced / Error */}
                 <div className="flex-1">
                   {platform.last_synced_at && (
                     <p className="text-xs text-gray-600 flex items-center gap-1">
@@ -548,7 +488,6 @@ export default function Integrations() {
                   {platform.sync_progress != null && <SyncProgressBar progress={platform.sync_progress} />}
                 </div>
 
-                {/* Action button */}
                 <div className="mt-3 pt-2 border-t border-gray-800">
                   {isConnected || isError ? (
                     <div className="flex gap-1.5">

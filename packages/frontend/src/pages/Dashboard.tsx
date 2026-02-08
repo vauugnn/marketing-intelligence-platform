@@ -1,36 +1,10 @@
-import { useEffect, useState } from 'react';
-import { api } from '../services/api';
+import { useState } from 'react';
+import { usePerformance } from '../hooks/useAnalytics';
 import SystemMapComponent from '../components/SystemMapComponent';
 
-interface ChannelPerformance {
-  channel: string;
-  revenue: number;
-  spend: number;
-  roi: number;
-  performance_rating: string;
-}
-
 export default function Dashboard() {
-  const [channels, setChannels] = useState<ChannelPerformance[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: channels = [], isLoading: loading, error, refetch } = usePerformance();
   const [mapExpanded, setMapExpanded] = useState(false);
-
-  useEffect(() => {
-    loadPerformance();
-  }, []);
-
-  const loadPerformance = async () => {
-    try {
-      const result = await api.getPerformance();
-      if (result.success) {
-        setChannels(result.data);
-      }
-    } catch (error) {
-      console.error('Failed to load performance:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const totalRevenue = channels.reduce((sum, ch) => sum + ch.revenue, 0);
   const totalSpend = channels.reduce((sum, ch) => sum + ch.spend, 0);
@@ -125,7 +99,7 @@ export default function Dashboard() {
         }
 
         .grid-pattern {
-          background-image: 
+          background-image:
             linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
             linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
           background-size: 20px 20px;
@@ -218,7 +192,19 @@ export default function Dashboard() {
               <p className="text-gray-400 text-xs mt-0.5">Track revenue, spend, and ROI across platforms</p>
             </div>
 
-            {loading ? (
+            {error ? (
+              <div className="p-8 text-center flex-1 flex items-center justify-center">
+                <div>
+                  <p className="text-red-400 text-sm mb-3">{error.message}</p>
+                  <button
+                    onClick={() => refetch()}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-lg transition-colors"
+                  >
+                    Retry
+                  </button>
+                </div>
+              </div>
+            ) : loading ? (
               <div className="p-8 text-center flex-1 flex items-center justify-center">
                 <div>
                   <div className="inline-block w-10 h-10 border-3 border-gray-700 border-t-blue-500 rounded-full animate-spin"></div>
@@ -265,8 +251,8 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* System Map Component - maintains same responsive grid position */}
-          <SystemMapComponent 
+          {/* System Map Component */}
+          <SystemMapComponent
             channels={channels}
             isExpanded={mapExpanded}
             onToggleExpand={setMapExpanded}
