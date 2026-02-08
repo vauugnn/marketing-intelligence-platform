@@ -30,23 +30,26 @@ const queryClient = new QueryClient({
   },
 });
 
+import { ThemeProvider } from './components/theme-provider';
+
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+    <div className="flex h-screen bg-background text-foreground transition-colors duration-300 overflow-hidden">
       <Sidebar />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 overflow-y-auto lg:pl-64 h-full w-full">{children}</main>
     </div>
   );
 }
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Router>
-        <Routes>
-          {/* Public routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
 
           {/* Protected routes */}
           <Route

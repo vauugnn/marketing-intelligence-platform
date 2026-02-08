@@ -31,19 +31,19 @@ export default function Signup() {
 
   if (confirmSent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="w-full max-w-sm">
-          <Card className="border-gray-800 bg-gray-900/80 backdrop-blur-sm">
+          <Card className="border-border bg-card/80 backdrop-blur-sm">
             <CardHeader className="text-center">
-              <CardTitle className="text-xl text-white">Check your email</CardTitle>
+              <CardTitle className="text-xl text-foreground">Check your email</CardTitle>
               <CardDescription>
-                We sent a confirmation link to <span className="text-white font-medium">{email}</span>.
+                We sent a confirmation link to <span className="text-foreground font-medium">{email}</span>.
                 Please check your inbox to verify your account.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Link to="/login">
-                <Button variant="outline" className="w-full border-gray-700 bg-gray-800/50 text-white hover:bg-gray-700/50">
+                <Button variant="outline" className="w-full border-input bg-background/50 text-foreground hover:bg-accent hover:text-accent-foreground">
                   Back to login
                 </Button>
               </Link>
@@ -55,18 +55,18 @@ export default function Signup() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
-        <Card className="border-gray-800 bg-gray-900/80 backdrop-blur-sm">
+        <Card className="border-border bg-card/80 backdrop-blur-sm">
           <CardHeader className="text-center">
-            <CardTitle className="text-xl text-white">Create an account</CardTitle>
+            <CardTitle className="text-xl text-foreground">Create an account</CardTitle>
             <CardDescription>
               Enter your email below to create your account
             </CardDescription>
           </CardHeader>
           <CardContent>
             {signupError && (
-              <div className="mb-4 rounded-lg bg-red-950/50 border border-red-500/30 px-4 py-3 text-sm text-red-300">
+              <div className="mb-4 rounded-lg bg-destructive/20 border border-destructive/30 px-4 py-3 text-sm text-destructive">
                 {signupError.message}
               </div>
             )}
@@ -81,7 +81,7 @@ export default function Signup() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="border-gray-700 bg-gray-800/50 text-white placeholder:text-gray-500"
+                  className="border-input bg-background/50 text-foreground placeholder:text-muted-foreground"
                 />
               </div>
 
@@ -95,7 +95,7 @@ export default function Signup() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="border-gray-700 bg-gray-800/50 text-white placeholder:text-gray-500"
+                  className="border-input bg-background/50 text-foreground placeholder:text-muted-foreground"
                 />
               </div>
 
@@ -109,15 +109,15 @@ export default function Signup() {
             </form>
 
             <div className="my-6 flex items-center gap-3">
-              <div className="h-px flex-1 bg-gray-800" />
-              <span className="text-xs text-gray-500 uppercase">Or continue with</span>
-              <div className="h-px flex-1 bg-gray-800" />
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-xs text-muted-foreground uppercase">Or continue with</span>
+              <div className="h-px flex-1 bg-border" />
             </div>
 
             <Button
               variant="outline"
               onClick={loginWithGoogle}
-              className="w-full border-gray-700 bg-gray-800/50 text-white hover:bg-gray-700/50"
+              className="w-full border-input bg-background/50 text-foreground hover:bg-accent hover:text-accent-foreground"
             >
               <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                 <path
@@ -140,9 +140,9 @@ export default function Signup() {
               Sign up with Google
             </Button>
 
-            <p className="mt-6 text-center text-sm text-gray-400">
+            <p className="mt-6 text-center text-sm text-muted-foreground">
               Already have an account?{' '}
-              <Link to="/login" className="text-white hover:underline font-medium">
+              <Link to="/login" className="text-primary hover:underline font-medium">
                 Log in
               </Link>
             </p>

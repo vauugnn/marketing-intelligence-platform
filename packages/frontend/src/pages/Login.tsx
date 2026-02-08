@@ -23,18 +23,18 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
-        <Card className="border-gray-800 bg-gray-900/80 backdrop-blur-sm">
+        <Card className="border-border bg-card/80 backdrop-blur-sm">
           <CardHeader className="text-center">
-            <CardTitle className="text-xl text-white">Login to your account</CardTitle>
+            <CardTitle className="text-xl text-foreground">Login to your account</CardTitle>
             <CardDescription>
               Enter your email below to login to your account
             </CardDescription>
           </CardHeader>
           <CardContent>
             {loginError && (
-              <div className="mb-4 rounded-lg bg-red-950/50 border border-red-500/30 px-4 py-3 text-sm text-red-300">
+              <div className="mb-4 rounded-lg bg-destructive/20 border border-destructive/30 px-4 py-3 text-sm text-destructive">
                 {loginError.message}
               </div>
             )}
@@ -49,7 +49,7 @@ export default function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="border-gray-700 bg-gray-800/50 text-white placeholder:text-gray-500"
+                  className="border-input bg-background/50 text-foreground placeholder:text-muted-foreground"
                 />
               </div>
 
@@ -58,7 +58,7 @@ export default function Login() {
                   <Label htmlFor="password">Password</Label>
                   <button
                     type="button"
-                    className="text-xs text-gray-400 hover:text-white transition-colors"
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Forgot your password?
                   </button>
@@ -69,7 +69,7 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="border-gray-700 bg-gray-800/50 text-white placeholder:text-gray-500"
+                  className="border-input bg-background/50 text-foreground placeholder:text-muted-foreground"
                 />
               </div>
 
@@ -83,15 +83,15 @@ export default function Login() {
             </form>
 
             <div className="my-6 flex items-center gap-3">
-              <div className="h-px flex-1 bg-gray-800" />
-              <span className="text-xs text-gray-500 uppercase">Or continue with</span>
-              <div className="h-px flex-1 bg-gray-800" />
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-xs text-muted-foreground uppercase">Or continue with</span>
+              <div className="h-px flex-1 bg-border" />
             </div>
 
             <Button
               variant="outline"
               onClick={loginWithGoogle}
-              className="w-full border-gray-700 bg-gray-800/50 text-white hover:bg-gray-700/50"
+              className="w-full border-input bg-background/50 text-foreground hover:bg-accent hover:text-accent-foreground"
             >
               <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                 <path
@@ -114,9 +114,9 @@ export default function Login() {
               Login with Google
             </Button>
 
-            <p className="mt-6 text-center text-sm text-gray-400">
+            <p className="mt-6 text-center text-sm text-muted-foreground">
               Don&apos;t have an account?{' '}
-              <Link to="/signup" className="text-white hover:underline font-medium">
+              <Link to="/signup" className="text-primary hover:underline font-medium">
                 Sign up
               </Link>
             </p>
