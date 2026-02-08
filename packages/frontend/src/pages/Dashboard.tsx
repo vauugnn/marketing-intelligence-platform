@@ -1,7 +1,7 @@
 import { Key, useState } from 'react';
 import { usePerformance } from '../hooks/useAnalytics';
 import SystemMapComponent from '../components/SystemMapComponent';
-import { Search, DollarSign, Briefcase, Clock, Bell, ArrowUpRight, ArrowDownRight, MoreHorizontal } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 
 export default function Dashboard() {
   const { data: channels = [], isLoading: loading, error, refetch } = usePerformance();
@@ -33,95 +33,58 @@ export default function Dashboard() {
         }
        `}</style>
 
-      {/* Top Bar: Search and Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Real-time insights into your marketing channels</p>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="relative group w-full md:w-96">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-muted-foreground group-focus-within:text-orange-500 transition-colors" />
-            </div>
-            <input
-              type="text"
-              className="block w-full pl-10 pr-3 py-2.5 border-none rounded-xl bg-muted/50 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:bg-background transition-all"
-              placeholder="Search tasks, projects, or documents..."
-            />
-          </div>
-          <button className="p-2.5 rounded-xl bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-orange-500 rounded-full border-2 border-background"></span>
-          </button>
-        </div>
+      {/* Top Bar: Header Only (Search/Bell removed) */}
+      <div className="mb-10">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+        <p className="text-muted-foreground mt-1">Real-time insights into your marketing channels</p>
       </div>
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {/* Revenue Card */}
-        <div className="glass-card p-6 hover:shadow-lg transition-all duration-300 group">
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-2 rounded-lg bg-orange-500/10 text-orange-500 transition-colors">
-              <DollarSign className="h-5 w-5" />
+        {/* Revenue Card - Orange Gradient */}
+        <div className="rounded-2xl p-6 shadow-lg bg-gradient-to-br from-orange-500 to-orange-600 text-white relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+          {/* Abstract Circle Decoration */}
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+
+          <div className="relative z-10 flex flex-col h-full justify-between">
+            <div>
+              <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1">Total Revenue</div>
+              <h3 className="text-4xl font-bold">₱{totalRevenue.toLocaleString()}</h3>
             </div>
-            <button className="text-muted-foreground hover:text-foreground">
-              <MoreHorizontal className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="space-y-1">
-            <span className="text-sm font-medium text-muted-foreground">Total Revenue</span>
-            <div className="flex items-baseline gap-2">
-              <h3 className="text-3xl font-bold text-foreground">₱{totalRevenue.toLocaleString()}</h3>
-            </div>
-            <div className="flex items-center gap-1.5 text-sm font-medium text-green-500 mt-2">
-              <ArrowUpRight className="h-4 w-4" />
-              <span>+23% from last month</span>
+            <div className="text-sm font-medium opacity-90 mt-4">
+              +23% from last month
             </div>
           </div>
         </div>
 
-        {/* Spend Card (Styled like "Active Projects") */}
-        <div className="glass-card p-6 hover:shadow-lg transition-all duration-300 group">
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500 transition-colors">
-              <Briefcase className="h-5 w-5" />
+        {/* Spend Card - Peach/Orange Gradient (to stay in Blue/Orange theme but distinct) */}
+        <div className="rounded-2xl p-6 shadow-lg bg-gradient-to-br from-orange-300 to-orange-400 text-white relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+          {/* Abstract Circle Decoration */}
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/20 rounded-full blur-2xl"></div>
+
+          <div className="relative z-10 flex flex-col h-full justify-between">
+            <div>
+              <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1 text-orange-950/70">Total Spend</div>
+              <h3 className="text-4xl font-bold text-white">₱{totalSpend.toLocaleString()}</h3>
             </div>
-            <button className="text-muted-foreground hover:text-foreground">
-              <MoreHorizontal className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="space-y-1">
-            <span className="text-sm font-medium text-muted-foreground">Total Spend</span>
-            <div className="flex items-baseline gap-2">
-              <h3 className="text-3xl font-bold text-foreground">₱{totalSpend.toLocaleString()}</h3>
-            </div>
-            <div className="flex items-center gap-1.5 text-sm font-medium text-green-500 mt-2">
-              <ArrowUpRight className="h-4 w-4" />
-              <span>+12% from last month</span>
+            <div className="text-sm font-medium opacity-90 mt-4 text-white">
+              +12% from last month
             </div>
           </div>
         </div>
 
-        {/* ROI Card (Styled like "Pending Tasks") */}
-        <div className="glass-card p-6 hover:shadow-lg transition-all duration-300 group">
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500 transition-colors">
-              <Clock className="h-5 w-5" />
+        {/* ROI Card - Blue Gradient (Replacing Purple) */}
+        <div className="rounded-2xl p-6 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+          {/* Abstract Circle Decoration */}
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+
+          <div className="relative z-10 flex flex-col h-full justify-between">
+            <div>
+              <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1">Average ROI</div>
+              <h3 className="text-4xl font-bold">{avgROI.toFixed(0)}%</h3>
             </div>
-            <button className="text-muted-foreground hover:text-foreground">
-              <MoreHorizontal className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="space-y-1">
-            <span className="text-sm font-medium text-muted-foreground">Average ROI</span>
-            <div className="flex items-baseline gap-2">
-              <h3 className="text-3xl font-bold text-foreground">{avgROI.toFixed(0)}%</h3>
-            </div>
-            <div className="flex items-center gap-1.5 text-sm font-medium text-red-500 mt-2">
-              <ArrowDownRight className="h-4 w-4" />
-              <span>-5% from last month</span>
+            <div className="text-sm font-medium opacity-90 mt-4">
+              -5% from last month
             </div>
           </div>
         </div>
