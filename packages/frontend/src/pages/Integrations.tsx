@@ -13,10 +13,12 @@ import {
   ChevronDown,
   ChevronRight,
   Code,
-  MonitorSmartphone,
   HelpCircle,
   Loader2,
   Zap,
+  Globe,
+  ShoppingBag,
+  FileCode,
 } from 'lucide-react';
 import {
   GoogleAnalyticsLogo,
@@ -294,6 +296,7 @@ export default function Integrations() {
   const [loading, setLoading] = useState(true);
   const [pixelData, setPixelData] = useState<any>(null);
   const [showPixelCode, setShowPixelCode] = useState(false);
+  const [installTab, setInstallTab] = useState<'wordpress' | 'shopify' | 'manual'>('wordpress');
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null);
   const addToast = useToastStore((state) => state.addToast);
 
@@ -467,61 +470,191 @@ export default function Integrations() {
 
                 {showPixelCode && (
                   <div className="mt-3 space-y-3">
-                    {/* Step 1 */}
-                    <div className="flex gap-2.5">
-                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center">
-                        <Copy className="w-3 h-3 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="text-xs font-semibold text-foreground mb-1.5">Step 1: Copy the code snippet</h4>
+                    {/* Platform tabs */}
+                    <div className="flex gap-1.5 flex-wrap">
+                      {([
+                        { key: 'wordpress' as const, label: 'WordPress', icon: Globe },
+                        { key: 'shopify' as const, label: 'Shopify', icon: ShoppingBag },
+                        { key: 'manual' as const, label: 'Manual', icon: FileCode },
+                      ]).map((tab) => {
+                        const TabIcon = tab.icon;
+                        return (
+                          <button
+                            key={tab.key}
+                            onClick={() => setInstallTab(tab.key)}
+                            className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${installTab === tab.key
+                              ? 'bg-primary/10 text-primary border border-primary/20'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent'
+                            }`}
+                          >
+                            <TabIcon className="w-3.5 h-3.5" />
+                            {tab.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Wrapped snippet used by all tabs */}
+                    {(() => {
+                      const wrappedSnippet = `<!-- Intelligence Platform Pixel -->\n${pixelData.snippet}\n<!-- End Intelligence Platform Pixel -->`;
+                      const snippetBlock = (
                         <div className="relative">
                           <pre className="bg-muted text-muted-foreground p-3 rounded-lg overflow-x-auto text-xs border border-border">
-                            <code>{pixelData.snippet}</code>
+                            <code>{wrappedSnippet}</code>
                           </pre>
                           <button
-                            onClick={() => copyToClipboard(pixelData.snippet)}
+                            onClick={() => copyToClipboard(wrappedSnippet)}
                             className="absolute top-1.5 right-1.5 bg-primary hover:bg-primary/90 text-primary-foreground px-2 py-0.5 rounded text-xs flex items-center gap-1"
                           >
                             <Copy className="w-2.5 h-2.5" />
                             Copy
                           </button>
                         </div>
-                      </div>
-                    </div>
+                      );
 
-                    {/* Step 2 */}
-                    <div className="flex gap-2.5">
-                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center">
-                        <MonitorSmartphone className="w-3 h-3 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="text-xs font-semibold text-foreground mb-0.5">Step 2: Add to your website</h4>
-                        <p className="text-xs text-muted-foreground">
-                          Paste in your{' '}
-                          <code className="bg-primary/10 px-1 py-0.5 rounded text-primary text-xs">&lt;head&gt;</code>{' '}
-                          tag
-                        </p>
-                      </div>
-                    </div>
+                      return (
+                        <>
+                    {/* WordPress tab */}
+                    {installTab === 'wordpress' && (
+                      <div className="space-y-3">
+                        <div className="flex gap-2.5">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center text-xs font-semibold text-primary">1</div>
+                          <div className="flex-1">
+                            <h4 className="text-xs font-semibold text-foreground mb-1.5">Copy the code snippet</h4>
+                            {snippetBlock}
+                          </div>
+                        </div>
 
-                    {/* Step 3 */}
-                    <div className="flex gap-2.5">
-                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center">
-                        <CheckCircle className="w-3 h-3 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="text-xs font-semibold text-foreground mb-0.5">Step 3: Verify installation</h4>
-                        <p className="text-xs text-muted-foreground">
-                          Check browser Network tab for pixel requests. Data appears within minutes.
-                        </p>
-                      </div>
-                    </div>
+                        <div className="flex gap-2.5">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center text-xs font-semibold text-primary">2</div>
+                          <div className="flex-1">
+                            <h4 className="text-xs font-semibold text-foreground mb-0.5">Open your header scripts</h4>
+                            <p className="text-xs text-muted-foreground">
+                              If you have a header scripts plugin (like <strong className="text-foreground">Insert Headers and Footers</strong> or <strong className="text-foreground">WPCode</strong>), go to <code className="bg-primary/10 px-1 py-0.5 rounded text-primary text-xs">Settings &gt; Insert Headers and Footers</code>. This is the same place where you added your Google Analytics or Meta Pixel code.
+                            </p>
+                          </div>
+                        </div>
 
-                    <div className="bg-muted/50 border border-border rounded-lg p-2.5 ml-8">
-                      <p className="text-xs text-muted-foreground">
-                        Lightweight script (&lt;5KB) — tracks page views, UTM parameters, and customer journeys.
-                      </p>
-                    </div>
+                        <div className="flex gap-2.5">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center text-xs font-semibold text-primary">3</div>
+                          <div className="flex-1">
+                            <h4 className="text-xs font-semibold text-foreground mb-0.5">Paste next to your existing tracking codes</h4>
+                            <p className="text-xs text-muted-foreground">
+                              Paste the snippet in the <strong className="text-foreground">Scripts in Header</strong> section, right below your existing GA4 or Meta Pixel code, and click <strong className="text-foreground">Save</strong>.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2.5">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center text-xs font-semibold text-primary">4</div>
+                          <div className="flex-1">
+                            <h4 className="text-xs font-semibold text-foreground mb-0.5">Verify installation</h4>
+                            <p className="text-xs text-muted-foreground">
+                              Visit your website, open the browser <strong className="text-foreground">Network</strong> tab (F12), and look for pixel requests. Data appears within minutes.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="bg-muted/50 border border-border rounded-lg p-2.5 ml-8">
+                          <p className="text-xs text-muted-foreground">
+                            No plugin? You can also paste the snippet in <code className="bg-primary/10 px-1 py-0.5 rounded text-primary text-xs">Appearance &gt; Theme Editor &gt; header.php</code> — find your GA4/Meta code and paste it right below, before the <code className="bg-primary/10 px-1 py-0.5 rounded text-primary text-xs">&lt;/head&gt;</code> tag.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Shopify tab */}
+                    {installTab === 'shopify' && (
+                      <div className="space-y-3">
+                        <div className="flex gap-2.5">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center text-xs font-semibold text-primary">1</div>
+                          <div className="flex-1">
+                            <h4 className="text-xs font-semibold text-foreground mb-1.5">Copy the code snippet</h4>
+                            {snippetBlock}
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2.5">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center text-xs font-semibold text-primary">2</div>
+                          <div className="flex-1">
+                            <h4 className="text-xs font-semibold text-foreground mb-0.5">Open theme.liquid</h4>
+                            <p className="text-xs text-muted-foreground">
+                              Go to <code className="bg-primary/10 px-1 py-0.5 rounded text-primary text-xs">Online Store &gt; Themes &gt; ... &gt; Edit code</code>, then open <code className="bg-primary/10 px-1 py-0.5 rounded text-primary text-xs">theme.liquid</code> from the Layout section. This is the same file where your Google Analytics or Meta Pixel code lives.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2.5">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center text-xs font-semibold text-primary">3</div>
+                          <div className="flex-1">
+                            <h4 className="text-xs font-semibold text-foreground mb-0.5">Paste next to your existing tracking codes</h4>
+                            <p className="text-xs text-muted-foreground">
+                              Find your GA4 or Meta Pixel code (look for <code className="bg-primary/10 px-1 py-0.5 rounded text-primary text-xs">&lt;!-- Facebook Pixel Code --&gt;</code> or similar comments), and paste the snippet right below it, before <code className="bg-primary/10 px-1 py-0.5 rounded text-primary text-xs">&lt;/head&gt;</code>. Click <strong className="text-foreground">Save</strong>.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2.5">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center text-xs font-semibold text-primary">4</div>
+                          <div className="flex-1">
+                            <h4 className="text-xs font-semibold text-foreground mb-0.5">Verify installation</h4>
+                            <p className="text-xs text-muted-foreground">
+                              Visit your storefront, open the browser <strong className="text-foreground">Network</strong> tab (F12), and look for pixel requests. Data appears within minutes.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="bg-muted/50 border border-border rounded-lg p-2.5 ml-8">
+                          <p className="text-xs text-muted-foreground">
+                            Lightweight script (&lt;5KB) — sits alongside your existing tracking codes. No impact on store performance.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Manual tab */}
+                    {installTab === 'manual' && (
+                      <div className="space-y-3">
+                        <div className="flex gap-2.5">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center text-xs font-semibold text-primary">1</div>
+                          <div className="flex-1">
+                            <h4 className="text-xs font-semibold text-foreground mb-1.5">Copy the code snippet</h4>
+                            {snippetBlock}
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2.5">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center text-xs font-semibold text-primary">2</div>
+                          <div className="flex-1">
+                            <h4 className="text-xs font-semibold text-foreground mb-0.5">Add to your website</h4>
+                            <p className="text-xs text-muted-foreground">
+                              Paste the snippet in your site's{' '}
+                              <code className="bg-primary/10 px-1 py-0.5 rounded text-primary text-xs">&lt;head&gt;</code>{' '}
+                              tag, before the closing <code className="bg-primary/10 px-1 py-0.5 rounded text-primary text-xs">&lt;/head&gt;</code>.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2.5">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center text-xs font-semibold text-primary">3</div>
+                          <div className="flex-1">
+                            <h4 className="text-xs font-semibold text-foreground mb-0.5">Verify installation</h4>
+                            <p className="text-xs text-muted-foreground">
+                              Check browser Network tab for pixel requests. Data appears within minutes.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="bg-muted/50 border border-border rounded-lg p-2.5 ml-8">
+                          <p className="text-xs text-muted-foreground">
+                            Lightweight script (&lt;5KB) — tracks page views, UTM parameters, and customer journeys.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
