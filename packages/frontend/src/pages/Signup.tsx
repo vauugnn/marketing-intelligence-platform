@@ -19,7 +19,7 @@ export default function Signup() {
       const user = await signup({ email, password });
       if (user) {
         // If email confirmation is disabled, user is logged in immediately
-        navigate('/');
+        navigate('/dashboard');
       } else {
         // Email confirmation required
         setConfirmSent(true);
