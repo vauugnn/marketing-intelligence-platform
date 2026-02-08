@@ -54,7 +54,7 @@
     return utm;
   }
 
-  function trackEvent(eventType: string = 'page_view'): void {
+  function trackEvent(eventType: string = 'page_view', data?: Record<string, any>): void {
     const sessionId = getSessionId();
     const utmParams = getUTMParams();
 
@@ -65,6 +65,7 @@
       page_url: window.location.href,
       referrer: document.referrer || undefined,
       timestamp: new Date().toISOString(),
+      metadata: data || undefined,
       ...utmParams
     };
 
