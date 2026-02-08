@@ -11,6 +11,16 @@
     return;
   }
 
+  // --- Dedup guard ---
+  function shouldTrack(eventType: string): boolean {
+    if (eventType !== 'page_view') return true;
+    const key = `_pxl_pv_${pixelId}`;
+    const tracked = sessionStorage.getItem(key);
+    if (tracked === window.location.href) return false;
+    sessionStorage.setItem(key, window.location.href);
+    return true;
+  }
+
   // Generate or retrieve session ID
   function getSessionId(): string {
     const cookieName = `_pxl_sid_${pixelId}`;
@@ -62,6 +72,40 @@
     return meta;
   }
 
+  // --- Script tag data-* attributes ---
+  function getScriptData(): Record<string, string> {
+    const attrs: Record<string, string> = {};
+    if (!script) return attrs;
+    const map: Record<string, string> = {
+      'data-visitor-id': 'visitor_id',
+      'data-email': 'email',
+      'data-name': 'name',
+      'data-value': 'value',
+      'data-currency': 'currency',
+    };
+    for (const [attr, key] of Object.entries(map)) {
+      const val = script.getAttribute(attr);
+      if (val) attrs[key] = val;
+    }
+    return attrs;
+  }
+
+  // --- dataLayer integration (GTM pattern) ---
+  function getDataLayerData(): Record<string, any> {
+    const dl = (window as any).dataLayer;
+    if (!Array.isArray(dl)) return {};
+    const result: Record<string, any> = {};
+    const fields = ['visitor_id', 'email', 'name', 'value', 'currency'];
+    for (let i = dl.length - 1; i >= 0; i--) {
+      const entry = dl[i];
+      if (typeof entry !== 'object' || entry === null) continue;
+      for (const f of fields) {
+        if (!(f in result) && entry[f] != null) result[f] = entry[f];
+      }
+    }
+    return result;
+  }
+
   function getUTMParams(): Record<string, string> {
     const params = new URLSearchParams(window.location.search);
     const utm: Record<string, string> = {};
@@ -75,9 +119,13 @@
   }
 
   function trackEvent(eventType: string = 'page_view', data?: Record<string, any>): void {
+    if (!shouldTrack(eventType)) return;
+
     const sessionId = getSessionId();
     const utmParams = getUTMParams();
     const pageMetadata = getPageMetadata();
+    const scriptData = getScriptData();
+    const dataLayerData = getDataLayerData();
 
     const event = {
       pixel_id: pixelId,
@@ -86,11 +134,10 @@
       page_url: window.location.href,
       referrer: document.referrer || undefined,
       timestamp: new Date().toISOString(),
-      metadata: { ...pageMetadata, ...data },
+      metadata: { ...pageMetadata, ...scriptData, ...dataLayerData, ...data },
       ...utmParams
     };
 
-    // Send to backend
     fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -98,9 +145,38 @@
     }).catch(err => console.error('Pixel tracking failed:', err));
   }
 
+  // --- Form submit listener ---
+  function setupFormListener(): void {
+    document.addEventListener('submit', (e) => {
+      const form = e.target as HTMLFormElement;
+      if (!form || form.tagName !== 'FORM') return;
+      const data: Record<string, any> = {};
+      const fieldMap: Record<string, string> = {
+        email: 'email',
+        name: 'name',
+        full_name: 'name',
+        fullname: 'name',
+        amount: 'value',
+        total: 'value',
+        value: 'value',
+        price: 'value',
+      };
+      for (const [inputName, key] of Object.entries(fieldMap)) {
+        const input = form.querySelector(`[name="${inputName}"]`) as HTMLInputElement;
+        if (input?.value) data[key] = input.value;
+      }
+      if (Object.keys(data).length > 0) {
+        trackEvent('form_submit', data);
+      }
+    }, true);
+  }
+
   // Track initial page view
-  trackEvent('page_view');
+  if (shouldTrack('page_view')) trackEvent('page_view');
 
   // Expose global tracking function
   (window as any).__pixelTrack = trackEvent;
+
+  // Auto-capture form submissions
+  setupFormListener();
 })();

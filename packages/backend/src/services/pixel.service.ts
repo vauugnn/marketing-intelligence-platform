@@ -7,7 +7,9 @@ export class PixelService {
    * Generate a dedup key from event fields to prevent duplicate events
    */
   private generateDedupKey(event: PixelEventInput): string {
-    const raw = `${event.pixel_id}|${event.session_id}|${event.event_type}|${event.page_url}|${event.timestamp}`;
+    const raw = event.event_type === 'page_view'
+      ? `${event.pixel_id}|${event.session_id}|${event.event_type}|${event.page_url}`
+      : `${event.pixel_id}|${event.session_id}|${event.event_type}|${event.page_url}|${event.timestamp}`;
     return crypto.createHash('sha256').update(raw).digest('hex');
   }
 
