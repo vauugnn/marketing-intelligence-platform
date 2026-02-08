@@ -6,10 +6,24 @@
  */
 
 import dotenv from 'dotenv';
+import { existsSync } from 'fs';
+import path from 'path';
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
 
-dotenv.config();
+// Load env: prefer packages/backend/.env when present
+const backendEnvPath = path.resolve(process.cwd(), 'packages', 'backend', '.env');
+if (existsSync(backendEnvPath)) {
+  dotenv.config({ path: backendEnvPath });
+} else {
+  dotenv.config();
+}
+
+const argv = yargs(hideBin(process.argv))
+  .option('email', { type: 'string', describe: 'Supabase auth user email to attach seed data to' })
+  .argv as { email?: string };
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -17,8 +31,30 @@ const supabase = createClient(
   { auth: { persistSession: false } }
 );
 
-const USER_ID = '11111111-1111-1111-1111-111111111111';
+// Default test ids (kept for backward compatibility)
+let USER_ID = '11111111-1111-1111-1111-111111111111';
 const PIXEL_ID = 'pixel_abc123';
+
+async function resolveUserIdByEmail(email?: string) {
+  if (!email) return;
+  // Try getUserByEmail if available, else listUsers fallback
+  try {
+    const maybe = (supabase.auth.admin as any).getUserByEmail?.(email);
+    if (maybe) {
+      const { data, error } = await maybe;
+      if (!error && data) return data.id;
+    }
+  } catch (e) {
+    // continue to fallback
+  }
+
+  // Fallback: list users and find by email
+  const { data: listData, error: listErr } = await (supabase.auth.admin as any).listUsers?.() ?? { data: null, error: null };
+  if (listErr) throw listErr;
+  const usersArray: any[] = (listData && (listData.users || listData)) || [];
+  const found = usersArray.find((u: any) => String(u.email).toLowerCase() === String(email).toLowerCase());
+  return found?.id;
+}
 
 interface SessionDef {
   channels: string[];      // multi-touch sequence
@@ -86,6 +122,20 @@ const journeys: SessionDef[] = [
 ];
 
 async function main() {
+  // If email supplied, resolve and set USER_ID
+  if (argv.email) {
+    const resolved = await resolveUserIdByEmail(argv.email).catch(err => {
+      console.error('Failed to resolve user by email:', err?.message || err);
+      process.exit(1);
+    });
+    if (!resolved) {
+      console.error('No auth user found for email:', argv.email);
+      process.exit(1);
+    }
+    USER_ID = resolved;
+    console.log('Seeding for user id:', USER_ID);
+  }
+
   const now = Date.now();
   const msPerDay = 24 * 60 * 60 * 1000;
 

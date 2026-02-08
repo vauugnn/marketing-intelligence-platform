@@ -1,14 +1,21 @@
 import { existsSync } from 'fs';
 import dotenv from 'dotenv';
+import path from 'path';
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
 
 // Load repo root .env first, then backend .env if present
 const rootEnv = dotenv.config();
-const backendEnvPath = '../packages/backend/.env';
+const backendEnvPath = path.resolve(process.cwd(), 'packages', 'backend', '.env');
 if (existsSync(backendEnvPath)) {
   dotenv.config({ path: backendEnvPath });
 }
+
+const argv = yargs(hideBin(process.argv))
+  .option('email', { type: 'string', describe: 'Supabase auth user email to attach seed data to' })
+  .argv as { email?: string };
 
 async function getSupabaseClient(): Promise<SupabaseClient> {
   const url = process.env.SUPABASE_URL;
@@ -23,10 +30,38 @@ async function getSupabaseClient(): Promise<SupabaseClient> {
 async function main() {
   const supabase = await getSupabaseClient();
 
+  // Resolve auth user id if email provided
+  let resolvedUserId: string | undefined;
+  if (argv.email) {
+    // Try getUserByEmail (if available) then fallback to listUsers
+    try {
+      const maybe = (supabase.auth.admin as any).getUserByEmail?.(argv.email);
+      if (maybe) {
+        const { data, error } = await maybe;
+        if (!error && data) resolvedUserId = data.id;
+      }
+    } catch (e) {
+      // ignore and fallback
+    }
+
+    if (!resolvedUserId) {
+      const { data: listData } = await (supabase.auth.admin as any).listUsers?.() ?? { data: null };
+      const usersArray: any[] = (listData && (listData.users || listData)) || [];
+      const found = usersArray.find((u: any) => String(u.email).toLowerCase() === String(argv.email).toLowerCase());
+      if (found) resolvedUserId = found.id;
+    }
+
+    if (!resolvedUserId) {
+      console.error('Auth user not found for email:', argv.email);
+      process.exit(1);
+    }
+    console.log('Seeding attribution for user id:', resolvedUserId);
+  }
+
   // Records (UUIDs chosen explicitly)
   const user = {
-    id: '11111111-1111-1111-1111-111111111111',
-    email: 'customer@example.com',
+    id: resolvedUserId || '11111111-1111-1111-1111-111111111111',
+    email: argv.email || 'customer@example.com',
     pixel_id: 'pixel_abc123',
     created_at: new Date('2026-02-01T08:00:00Z').toISOString(),
     updated_at: new Date('2026-02-01T08:00:00Z').toISOString()

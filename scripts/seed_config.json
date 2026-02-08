@@ -1,0 +1,28 @@
+{
+  "demo_users": [
+    {
+      "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "email": "demo-a@example.com",
+      "profile": "google-heavy",
+      "pixel_id": "pix_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "email": "demo-b@example.com",
+      "profile": "social-first",
+      "pixel_id": "pix_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+      "id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+      "email": "demo-c@example.com",
+      "profile": "balanced",
+      "pixel_id": "pix_cccccccccccccccccccccccccccccccc"
+    },
+    {
+      "id": "44444444-4444-4444-4444-444444444444",
+      "email": "ivaneltagonde5@gmail.com",
+      "profile": "personal-demo",
+      "pixel_id": "pix_ivaneltagonde5_111111111111111111111111"
+    }
+  ]
+}

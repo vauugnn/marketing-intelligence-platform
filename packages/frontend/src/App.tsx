@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import Integrations from './pages/Integrations';
 import SystemMap from './pages/SystemMap';
 import Recommendations from './pages/Recommendations';
+import DataFlow from './pages/DataFlow';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -50,27 +51,27 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
 
-            {/* Protected routes */}
-            <Route
-              path="/*"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Routes>
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/integrations" element={<Integrations />} />
-                      <Route path="/system-map" element={<SystemMap />} />
-                      <Route path="/recommendations" element={<Recommendations />} />
-                    </Routes>
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-          <ToastContainer />
-        </Router>
-      </QueryClientProvider>
-    </ThemeProvider>
+          {/* Protected routes */}
+          <Route
+            path="/*"
+            element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/integrations" element={<Integrations />} />
+                    <Route path="/system-map" element={<SystemMap />} />
+                    <Route path="/recommendations" element={<Recommendations />} />
+                    <Route path="/data-flow" element={<DataFlow />} />
+                  </Routes>
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+        <ToastContainer />
+      </Router>
+    </QueryClientProvider>
   );
 }
 
