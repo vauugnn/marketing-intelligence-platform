@@ -91,12 +91,12 @@ describe('Gemini Service', () => {
 
     describe('buildRecommendationPrompt', () => {
         const samplePerformance: ChannelPerformance[] = [
-            { channel: 'Facebook', revenue: 35000, spend: 5000, roi: 600, conversions: 20, performance_rating: 'Excellent' },
-            { channel: 'Email', revenue: 40000, spend: 1000, roi: 3900, conversions: 25, performance_rating: 'Exceptional' },
+            { channel: 'Facebook', revenue: 35000, spend: 5000, roi: 600, conversions: 20, performance_rating: 'excellent' },
+            { channel: 'Email', revenue: 40000, spend: 1000, roi: 3900, conversions: 25, performance_rating: 'exceptional' },
         ];
 
         const sampleSynergies: ChannelSynergy[] = [
-            { channel_a: 'Facebook', channel_b: 'Email', synergy_score: 5.0, frequency: 45, combined_revenue: 50000 },
+            { channel_a: 'Facebook', channel_b: 'Email', synergy_score: 5.0, frequency: 45, confidence: 80 },
         ];
 
         it('should include channel performance data', () => {
@@ -131,7 +131,7 @@ describe('Gemini Service', () => {
 
         it('should generate scale recommendation for exceptional channel', () => {
             const performance: ChannelPerformance[] = [
-                { channel: 'Email', revenue: 40000, spend: 1000, roi: 3900, conversions: 25, performance_rating: 'Exceptional' },
+                { channel: 'Email', revenue: 40000, spend: 1000, roi: 3900, conversions: 25, performance_rating: 'exceptional' },
             ];
 
             const recommendations = generateFallbackRecommendations(userId, performance, []);
@@ -143,7 +143,7 @@ describe('Gemini Service', () => {
 
         it('should generate optimize recommendation for satisfactory channel', () => {
             const performance: ChannelPerformance[] = [
-                { channel: 'Google Ads', revenue: 25000, spend: 8000, roi: 212, conversions: 15, performance_rating: 'Satisfactory' },
+                { channel: 'Google Ads', revenue: 25000, spend: 8000, roi: 212, conversions: 15, performance_rating: 'satisfactory' },
             ];
 
             const recommendations = generateFallbackRecommendations(userId, performance, []);
@@ -153,7 +153,7 @@ describe('Gemini Service', () => {
 
         it('should generate stop recommendation for failing channel', () => {
             const performance: ChannelPerformance[] = [
-                { channel: 'Instagram Ads', revenue: 2000, spend: 4000, roi: -50, conversions: 2, performance_rating: 'Failing' },
+                { channel: 'Instagram Ads', revenue: 2000, spend: 4000, roi: -50, conversions: 2, performance_rating: 'failing' },
             ];
 
             const recommendations = generateFallbackRecommendations(userId, performance, []);
@@ -164,10 +164,10 @@ describe('Gemini Service', () => {
 
         it('should include synergy recommendation when available', () => {
             const performance: ChannelPerformance[] = [
-                { channel: 'Facebook', revenue: 35000, spend: 5000, roi: 600, conversions: 20, performance_rating: 'Excellent' },
+                { channel: 'Facebook', revenue: 35000, spend: 5000, roi: 600, conversions: 20, performance_rating: 'excellent' },
             ];
             const synergies: ChannelSynergy[] = [
-                { channel_a: 'Facebook', channel_b: 'Email', synergy_score: 5.0, frequency: 45, combined_revenue: 50000 },
+                { channel_a: 'Facebook', channel_b: 'Email', synergy_score: 5.0, frequency: 45, confidence: 80 },
             ];
 
             const recommendations = generateFallbackRecommendations(userId, performance, synergies);
@@ -177,13 +177,13 @@ describe('Gemini Service', () => {
 
         it('should limit to 3 recommendations', () => {
             const performance: ChannelPerformance[] = [
-                { channel: 'Email', revenue: 40000, spend: 1000, roi: 3900, conversions: 25, performance_rating: 'Exceptional' },
-                { channel: 'Facebook', revenue: 35000, spend: 5000, roi: 600, conversions: 20, performance_rating: 'Excellent' },
-                { channel: 'Google Ads', revenue: 25000, spend: 8000, roi: 212, conversions: 15, performance_rating: 'Satisfactory' },
-                { channel: 'Instagram Ads', revenue: 2000, spend: 4000, roi: -50, conversions: 2, performance_rating: 'Failing' },
+                { channel: 'Email', revenue: 40000, spend: 1000, roi: 3900, conversions: 25, performance_rating: 'exceptional' },
+                { channel: 'Facebook', revenue: 35000, spend: 5000, roi: 600, conversions: 20, performance_rating: 'excellent' },
+                { channel: 'Google Ads', revenue: 25000, spend: 8000, roi: 212, conversions: 15, performance_rating: 'satisfactory' },
+                { channel: 'Instagram Ads', revenue: 2000, spend: 4000, roi: -50, conversions: 2, performance_rating: 'failing' },
             ];
             const synergies: ChannelSynergy[] = [
-                { channel_a: 'Facebook', channel_b: 'Email', synergy_score: 5.0, frequency: 45, combined_revenue: 50000 },
+                { channel_a: 'Facebook', channel_b: 'Email', synergy_score: 5.0, frequency: 45, confidence: 80 },
             ];
 
             const recommendations = generateFallbackRecommendations(userId, performance, synergies);
@@ -193,7 +193,7 @@ describe('Gemini Service', () => {
 
         it('should set correct confidence scores', () => {
             const performance: ChannelPerformance[] = [
-                { channel: 'Email', revenue: 40000, spend: 1000, roi: 3900, conversions: 25, performance_rating: 'Exceptional' },
+                { channel: 'Email', revenue: 40000, spend: 1000, roi: 3900, conversions: 25, performance_rating: 'exceptional' },
             ];
 
             const recommendations = generateFallbackRecommendations(userId, performance, []);
@@ -206,7 +206,7 @@ describe('Gemini Service', () => {
 
         it('should set correct priorities', () => {
             const performance: ChannelPerformance[] = [
-                { channel: 'Instagram Ads', revenue: 2000, spend: 4000, roi: -50, conversions: 2, performance_rating: 'Failing' },
+                { channel: 'Instagram Ads', revenue: 2000, spend: 4000, roi: -50, conversions: 2, performance_rating: 'failing' },
             ];
 
             const recommendations = generateFallbackRecommendations(userId, performance, []);
@@ -217,7 +217,7 @@ describe('Gemini Service', () => {
 
         it('should include estimated impact', () => {
             const performance: ChannelPerformance[] = [
-                { channel: 'Instagram Ads', revenue: 2000, spend: 4000, roi: -50, conversions: 2, performance_rating: 'Failing' },
+                { channel: 'Instagram Ads', revenue: 2000, spend: 4000, roi: -50, conversions: 2, performance_rating: 'failing' },
             ];
 
             const recommendations = generateFallbackRecommendations(userId, performance, []);
@@ -230,7 +230,7 @@ describe('Gemini Service', () => {
     describe('recommendation validation', () => {
         it('should have all required fields', () => {
             const performance: ChannelPerformance[] = [
-                { channel: 'Email', revenue: 40000, spend: 1000, roi: 3900, conversions: 25, performance_rating: 'Exceptional' },
+                { channel: 'Email', revenue: 40000, spend: 1000, roi: 3900, conversions: 25, performance_rating: 'exceptional' },
             ];
 
             const recommendations = generateFallbackRecommendations('test-user', performance, []);
@@ -250,9 +250,9 @@ describe('Gemini Service', () => {
 
         it('should have valid type values', () => {
             const performance: ChannelPerformance[] = [
-                { channel: 'Email', revenue: 40000, spend: 1000, roi: 3900, conversions: 25, performance_rating: 'Exceptional' },
-                { channel: 'Google Ads', revenue: 25000, spend: 8000, roi: 212, conversions: 15, performance_rating: 'Satisfactory' },
-                { channel: 'Instagram Ads', revenue: 2000, spend: 4000, roi: -50, conversions: 2, performance_rating: 'Failing' },
+                { channel: 'Email', revenue: 40000, spend: 1000, roi: 3900, conversions: 25, performance_rating: 'exceptional' },
+                { channel: 'Google Ads', revenue: 25000, spend: 8000, roi: 212, conversions: 15, performance_rating: 'satisfactory' },
+                { channel: 'Instagram Ads', revenue: 2000, spend: 4000, roi: -50, conversions: 2, performance_rating: 'failing' },
             ];
 
             const recommendations = generateFallbackRecommendations('test-user', performance, []);
@@ -264,7 +264,7 @@ describe('Gemini Service', () => {
 
         it('should have valid priority values', () => {
             const performance: ChannelPerformance[] = [
-                { channel: 'Email', revenue: 40000, spend: 1000, roi: 3900, conversions: 25, performance_rating: 'Exceptional' },
+                { channel: 'Email', revenue: 40000, spend: 1000, roi: 3900, conversions: 25, performance_rating: 'exceptional' },
             ];
 
             const recommendations = generateFallbackRecommendations('test-user', performance, []);

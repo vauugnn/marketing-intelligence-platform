@@ -110,14 +110,14 @@ export default function SystemMap() {
   // Build a lookup from channel id → ChannelPerformance
   const channelMap = useMemo(() => {
     const map = new Map<string, ChannelPerformance>();
-    performance.forEach((ch) => map.set(channelToId(ch.channel), ch));
+    performance.forEach((ch: ChannelPerformance) => map.set(channelToId(ch.channel), ch));
     return map;
   }, [performance]);
 
   // Build a lookup from synergy pair → ChannelSynergy
   const synergyMap = useMemo(() => {
     const map = new Map<string, ChannelSynergy>();
-    synergies.forEach((s) => {
+    synergies.forEach((s: ChannelSynergy) => {
       const key = `${channelToId(s.channel_a)}-${channelToId(s.channel_b)}`;
       map.set(key, s);
       map.set(`${channelToId(s.channel_b)}-${channelToId(s.channel_a)}`, s);

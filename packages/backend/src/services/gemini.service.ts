@@ -23,7 +23,13 @@ import type {
   JourneyPattern,
 } from '@shared/types';
 
-// --- Types for Gemini response validation ---
+// Compatibility exports / wrappers for legacy tests
+export type { ChannelPerformance, ChannelSynergy } from '@shared/types';
+
+export { calculateROI } from '@shared/utils';
+import { getPerformanceRating, normalizeChannel } from '@shared/utils';
+
+// --- Types for Gemini responase validation ---
 
 interface GeminiEnhancedRec {
   id: string;
@@ -316,4 +322,124 @@ export async function enhanceRecommendationsWithAI(
     });
     return ruleBasedRecs;
   }
+}
+
+// --- Backwards-compatible helpers exported for existing tests ---
+
+export function calculatePerformanceRating(roi: number, _spend?: number): string {
+  const r = getPerformanceRating(roi);
+  return r.charAt(0).toUpperCase() + r.slice(1);
+}
+
+export function normalizeChannelName(input: string): string {
+  const n = (input || '').toString().toLowerCase().trim();
+  if (['facebook', 'fb', 'meta'].includes(n)) return 'Facebook';
+  if (n.includes('google') || ['adwords', 'paid search', 'cpc'].includes(n)) return 'Google Ads';
+  if (['mailchimp', 'hubspot', 'email'].includes(n)) return 'Email';
+  // Title-case unknown channels
+  return input
+    .toString()
+    .split(/\s+/)
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : ''))
+    .join(' ');
+}
+
+export function buildRecommendationPrompt(
+  performance: ChannelPerformance[],
+  synergies: ChannelSynergy[]
+): string {
+  let out = 'Channel Performance\n\n';
+  for (const p of performance || []) {
+    out += `${p.channel} - Revenue: ${p.revenue.toLocaleString('en-US')} Spend: ${p.spend.toLocaleString('en-US')} ROI: ${Math.round(
+      p.roi
+    )}%\n`;
+  }
+
+  out += '\nChannel Synergies\n\n';
+  for (const s of synergies || []) {
+    out += `${s.channel_a} + ${s.channel_b} - Synergy Score ${Math.round(s.synergy_score)}\n`;
+  }
+
+  out += '\nPlease return strictly valid JSON with a top-level "recommendations" array.\n';
+  out += 'Recommendation types: scale, optimize, stop\n';
+  return out;
+}
+
+export function generateFallbackRecommendations(
+  userId: string,
+  performance: ChannelPerformance[],
+  synergies: ChannelSynergy[]
+): any[] {
+  const recs: any[] = [];
+
+  // 1) Priority: exceptional channels -> scale
+  for (const p of performance || []) {
+    const rating = (p.performance_rating || '').toString().toLowerCase();
+    if (rating === 'exceptional') {
+      recs.push({
+        user_id: userId,
+        id: `rec-fallback-${recs.length + 1}`,
+        type: 'scale',
+        channel: p.channel,
+        action: `Scale ${p.channel}`,
+        reason: `High ROI (${Math.round(p.roi)}%)`,
+        estimated_impact: Math.round(p.revenue * 0.1),
+        confidence_score: 90,
+        priority: 'high',
+        is_active: true,
+      });
+    } else if (rating === 'satisfactory' || rating === 'satisfactory') {
+      // Satisfactory -> optimize
+      if (rating === 'satisfactory') {
+        recs.push({
+          user_id: userId,
+          id: `rec-fallback-${recs.length + 1}`,
+          type: 'optimize',
+          channel: p.channel,
+          action: `Optimize ${p.channel}`,
+          reason: `Below target ROI (${Math.round(p.roi)}%)`,
+          estimated_impact: Math.round(p.revenue * 0.05),
+          confidence_score: 70,
+          priority: 'medium',
+          is_active: true,
+        });
+      }
+    } else if (rating === 'poor' || rating === 'failing') {
+      recs.push({
+        user_id: userId,
+        id: `rec-fallback-${recs.length + 1}`,
+        type: 'stop',
+        channel: p.channel,
+        action: `Cut ${p.channel} budget`,
+        reason: `Low/negative ROI (${Math.round(p.roi)}%)`,
+        estimated_impact: p.spend,
+        confidence_score: 85,
+        priority: rating === 'failing' ? 'high' : 'medium',
+        is_active: true,
+      });
+    }
+
+    if (recs.length >= 3) break;
+  }
+
+  // 2) Synergy-based scale recommendations
+  for (const s of synergies || []) {
+    if (s.synergy_score >= 2.0 && (s.confidence ?? 0) >= 50) {
+      recs.push({
+        user_id: userId,
+        id: `rec-fallback-${recs.length + 1}`,
+        type: 'scale',
+        channel: `${s.channel_a} + ${s.channel_b}`,
+        action: `Combine ${s.channel_a} & ${s.channel_b}`,
+        reason: `Synergy ${s.synergy_score}x across ${s.frequency} conversions`,
+        estimated_impact: Math.round(s.synergy_score * (s.frequency || 1)),
+        confidence_score: s.confidence ?? 50,
+        priority: s.synergy_score >= 3 ? 'high' : 'medium',
+        is_active: true,
+      });
+    }
+    if (recs.length >= 3) break;
+  }
+
+  return recs;
 }
