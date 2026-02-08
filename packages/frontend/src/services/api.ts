@@ -8,6 +8,7 @@ import type {
   SyncStatus,
   ConnectResponse,
 } from '@shared/types';
+import { supabase } from '../lib/supabase';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -19,9 +20,27 @@ interface ApiResponse<T> {
 }
 
 async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, options);
+  const { data: { session } } = await supabase.auth.getSession();
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...((options?.headers as Record<string, string>) || {}),
+  };
+
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`;
+  }
+
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers,
+  });
+
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
+    if (res.status === 401) {
+      throw new Error('UNAUTHORIZED');
+    }
     throw new Error(body.error || body.message || `Request failed: ${res.status}`);
   }
   const json: ApiResponse<T> = await res.json();
@@ -78,6 +97,7 @@ export function triggerSync(platform: string): Promise<{ message: string }> {
 // --- Pixel ---
 
 export interface PixelData {
+  [x: string]: any;
   pixel_id: string;
   snippet: string;
 }

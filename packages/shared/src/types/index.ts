@@ -19,7 +19,16 @@ export interface User {
   pixel_id?: string;
 }
 
+// Auth Types (Supabase Auth)
+export interface AuthUser {
+  id: string;
+  email: string;
+  created_at: string;
+  user_metadata?: Record<string, any>;
+}
+
 export interface PlatformConnection {
+  [x: string]: any;
   id: string;
   user_id: string;
   platform: Platform;
@@ -179,6 +188,7 @@ export interface DateRange {
 
 // OAuth Connect Response
 export interface ConnectResponse {
+  [x: string]: any;
   type: 'oauth' | 'api_key';
   authUrl?: string;
   message?: string;

@@ -1,5 +1,7 @@
  import { Link, useLocation } from 'react-router-dom';
   import { useState } from 'react';
+  import { LogOut } from 'lucide-react';
+  import { useAuth } from '../../hooks/useAuth';
 
   const navigation = [
     { 
@@ -43,6 +45,13 @@
   export default function Sidebar() {
     const location = useLocation();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const { user, logout, isLoggingOut } = useAuth();
+
+    const initials = user?.email
+      ? user.email.substring(0, 2).toUpperCase()
+      : '??';
+    const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
+    const displayEmail = user?.email || '';
 
     return (
       <>
@@ -194,12 +203,20 @@
             <div className="p-3 rounded-lg bg-gradient-to-r from-gray-800/50 to-gray-900/50 border border-gray-700">
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white text-xs font-bold">
-                  JD
+                  {initials}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium truncate">John Doe</p>
-                  <p className="text-gray-500 text-xs truncate">john@company.com</p>
+                  <p className="text-white text-sm font-medium truncate">{displayName}</p>
+                  <p className="text-gray-500 text-xs truncate">{displayEmail}</p>
                 </div>
+                <button
+                  onClick={() => logout()}
+                  disabled={isLoggingOut}
+                  className="text-gray-500 hover:text-white transition-colors disabled:opacity-50"
+                  title="Log out"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
               </div>
             </div>
           </div>
