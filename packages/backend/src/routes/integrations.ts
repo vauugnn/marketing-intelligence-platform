@@ -4,6 +4,7 @@ import { OAuthRepository } from '../services/oauth/OAuthRepository';
 import { Platform } from '@shared/types';
 import { asyncHandler } from '../middleware/error-handler.middleware';
 import { authMiddleware } from '../middleware/auth.middleware';
+import { supabaseAdmin } from '../config/supabase';
 import * as integrationsController from '../controllers/integrations.controller';
 
 const router = Router();
@@ -11,15 +12,18 @@ const repository = new OAuthRepository();
 
 /**
  * GET /api/integrations - List all platform connections for a user
- * TODO: Add authentication middleware to get real userId
  */
-router.get('/', async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
-    // TODO: Get userId from authenticated session
-    const userId = 'demo-user-id'; // Placeholder until auth is implemented
+    const userId = req.userId!;
 
-    // Get all connections from database
-    const connections = await repository.getAllConnections(userId);
+    // Query only the fields we need (skip token decryption)
+    const { data: connections, error } = await supabaseAdmin
+      .from('platform_connections')
+      .select('platform, status, connected_at, last_synced_at')
+      .eq('user_id', userId);
+
+    if (error) throw new Error(`Failed to get connections: ${error.message}`);
 
     // Return all supported platforms with their connection status
     const allPlatforms: Platform[] = [
@@ -33,7 +37,7 @@ router.get('/', async (req, res) => {
     ];
 
     const platformStatuses = allPlatforms.map(platform => {
-      const connection = connections.find(c => c.platform === platform);
+      const connection = (connections || []).find((c: any) => c.platform === platform);
       return {
         platform,
         status: connection?.status || 'disconnected',
@@ -59,12 +63,10 @@ router.get('/', async (req, res) => {
  * POST /api/integrations/:platform/connect - Start OAuth flow
  * Returns authorization URL to redirect user to
  */
-router.post('/:platform/connect', async (req, res) => {
+router.post('/:platform/connect', authMiddleware, async (req, res) => {
   try {
     const platform = req.params.platform as Platform;
-
-    // TODO: Get userId from authenticated session
-    const userId = 'demo-user-id'; // Placeholder
+    const userId = req.userId!;
 
     // Get OAuth service for this platform
     const service = getOAuthService(platform);
@@ -88,12 +90,10 @@ router.post('/:platform/connect', async (req, res) => {
 /**
  * DELETE /api/integrations/:platform - Disconnect platform
  */
-router.delete('/:platform', async (req, res) => {
+router.delete('/:platform', authMiddleware, async (req, res) => {
   try {
     const platform = req.params.platform as Platform;
-
-    // TODO: Get userId from authenticated session
-    const userId = 'demo-user-id'; // Placeholder
+    const userId = req.userId!;
 
     // Get OAuth service and disconnect
     const service = getOAuthService(platform);

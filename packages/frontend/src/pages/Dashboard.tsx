@@ -6,7 +6,7 @@ interface ChannelPerformance {
   revenue: number;
   spend: number;
   roi: number;
-  performance: string;
+  performance_rating: string;
 }
 
 interface NetworkNode {
@@ -289,16 +289,17 @@ export default function Dashboard() {
                         <td className="text-right py-3 px-4 font-mono text-sm text-green-400">₱{channel.revenue.toLocaleString()}</td>
                         <td className="text-right py-3 px-4 font-mono text-sm text-orange-400">₱{channel.spend.toLocaleString()}</td>
                         <td className="text-right py-3 px-4 font-mono font-bold text-sm">
-                          {channel.roi === null ? '∞' : `${channel.roi}%`}
+                          {channel.roi === null ? '∞' : `${Math.round(channel.roi)}%`}
                         </td>
                         <td className="text-center py-3 px-4">
-                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                            channel.performance === 'Exceptional' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
-                            channel.performance === 'Excellent' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
-                            channel.performance === 'Satisfactory' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
+                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold capitalize ${
+                            channel.performance_rating === 'exceptional' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                            channel.performance_rating === 'excellent' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+                            channel.performance_rating === 'satisfactory' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
+                            channel.performance_rating === 'poor' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
                             'bg-red-500/20 text-red-400 border border-red-500/30'
                           }`}>
-                            {channel.performance}
+                            {channel.performance_rating}
                           </span>
                         </td>
                       </tr>
