@@ -7,6 +7,7 @@
 
 import { supabaseAdmin } from '../config/supabase';
 import { logger } from '../utils/logger';
+import { normalizeChannel } from '@shared/utils';
 import type {
   TransactionData,
   PixelEvent,
@@ -230,25 +231,6 @@ function determineChannel(session: PixelSession): string {
   return 'unknown';
 }
 
-/**
- * Normalizes channel names for comparison
- */
-function normalizeChannel(channel: string): string {
-  const normalized = channel.toLowerCase().trim();
-
-  // Map common variations to standard names
-  const channelMap: Record<string, string> = {
-    fb: 'facebook',
-    ig: 'instagram',
-    'organic search': 'google',
-    'paid search': 'google',
-    cpc: 'google',
-    email: 'email',
-    'social media': 'social',
-  };
-
-  return channelMap[normalized] || normalized;
-}
 
 /**
  * GA4 Session Match Result
