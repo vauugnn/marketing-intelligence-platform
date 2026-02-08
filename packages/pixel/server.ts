@@ -3,7 +3,7 @@ import path from 'path';
 import cors from 'cors';
 
 const app = express();
-const PORT = process.env.PIXEL_PORT || 3002;
+const PORT = process.env.PORT || 3002;
 
 // Allow loading from any domain (tracking pixels need cross-origin)
 app.use(cors({
