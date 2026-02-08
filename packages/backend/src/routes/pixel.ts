@@ -42,9 +42,13 @@ router.post('/generate', cors({ origin: process.env.FRONTEND_URL || 'http://loca
 
 // POST /api/pixel/track - Receive pixel events
 // CORS: allow any origin (customer websites embed the pixel cross-origin)
-// CORS: allow any origin (customer websites embed the pixel cross-origin)
-router.use('/track', cors());
-router.post('/track', trackRateLimiter, async (req, res) => {
+const pixelCors: cors.CorsOptions = {
+  origin: true,
+  methods: ['POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type'],
+};
+router.options('/track', cors(pixelCors), (_req, res) => res.sendStatus(204));
+router.post('/track', cors(pixelCors), trackRateLimiter, async (req, res) => {
   try {
     // Validate input
     const validatedEvent = PixelEventSchema.parse(req.body);
