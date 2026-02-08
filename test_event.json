@@ -1,0 +1,8 @@
+{
+    "pixel_id": "pix_12345678901234567890123456789012",
+    "event_type": "purchase",
+    "metadata": "{\"visitor_email\": \"test@example.com\", \"value\": 100, \"currency\": \"USD\"}",
+    "timestamp": "2023-10-27T10:00:00Z",
+    "page_url": "http://example.com/checkout",
+    "session_id": "123e4567-e89b-12d3-a456-426614174000"
+}

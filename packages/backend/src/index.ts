@@ -9,6 +9,7 @@ import analyticsRoutes from './routes/analytics';
 import pixelRoutes from './routes/pixel';
 import oauthRoutes from './routes/oauth';
 import syncRoutes from './routes/sync';
+import linksRoutes from './routes/links';
 import attributionRoutes from './routes/attribution';
 import { globalErrorHandler } from './middleware/error-handler.middleware';
 import { initializeScheduler } from './jobs/scheduler';
@@ -47,6 +48,8 @@ app.use('/api/integrations', integrationsRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/sync', syncRoutes);
 app.use('/api/attribution', attributionRoutes);
+app.use('/api/links', linksRoutes);
+app.use('/s', linksRoutes); // Short link redirect root
 
 // Global error handler (must be after all routes)
 app.use(globalErrorHandler);

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Tracking Test</title>
+    <!-- Use the port where the pixel package is served, usually 3002 based on previous context, or accessible via the main app if proxied. 
+         I will assume port 3002 for the pixel server based on 'packages/pixel' suggesting a separate package, 
+         but the `npm run dev` might be running everything. 
+         Let's try to load it from the expected URL. 
+         In the pixel source it defaults to localhost:3001 for API, but the script src in the validator example was localhost:3002.
+    -->
+    <script src="http://localhost:3002/track.js" data-pixel-id="pix_test_1234567890abcdef1234567890abcdef"></script>
+</head>
+<body>
+    <h1>Pixel Tracking Test</h1>
+    <p>This is a test page.</p>
+    <a href="#test-link" id="test-link-id" class="test-link-class">Click me to test tracking</a>
+    <br><br>
+    <a href="https://example.com" id="external-link">External Link</a>
+
+    <script>
+        // Set a test cookie
+        document.cookie = "test_cookie=test_value; path=/";
+    </script>
+</body>
+</html>

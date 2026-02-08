@@ -42,8 +42,9 @@ router.post('/generate', cors({ origin: process.env.FRONTEND_URL || 'http://loca
 
 // POST /api/pixel/track - Receive pixel events
 // CORS: allow any origin (customer websites embed the pixel cross-origin)
-router.options('/track', cors());
-router.post('/track', cors(), trackRateLimiter, async (req, res) => {
+// CORS: allow any origin (customer websites embed the pixel cross-origin)
+router.use('/track', cors());
+router.post('/track', trackRateLimiter, async (req, res) => {
   try {
     // Validate input
     const validatedEvent = PixelEventSchema.parse(req.body);
@@ -81,6 +82,27 @@ router.post('/track', cors(), trackRateLimiter, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to track event'
+    });
+  }
+});
+
+// GET /api/pixel/events - Get recent pixel events
+router.get('/events', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId!;
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+
+    const events = await pixelService.getRecentEvents(userId, limit);
+
+    res.json({
+      success: true,
+      data: events
+    });
+  } catch (error) {
+    console.error('Failed to fetch pixel events:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch events'
     });
   }
 });

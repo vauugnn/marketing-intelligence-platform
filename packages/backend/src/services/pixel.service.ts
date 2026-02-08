@@ -56,6 +56,40 @@ export class PixelService {
   ): Promise<{ id: string }> {
     const dedupKey = this.generateDedupKey(event);
 
+    // Merge visitor data and conversion data into metadata (legacy support)
+    // but primarily store in dedicated columns
+
+    // Parse metadata if it's a string
+    let parsedMetadata: Record<string, any> = {};
+    if (typeof event.metadata === 'string') {
+      try {
+        parsedMetadata = JSON.parse(event.metadata);
+      } catch (e) {
+        console.warn('Failed to parse metadata string:', e);
+        parsedMetadata = { raw_metadata: event.metadata };
+      }
+    } else if (event.metadata) {
+      parsedMetadata = event.metadata;
+    }
+
+    // Extract fields from metadata if not present at top level
+    const visitor_id = event.visitor_id || parsedMetadata.visitor_id;
+    const visitor_email = event.visitor_email || parsedMetadata.visitor_email || parsedMetadata.email; // Common email field
+    const visitor_name = event.visitor_name || parsedMetadata.visitor_name || parsedMetadata.name; // Common name field
+    const value = event.value ?? parsedMetadata.value;
+    const currency = event.currency || parsedMetadata.currency;
+
+    // Clean metadata (remove visitor fields from metadata to avoid duplication in jsonb if desired, 
+    // but typically keeping them is fine. We will merge everything into metadata column for completeness)
+    const metadata = {
+      ...parsedMetadata,
+      visitor_id,
+      visitor_email,
+      visitor_name,
+      value,
+      currency
+    };
+
     const { data, error } = await supabase
       .from('pixel_events')
       .upsert({
@@ -72,7 +106,16 @@ export class PixelService {
         timestamp: event.timestamp,
         user_agent: userAgent || null,
         ip_address: ipAddress || null,
-        metadata: event.metadata || null,
+
+        // Store top-level columns from extracted data
+        visitor_id: visitor_id || null,
+        visitor_email: visitor_email || null,
+        visitor_name: visitor_name || null,
+        value: value ?? null,
+        currency: currency || null,
+
+        // Store all extra data in metadata column
+        metadata: Object.keys(metadata).length > 0 ? metadata : null,
         dedup_key: dedupKey,
       }, { onConflict: 'dedup_key' })
       .select('id')
@@ -83,6 +126,26 @@ export class PixelService {
     }
 
     return { id: data.id };
+  }
+
+  /**
+   * Get recent pixel events for a user
+   */
+  async getRecentEvents(userId: string, limit: number = 50): Promise<any[]> {
+    const pixelId = await this.getOrCreatePixel(userId);
+
+    const { data, error } = await supabaseAdmin
+      .from('pixel_events')
+      .select('*')
+      .eq('pixel_id', pixelId)
+      .order('timestamp', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      throw new Error(`Failed to fetch events: ${error.message}`);
+    }
+
+    return data || [];
   }
 
   /**

@@ -51,27 +51,27 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
 
-          {/* Protected routes */}
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/integrations" element={<Integrations />} />
-                    <Route path="/system-map" element={<SystemMap />} />
-                    <Route path="/recommendations" element={<Recommendations />} />
-                    <Route path="/data-flow" element={<DataFlow />} />
-                  </Routes>
-                </AppLayout>
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-        <ToastContainer />
-      </Router>
-    </QueryClientProvider>
+            {/* Protected routes */}
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/integrations" element={<Integrations />} />
+                      <Route path="/system-map" element={<SystemMap />} />
+                      <Route path="/recommendations" element={<Recommendations />} />
+                      <Route path="/data-flow" element={<DataFlow />} />
+                    </Routes>
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+          <ToastContainer />
+        </Router>
+      </QueryClientProvider>
     </ThemeProvider>
   );
 }
