@@ -318,9 +318,7 @@ export default function Integrations() {
   const loadOrGeneratePixel = async () => {
     try {
       const result = await api.generatePixel();
-      if (result.success) {
-        setPixelData(result.data);
-      }
+      setPixelData(result);
     } catch (error) {
       console.error('Failed to generate pixel:', error);
     }
