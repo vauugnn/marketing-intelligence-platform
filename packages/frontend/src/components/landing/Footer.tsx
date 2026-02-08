@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Network, Twitter, Linkedin, Github, Mail } from 'lucide-react';
+import { Network } from 'lucide-react';
 
 export default function Footer() {
     return (
