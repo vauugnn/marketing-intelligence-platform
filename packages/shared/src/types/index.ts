@@ -1,6 +1,3 @@
-// Business Type
-export type BusinessType = 'sales' | 'leads';
-
 // Platform Types
 export type Platform =
   | 'google_analytics_4'
