@@ -86,8 +86,16 @@ router.post('/track', trackRateLimiter, async (req, res) => {
   }
 });
 
+// Dashboard-facing CORS configuration
+const dashboardCors = cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS']
+});
+
 // GET /api/pixel/events - Get recent pixel events
-router.get('/events', authMiddleware, async (req, res) => {
+router.options('/events', dashboardCors);
+router.get('/events', dashboardCors, authMiddleware, async (req, res) => {
   try {
     const userId = req.userId!;
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
@@ -106,5 +114,28 @@ router.get('/events', authMiddleware, async (req, res) => {
     });
   }
 });
+
+// GET /api/pixel/purchases - Get recent purchase events
+router.options('/purchases', dashboardCors);
+router.get('/purchases', dashboardCors, authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId!;
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+
+    const events = await pixelService.getPurchaseEvents(userId, limit);
+
+    res.json({
+      success: true,
+      data: events
+    });
+  } catch (error) {
+    console.error('Failed to fetch purchase events:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch purchase events'
+    });
+  }
+});
+
 
 export default router;

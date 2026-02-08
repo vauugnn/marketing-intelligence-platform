@@ -149,6 +149,28 @@ export class PixelService {
   }
 
   /**
+   * Get recent purchase events for a user
+   */
+  async getPurchaseEvents(userId: string, limit: number = 50): Promise<any[]> {
+    const pixelId = await this.getOrCreatePixel(userId);
+
+    const { data, error } = await supabaseAdmin
+      .from('pixel_events')
+      .select('*')
+      .eq('pixel_id', pixelId)
+      .eq('event_type', 'purchase')
+      .order('timestamp', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      throw new Error(`Failed to fetch purchase events: ${error.message}`);
+    }
+
+    return data || [];
+  }
+
+
+  /**
    * Associate pixel with user account
    */
   async associatePixelWithUser(

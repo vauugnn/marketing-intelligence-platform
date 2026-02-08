@@ -1,6 +1,8 @@
 import { Key, useState } from 'react';
 import { usePerformance } from '../hooks/useAnalytics';
 import SystemMapComponent from '../components/SystemMapComponent';
+import PurchaseEventsTable from '../components/PurchaseEventsTable';
+
 
 
 export default function Dashboard() {
@@ -170,18 +172,25 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Purchase Events Section */}
+      <div className="mt-8">
+        <PurchaseEventsTable />
+      </div>
+
       {/* Expanded Map Overlay */}
-      {mapExpanded && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 transition-opacity" onClick={() => setMapExpanded(false)}>
-          <div className="absolute inset-4 md:inset-10 bg-card rounded-2xl border border-border shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-            <SystemMapComponent
-              channels={channels}
-              isExpanded={true}
-              onToggleExpand={setMapExpanded}
-            />
+      {
+        mapExpanded && (
+          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 transition-opacity" onClick={() => setMapExpanded(false)}>
+            <div className="absolute inset-4 md:inset-10 bg-card rounded-2xl border border-border shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+              <SystemMapComponent
+                channels={channels}
+                isExpanded={true}
+                onToggleExpand={setMapExpanded}
+              />
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 }

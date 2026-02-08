@@ -105,3 +105,41 @@ export interface PixelData {
 export function generatePixel(): Promise<PixelData> {
   return fetchApi('/pixel/generate', { method: 'POST' });
 }
+
+// --- Pixel Events ---
+
+export interface PixelEvent {
+  id: string;
+  pixel_id: string;
+  session_id: string;
+  event_type: string;
+  page_url: string;
+  referrer?: string;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  visitor_id?: string;
+  visitor_email?: string;
+  visitor_name?: string;
+  value?: number;
+  currency?: string;
+  timestamp: string;
+  metadata?: Record<string, any>;
+}
+
+export function getPixelEvents(limit?: number): Promise<PixelEvent[]> {
+  const query = limit ? `?limit=${limit}` : '';
+  return fetchApi(`/pixel/events${query}`);
+}
+
+export function getPurchaseEvents(limit?: number): Promise<PixelEvent[]> {
+  const query = limit ? `?limit=${limit}` : '';
+  return fetchApi(`/pixel/purchases${query}`);
+}
+
+export function trackPixelEvent(data: Partial<PixelEvent> & { pixel_id: string }): Promise<{ event_id: string }> {
+  return fetchApi('/pixel/track', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
