@@ -268,7 +268,9 @@ export default function Recommendations() {
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
                     Current State
                   </p>
-                  <p className="text-sm text-foreground leading-relaxed">{rec.reason}</p>
+                  <p className="text-sm text-foreground leading-relaxed">
+                    {rec.ai_explanation || rec.reason}
+                  </p>
                 </div>
                 <div
                   className="rounded-lg p-3 bg-muted/50"
@@ -281,14 +283,20 @@ export default function Recommendations() {
                     After Implementation
                   </p>
                   <p className="text-sm text-foreground leading-relaxed">
-                    {rec.type === 'scale' &&
-                      `Increased budget will capture ${Math.round(
-                        rec.confidence * 1.2
-                      )}% more conversions with optimized targeting.`}
-                    {rec.type === 'optimize' &&
-                      `Optimized campaign will improve efficiency by ${rec.confidence}% through better targeting and ad creative.`}
-                    {rec.type === 'stop' &&
-                      `Resources reallocated to high-performing channels, eliminating ${rec.confidence}% of wasted spend.`}
+                    {rec.after_implementation ? (
+                      rec.after_implementation
+                    ) : (
+                      <>
+                        {rec.type === 'scale' &&
+                          `Increased budget will capture ${Math.round(
+                            rec.confidence * 1.2
+                          )}% more conversions with optimized targeting.`}
+                        {rec.type === 'optimize' &&
+                          `Optimized campaign will improve efficiency by ${rec.confidence}% through better targeting and ad creative.`}
+                        {rec.type === 'stop' &&
+                          `Resources reallocated to high-performing channels, eliminating ${rec.confidence}% of wasted spend.`}
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
@@ -300,21 +308,27 @@ export default function Recommendations() {
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                   Why This Matters
                 </p>
-                <ul className="text-sm text-muted-foreground space-y-1.5">
-                  <li className="flex items-start gap-2">
-                    <span className="text-muted-foreground mt-0.5">&#8226;</span>
-                    Based on {30 + ((idx * 13) % 60)} days of performance data
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-muted-foreground mt-0.5">&#8226;</span>
-                    Analyzed {1000 + ((idx * 317) % 4000)} conversions across channel
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-muted-foreground mt-0.5">&#8226;</span>
-                    Industry benchmark:{' '}
-                    {rec.confidence > 70 ? 'Above average' : 'Below average'}
-                  </li>
-                </ul>
+                {rec.why_it_matters && rec.why_it_matters.length > 0 ? (
+                  <ul className="text-sm text-muted-foreground space-y-1.5">
+                    {rec.why_it_matters.map((point: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="text-muted-foreground mt-0.5">&#8226;</span>
+                        {point}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <ul className="text-sm text-muted-foreground space-y-1.5">
+                    <li className="flex items-start gap-2">
+                      <span className="text-muted-foreground mt-0.5">&#8226;</span>
+                      ROI Impact: {rec.priority === 'high' ? 'Significant' : 'Moderate'} improvement expected
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-muted-foreground mt-0.5">&#8226;</span>
+                      Confidence Score: {rec.confidence}% based on historical performance
+                    </li>
+                  </ul>
+                )}
               </div>
             </div>
           )}

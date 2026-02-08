@@ -491,10 +491,10 @@ export async function generateRecommendations(
   const [synergies, performance, roles] = prefetched
     ? [prefetched.synergies, prefetched.performance, prefetched.roles]
     : await Promise.all([
-        analyzeChannelSynergies(userId, dateRange),
-        getChannelPerformance(userId, dateRange),
-        identifyChannelRoles(userId, dateRange),
-      ]);
+      analyzeChannelSynergies(userId, dateRange),
+      getChannelPerformance(userId, dateRange),
+      identifyChannelRoles(userId, dateRange),
+    ]);
 
   const recommendations: AIRecommendation[] = [];
   let idCounter = 1;
@@ -517,6 +517,11 @@ export async function generateRecommendations(
         ),
         confidence: syn.confidence,
         priority: syn.synergy_score >= 3.0 ? 'high' : 'medium',
+        why_it_matters: [
+          `Strong synergy (${syn.synergy_score}x) detected between these channels`,
+          `Verified across ${syn.frequency} conversion journeys`,
+          `Combined approach yields better ROI than solo performance`
+        ],
       });
     }
   }
@@ -535,6 +540,11 @@ export async function generateRecommendations(
           estimated_impact: perf.spend,
           confidence: 90,
           priority: perf.performance_rating === 'failing' ? 'high' : 'medium',
+          why_it_matters: [
+            `Channel acts in isolation with ${perf.performance_rating} ROI`,
+            `Low contribution to other channel conversions`,
+            `Budget can be better utilized in synergistic channels`
+          ],
         });
       }
     }
@@ -554,6 +564,11 @@ export async function generateRecommendations(
           estimated_impact: Math.round(perf.revenue * 0.2),
           confidence: 75,
           priority: 'medium',
+          why_it_matters: [
+            `Critical support role in ${role.assisted_conversions} conversions`,
+            `Current ROI (${Math.round(perf.roi)}%) is below potential`,
+            `Optimization could improve overall funnel efficiency`
+          ],
         });
       }
     }
