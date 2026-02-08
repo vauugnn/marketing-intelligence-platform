@@ -13,6 +13,20 @@ export function getPerformanceRating(roi: number): string {
   return 'failing';
 }
 
+export function calculateCPL(spend: number, conversions: number): number {
+  if (conversions === 0) return Infinity;
+  return spend / conversions;
+}
+
+export function getLeadsPerformanceRating(cpl: number, conversions: number): string {
+  if (conversions === 0) return 'failing';
+  if (cpl <= 50 && conversions >= 10) return 'exceptional';
+  if (cpl <= 150 && conversions >= 5) return 'excellent';
+  if (cpl <= 500) return 'satisfactory';
+  if (cpl <= 1000) return 'poor';
+  return 'failing';
+}
+
 export function calculateConfidenceLevel(score: number): 'high' | 'medium' | 'low' {
   if (score >= 95) return 'high';
   if (score >= 70) return 'medium';
