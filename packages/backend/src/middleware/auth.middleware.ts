@@ -1,31 +1,47 @@
 import { Request, Response, NextFunction } from 'express';
+import { supabase } from '../config/supabase';
 
-// Augment Express Request type to include userId
+// Augment Express Request type to include userId and userEmail
 declare global {
   namespace Express {
     interface Request {
       userId?: string;
+      userEmail?: string;
     }
   }
 }
 
-// Default user ID for development (no login required)
-// In production, you could use an environment variable or database lookup
-const DEFAULT_USER_ID = process.env.DEFAULT_USER_ID || 'default-dev-user';
-
 /**
- * Auth bypass middleware for development.
- * Assigns a default userId to all requests, removing the need for login.
- * 
- * Note: This is for development/demo purposes only.
- * For production with authentication, restore the JWT validation logic.
+ * Auth middleware that validates Supabase JWT tokens.
+ * Extracts the Bearer token from the Authorization header and
+ * validates it via Supabase's auth.getUser().
  */
 export async function authMiddleware(
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> {
-  // Assign default user ID - no authentication required
-  req.userId = DEFAULT_USER_ID;
-  next();
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    res.status(401).json({ success: false, error: 'Missing or invalid authorization header' });
+    return;
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      res.status(401).json({ success: false, error: 'Invalid or expired token' });
+      return;
+    }
+
+    req.userId = user.id;
+    req.userEmail = user.email;
+    next();
+  } catch {
+    res.status(401).json({ success: false, error: 'Authentication failed' });
+  }
 }

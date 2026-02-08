@@ -18,7 +18,8 @@ const trackRateLimiter = rateLimit({
 });
 
 // POST /api/pixel/generate - Generate new pixel ID for user
-router.post('/generate', async (req, res) => {
+router.options('/generate', cors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000', credentials: true }));
+router.post('/generate', cors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000', credentials: true }), async (req, res) => {
   try {
     const pixelId = `pix_${uuidv4().replace(/-/g, '')}`;
 
