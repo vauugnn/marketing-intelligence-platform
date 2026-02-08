@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import Stripe from 'stripe';
 import { Platform } from '@shared/types';
-import * as oauthService from '../services/oauth.service';
+import { getOAuthService } from '../services/oauth/OAuthServiceFactory';
 import * as connectionService from '../services/connection.service';
 import * as syncService from '../services/sync.service';
 import { logger } from '../utils/logger';
@@ -18,7 +18,6 @@ export async function listConnections(req: Request, res: Response): Promise<void
   const userId = req.userId!;
   const connections = await connectionService.getConnectionsByUser(userId);
 
-  // Build a complete list including disconnected platforms
   const result = ALL_PLATFORMS.map(platform => {
     const existing = connections.find(c => c.platform === platform);
     if (existing) {
@@ -28,7 +27,6 @@ export async function listConnections(req: Request, res: Response): Promise<void
         connected_at: existing.connected_at,
         last_synced_at: existing.last_synced_at,
         platform_account_id: existing.platform_account_id,
-        // Never expose tokens to the frontend
       };
     }
     return { platform, status: 'disconnected' };
@@ -50,7 +48,7 @@ export async function initiateConnect(req: Request, res: Response): Promise<void
     return;
   }
 
-  // Stripe uses API key, not OAuth
+  // Stripe uses API key, not OAuth redirect flow
   if (platform === 'stripe') {
     res.json({
       success: true,
@@ -62,17 +60,14 @@ export async function initiateConnect(req: Request, res: Response): Promise<void
     return;
   }
 
-  // Generate OAuth authorization URL
-  try {
-    const authUrl = oauthService.generateAuthUrl(platform, userId);
-    res.json({
-      success: true,
-      data: { type: 'oauth', authUrl },
-    });
-  } catch (error) {
-    logger.error('IntegrationsController', `Failed to generate auth URL for ${platform}`, error);
-    res.status(500).json({ success: false, error: 'Failed to initiate connection' });
-  }
+  // Generate OAuth authorization URL using class-based service
+  const service = getOAuthService(platform);
+  const authUrl = await service.getAuthUrl(userId);
+
+  res.json({
+    success: true,
+    data: { type: 'oauth', authUrl },
+  });
 }
 
 /**
@@ -94,43 +89,43 @@ export async function connectWithApiKey(req: Request, res: Response): Promise<vo
     return;
   }
 
-  try {
-    // Validate the Stripe API key by making a test call
-    const stripe = new Stripe(apiKey);
-    await stripe.balance.retrieve();
+  // Validate the Stripe API key by making a test call
+  const stripe = new Stripe(apiKey);
+  await stripe.balance.retrieve();
 
-    // Store the connection
-    await connectionService.upsertConnection({
-      userId,
-      platform,
-      status: 'connected',
-      accessToken: apiKey, // For Stripe, the API key serves as the access token
-    });
+  // Store the connection
+  await connectionService.upsertConnection({
+    userId,
+    platform,
+    status: 'connected',
+    accessToken: apiKey,
+  });
 
-    logger.info('IntegrationsController', `Stripe connected for user ${userId}`);
+  logger.info('IntegrationsController', `Stripe connected for user ${userId}`);
 
-    // Trigger historical sync in the background
-    syncService.syncHistoricalData(userId, platform).catch(err => {
-      logger.error('IntegrationsController', 'Background Stripe sync failed', err);
-    });
+  // Trigger historical sync in the background
+  syncService.syncHistoricalData(userId, platform).catch(err => {
+    logger.error('IntegrationsController', 'Background Stripe sync failed', err);
+  });
 
-    res.json({ success: true, message: 'Stripe connected successfully. Syncing historical data...' });
-  } catch (error: any) {
-    logger.error('IntegrationsController', 'Stripe API key validation failed', error);
-    res.status(400).json({
-      success: false,
-      error: 'Invalid Stripe API key. Please check your key and try again.',
-    });
-  }
+  res.json({ success: true, message: 'Stripe connected successfully. Syncing historical data...' });
 }
 
 /**
- * Disconnects a platform by removing the connection from the database.
+ * Disconnects a platform by revoking access and removing the connection.
  */
 export async function disconnect(req: Request, res: Response): Promise<void> {
   const userId = req.userId!;
   const platform = req.params.platform as Platform;
 
-  await connectionService.deleteConnection(userId, platform);
+  // Use the OAuth service to properly revoke access before deleting
+  try {
+    const service = getOAuthService(platform);
+    await service.disconnect(userId);
+  } catch {
+    // If OAuth service isn't available for this platform, delete directly
+    await connectionService.deleteConnection(userId, platform);
+  }
+
   res.json({ success: true, message: `Disconnected from ${platform}` });
 }

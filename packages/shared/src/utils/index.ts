@@ -51,7 +51,7 @@ export function parseUTMParams(url: string): {
 } {
   const urlObj = new URL(url);
   return {
-    utm_source: urlObj.searchParams.get('utm_source') || undefined,
+    
     utm_medium: urlObj.searchParams.get('utm_medium') || undefined,
     utm_campaign: urlObj.searchParams.get('utm_campaign') || undefined,
     utm_term: urlObj.searchParams.get('utm_term') || undefined,
