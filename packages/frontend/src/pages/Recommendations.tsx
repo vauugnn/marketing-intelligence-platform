@@ -387,9 +387,9 @@ export default function Recommendations() {
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
 
-      <div className="p-4 sm:p-6 max-w-5xl mx-auto">
+      <div className="p-4 md:p-8 max-w-5xl mx-auto">
         {/* Header */}
-        <div className="mb-6 ml-14 lg:ml-0">
+        <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
             AI Recommendations
           </h1>

@@ -394,9 +394,9 @@ export default function Integrations() {
         }
       `}</style>
 
-      <div className="p-4 sm:p-6">
+      <div className="p-4 md:p-8">
         {/* Page Header */}
-        <div className="mb-6 ml-14 lg:ml-0">
+        <div className="mb-6">
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
             Integrations
           </h2>

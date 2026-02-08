@@ -265,7 +265,7 @@ export default function SystemMap() {
     <div className="h-screen flex flex-col bg-background overflow-hidden relative">
       <div className="absolute inset-0 bg-grid-white/[0.02] -z-10" />
       {/* Header */}
-      <div className="p-4 sm:p-6 pl-16 sm:pl-20 lg:pb-2 z-10">
+      <div className="p-4 md:p-8 z-10">
         <div className="mb-3 lg:mb-2">
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
             System Map

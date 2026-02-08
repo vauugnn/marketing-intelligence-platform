@@ -1,7 +1,7 @@
 import { Key, useState } from 'react';
 import { usePerformance } from '../hooks/useAnalytics';
 import SystemMapComponent from '../components/SystemMapComponent';
-import { ArrowUpRight } from 'lucide-react';
+
 
 export default function Dashboard() {
   const { data: channels = [], isLoading: loading, error, refetch } = usePerformance();
@@ -24,7 +24,7 @@ export default function Dashboard() {
   const avgROI = totalSpend > 0 ? ((totalRevenue - totalSpend) / totalSpend) * 100 : 0;
 
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-300 p-8">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300 p-4 md:p-8">
       <style>{`
         .glass-card {
            background: hsl(var(--card));
@@ -159,19 +159,8 @@ export default function Dashboard() {
 
         {/* System Map */}
         <div className="lg:col-span-1 glass-card overflow-hidden flex flex-col h-[500px]">
-          <div className="p-6 border-b border-border/50 flex justify-between items-start">
-            <div>
-              <h3 className="text-lg font-bold text-foreground">System Map</h3>
-              <p className="text-sm text-muted-foreground mt-1">Platform relationships</p>
-            </div>
-            <button
-              onClick={() => setMapExpanded(true)}
-              className="text-muted-foreground hover:text-foreground p-1 rounded hover:bg-muted"
-            >
-              <ArrowUpRight className="h-4 w-4" />
-            </button>
-          </div>
           <div className="flex-1 bg-muted/20 relative p-4">
+            {/* Header is handled internally by SystemMapComponent */}
             <SystemMapComponent
               channels={channels}
               isExpanded={mapExpanded}

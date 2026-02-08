@@ -33,9 +33,9 @@ import { ThemeProvider } from './components/theme-provider';
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-background text-foreground transition-colors duration-300">
+    <div className="flex h-screen bg-background text-foreground transition-colors duration-300 overflow-hidden">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto lg:pl-64">{children}</main>
+      <main className="flex-1 overflow-y-auto lg:pl-64 h-full w-full">{children}</main>
     </div>
   );
 }
