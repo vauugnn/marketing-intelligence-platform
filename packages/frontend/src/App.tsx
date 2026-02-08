@@ -9,6 +9,7 @@ import Recommendations from './pages/Recommendations';
 import DataFlow from './pages/DataFlow';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import Onboarding from './pages/Onboarding';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { ToastContainer } from './components/ui/Toast';
 
@@ -52,6 +53,16 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+
+            {/* Onboarding — protected but outside AppLayout (no sidebar) */}
+            <Route
+              path="/onboarding"
+              element={
+                <ProtectedRoute skipOnboardingCheck>
+                  <Onboarding />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Protected routes */}
             <Route

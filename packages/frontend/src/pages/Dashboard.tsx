@@ -1,27 +1,27 @@
 import { Key, useState } from 'react';
 import { usePerformance } from '../hooks/useAnalytics';
+import { useBusinessType } from '../hooks/useBusinessType';
 import SystemMapComponent from '../components/SystemMapComponent';
 
 
 export default function Dashboard() {
   const { data: channels = [], isLoading: loading, error, refetch } = usePerformance();
+  const { type: businessType, copy } = useBusinessType();
   const [mapExpanded, setMapExpanded] = useState(false);
 
   // Calculate metrics
   const totalRevenue = channels.reduce((sum: number, ch: { revenue: number }) => sum + ch.revenue, 0);
   const totalSpend = channels.reduce((sum: number, ch: { spend: number }) => sum + ch.spend, 0);
-  // We'll use "Active Projects" and "Pending Tasks" placeholders to match the design's *layout*, 
-  // but populate them with our available data where it makes sense, or keep the design's specific metrics 
-  // if we can't map them. 
-  // The user asked to "keep the header text" and "follow the design".
-  // The design has: Revenue, Active Projects, Pending Tasks.
-  // We have: Revenue, Spend, ROI.
-  // I will map:
-  // Revenue -> Revenue Card
-  // Spend -> Active Projects Card (visually, but label it "Total Spend" to be accurate to data)
-  // ROI -> Pending Tasks Card (visually, but label it "Average ROI" to be accurate to data)
-
+  const totalConversions = channels.reduce((sum: number, ch: { conversions: number }) => sum + ch.conversions, 0);
   const avgROI = totalSpend > 0 ? ((totalRevenue - totalSpend) / totalSpend) * 100 : 0;
+  const cpl = totalConversions > 0 ? totalSpend / totalConversions : 0;
+
+  const metric1Value = businessType === 'leads'
+    ? totalConversions.toLocaleString()
+    : `₱${totalRevenue.toLocaleString()}`;
+  const metric3Value = businessType === 'leads'
+    ? `₱${cpl.toFixed(2)}`
+    : `${avgROI.toFixed(0)}%`;
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300 p-4 md:p-8">
@@ -48,8 +48,8 @@ export default function Dashboard() {
 
           <div className="relative z-10 flex flex-col h-full justify-between">
             <div>
-              <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1">Total Revenue</div>
-              <h3 className="text-4xl font-bold">₱{totalRevenue.toLocaleString()}</h3>
+              <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1">{copy.dashboardMetric1Label}</div>
+              <h3 className="text-4xl font-bold">{metric1Value}</h3>
             </div>
             <div className="text-sm font-medium opacity-90 mt-4">
               +23% from last month
@@ -80,8 +80,8 @@ export default function Dashboard() {
 
           <div className="relative z-10 flex flex-col h-full justify-between">
             <div>
-              <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1">Average ROI</div>
-              <h3 className="text-4xl font-bold">{avgROI.toFixed(0)}%</h3>
+              <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1">{copy.dashboardMetric3Label}</div>
+              <h3 className="text-4xl font-bold">{metric3Value}</h3>
             </div>
             <div className="text-sm font-medium opacity-90 mt-4">
               -5% from last month
@@ -97,7 +97,7 @@ export default function Dashboard() {
           <div className="p-6 border-b border-border/50 flex justify-between items-start">
             <div>
               <h3 className="text-lg font-bold text-foreground">Channel Performance</h3>
-              <p className="text-sm text-muted-foreground mt-1">Track revenue, spend, and ROI across platforms</p>
+              <p className="text-sm text-muted-foreground mt-1">{copy.channelSubtitle}</p>
             </div>
           </div>
 
@@ -116,9 +116,9 @@ export default function Dashboard() {
                 <thead>
                   <tr className="text-xs font-semibold text-muted-foreground border-b border-border/50 bg-muted/20">
                     <th className="px-6 py-4 text-left uppercase tracking-wider">Channel</th>
-                    <th className="px-6 py-4 text-right uppercase tracking-wider">Revenue</th>
+                    <th className="px-6 py-4 text-right uppercase tracking-wider">{copy.channelCol2Label}</th>
                     <th className="px-6 py-4 text-right uppercase tracking-wider">Spend</th>
-                    <th className="px-6 py-4 text-right uppercase tracking-wider">ROI</th>
+                    <th className="px-6 py-4 text-right uppercase tracking-wider">{businessType === 'leads' ? 'CPL' : 'ROI'}</th>
                     <th className="px-6 py-4 text-right uppercase tracking-wider">Performance</th>
                   </tr>
                 </thead>
@@ -129,13 +129,21 @@ export default function Dashboard() {
                         <div className="font-semibold text-foreground">{channel.channel}</div>
                       </td>
                       <td className="px-6 py-4 text-right font-mono text-sm">
-                        <span className="text-green-500">₱{channel.revenue.toLocaleString()}</span>
+                        <span className="text-green-500">
+                          {businessType === 'leads'
+                            ? channel.conversions.toLocaleString()
+                            : `₱${channel.revenue.toLocaleString()}`}
+                        </span>
                       </td>
                       <td className="px-6 py-4 text-right font-mono text-sm text-muted-foreground">
                         ₱{channel.spend.toLocaleString()}
                       </td>
                       <td className="px-6 py-4 text-right font-mono text-sm font-medium">
-                        {channel.roi === null ? <span className="text-lg   font-semibold">∞</span> : <span className={channel.roi < 0 ? 'text-red-500' : ''}>{Math.round(channel.roi)}%</span>}
+                        {businessType === 'leads'
+                          ? `₱${channel.conversions > 0 ? (channel.spend / channel.conversions).toFixed(2) : '0.00'}`
+                          : channel.roi === null
+                            ? <span className="text-lg font-semibold">∞</span>
+                            : <span className={channel.roi < 0 ? 'text-red-500' : ''}>{Math.round(channel.roi)}%</span>}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <span className={`
