@@ -35,11 +35,11 @@ export default function Recommendations() {
   const getGlobalIndex = (rec: any) => recommendations.indexOf(rec);
 
   const visibleRecs = recommendations.filter(
-    (_, idx) => !dismissedRecs.has(idx)
+    (_: any, idx: number) => !dismissedRecs.has(idx)
   );
 
   const grouped: Record<Priority, any[]> = { high: [], medium: [], low: [] };
-  visibleRecs.forEach((r) => {
+  visibleRecs.forEach((r: { confidence: number; estimated_impact: number; }) => {
     grouped[getPriority(r.confidence, r.estimated_impact)].push(r);
   });
 
@@ -49,7 +49,7 @@ export default function Recommendations() {
       : ({ [activeTab]: grouped[activeTab] } as Record<Priority, any[]>);
 
   const totalImpact = visibleRecs.reduce(
-    (sum, rec) => sum + rec.estimated_impact,
+    (sum: any, rec: { estimated_impact: any; }) => sum + rec.estimated_impact,
     0
   );
 

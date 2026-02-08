@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useState } from 'react';
 import { usePerformance } from '../hooks/useAnalytics';
 import SystemMapComponent from '../components/SystemMapComponent';
 
@@ -6,8 +6,8 @@ export default function Dashboard() {
   const { data: channels = [], isLoading: loading, error, refetch } = usePerformance();
   const [mapExpanded, setMapExpanded] = useState(false);
 
-  const totalRevenue = channels.reduce((sum, ch) => sum + ch.revenue, 0);
-  const totalSpend = channels.reduce((sum, ch) => sum + ch.spend, 0);
+  const totalRevenue = channels.reduce((sum: number, ch: { revenue: number }) => sum + ch.revenue, 0);
+  const totalSpend = channels.reduce((sum: number, ch: { spend: number }) => sum + ch.spend, 0);
   const avgROI = totalSpend > 0 ? ((totalRevenue - totalSpend) / totalSpend) * 100 : 0;
 
   return (
@@ -224,7 +224,7 @@ export default function Dashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-800">
-                    {channels.map((channel, idx) => (
+                    {channels.map((channel: { channel: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined; revenue: { toLocaleString: () => string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined; }; spend: { toLocaleString: () => string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined; }; roi: number | null; performance_rating: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined; }, idx: Key | null | undefined) => (
                       <tr key={idx} className="hover:bg-gray-800/30 transition-colors">
                         <td className="py-3 px-4 font-semibold text-sm">{channel.channel}</td>
                         <td className="text-right py-3 px-4 font-mono text-sm text-green-400">₱{channel.revenue.toLocaleString()}</td>
