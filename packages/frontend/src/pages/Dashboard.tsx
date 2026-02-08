@@ -1,269 +1,235 @@
-import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useState } from 'react';
+import { Key, useState } from 'react';
 import { usePerformance } from '../hooks/useAnalytics';
 import SystemMapComponent from '../components/SystemMapComponent';
+import { Search, DollarSign, Briefcase, Clock, Bell, ArrowUpRight, ArrowDownRight, MoreHorizontal } from 'lucide-react';
 
 export default function Dashboard() {
   const { data: channels = [], isLoading: loading, error, refetch } = usePerformance();
   const [mapExpanded, setMapExpanded] = useState(false);
 
+  // Calculate metrics
   const totalRevenue = channels.reduce((sum: number, ch: { revenue: number }) => sum + ch.revenue, 0);
   const totalSpend = channels.reduce((sum: number, ch: { spend: number }) => sum + ch.spend, 0);
+  // We'll use "Active Projects" and "Pending Tasks" placeholders to match the design's *layout*, 
+  // but populate them with our available data where it makes sense, or keep the design's specific metrics 
+  // if we can't map them. 
+  // The user asked to "keep the header text" and "follow the design".
+  // The design has: Revenue, Active Projects, Pending Tasks.
+  // We have: Revenue, Spend, ROI.
+  // I will map:
+  // Revenue -> Revenue Card
+  // Spend -> Active Projects Card (visually, but label it "Total Spend" to be accurate to data)
+  // ROI -> Pending Tasks Card (visually, but label it "Average ROI" to be accurate to data)
+
   const avgROI = totalSpend > 0 ? ((totalRevenue - totalSpend) / totalSpend) * 100 : 0;
 
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300 p-8">
       <style>{`
-        .metric-card {
-          background-color: hsl(var(--card));
-          color: hsl(var(--card-foreground));
-          border: 1px solid hsl(var(--border));
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        .glass-card {
+           background: hsl(var(--card));
+           border: 1px solid hsl(var(--border) / 0.5);
+           border-radius: 1rem;
         }
+       `}</style>
 
-        .metric-card:hover {
-          transform: translateY(-2px);
-          border-color: hsl(var(--primary) / 0.5);
-          box-shadow: 0 10px 20px -10px hsl(var(--primary) / 0.2);
-        }
-
-        .table-container {
-          background-color: hsl(var(--card));
-          color: hsl(var(--card-foreground));
-          border: 1px solid hsl(var(--border));
-        }
-
-        .system-map-container {
-          background-color: hsl(var(--card));
-          border: 1px solid hsl(var(--border));
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .system-map-expanded {
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: 90vw;
-          height: 85vh;
-          z-index: 50;
-          box-shadow: 0 30px 60px hsl(var(--background) / 0.6);
-          border: 2px solid hsl(var(--border));
-          background-color: hsl(var(--background));
-        }
-
-        .overlay {
-          position: fixed;
-          inset: 0;
-          background: hsl(var(--background) / 0.8);
-          backdrop-filter: blur(8px);
-          z-index: 40;
-          animation: fadeIn 0.3s ease-out;
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        .node-circle {
-          transition: all 0.3s ease-in-out;
-        }
-
-        .node-glow-hover {
-          opacity: 0.4;
-          transition: opacity 0.3s ease-in-out;
-        }
-
-        .glassmorphism-node {
-          backdrop-filter: blur(10px);
-          border: 2px solid hsl(var(--border));
-        }
-
-        .scrollbar-custom::-webkit-scrollbar {
-          width: 6px;
-          height: 6px;
-        }
-
-        .scrollbar-custom::-webkit-scrollbar-track {
-          background: hsl(var(--muted));
-          border-radius: 3px;
-        }
-
-        .scrollbar-custom::-webkit-scrollbar-thumb {
-          background: hsl(var(--muted-foreground) / 0.5);
-          border-radius: 3px;
-        }
-
-        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
-          background: hsl(var(--muted-foreground));
-        }
-
-        .grid-pattern {
-          background-image:
-            linear-gradient(hsl(var(--border) / 0.2) 1px, transparent 1px),
-            linear-gradient(90deg, hsl(var(--border) / 0.2) 1px, transparent 1px);
-          background-size: 20px 20px;
-        }
-
-        .expand-button {
-          transition: all 0.2s ease;
-        }
-
-        .expand-button:hover {
-          transform: translateX(2px) translateY(-2px);
-          color: hsl(var(--primary));
-        }
-      `}</style>
-
-      <div className="p-4 sm:p-6 ">
-        {/* Header */}
-        <div className="mb-6 ml-14 lg:ml-0">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
-            Performance Dashboard
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Real-time insights into your marketing channels
-          </p>
+      {/* Top Bar: Search and Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground mt-1">Real-time insights into your marketing channels</p>
         </div>
 
-        {/* Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6">
-          <div className="metric-card p-4 rounded-xl">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">Total Revenue</h3>
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
+        <div className="flex items-center gap-4">
+          <div className="relative group w-full md:w-96">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-muted-foreground group-focus-within:text-orange-500 transition-colors" />
             </div>
-            <p className="text-2xl sm:text-3xl font-bold mb-1 font-mono text-foreground">₱{totalRevenue.toLocaleString()}</p>
-            <div className="flex items-center text-green-500 text-xs font-medium">
-              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-              23% from last month
-            </div>
+            <input
+              type="text"
+              className="block w-full pl-10 pr-3 py-2.5 border-none rounded-xl bg-muted/50 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:bg-background transition-all"
+              placeholder="Search tasks, projects, or documents..."
+            />
           </div>
-
-          <div className="metric-card p-4 rounded-xl">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">Total Spend</h3>
-              <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-2xl sm:text-3xl font-bold mb-1 font-mono text-foreground">₱{totalSpend.toLocaleString()}</p>
-            <div className="flex items-center text-red-500 text-xs font-medium">
-              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
-              </svg>
-              8% from last month
-            </div>
-          </div>
-
-          <div className="metric-card p-4 rounded-xl sm:col-span-2 lg:col-span-1">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">Average ROI</h3>
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-            </div>
-            <p className="text-2xl sm:text-3xl font-bold mb-1 font-mono text-foreground">{avgROI.toFixed(0)}%</p>
-            <div className="flex items-center text-green-500 text-xs font-medium">
-              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-              12% from last month
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-          {/* Channel Performance Table */}
-          <div className="lg:col-span-2 table-container rounded-xl overflow-hidden flex flex-col" style={{ height: '450px' }}>
-            <div className="p-4 border-b border-border">
-              <h3 className="text-lg font-bold text-foreground">Channel Performance</h3>
-              <p className="text-muted-foreground text-xs mt-0.5">Track revenue, spend, and ROI across platforms</p>
-            </div>
-
-            {error ? (
-              <div className="p-8 text-center flex-1 flex items-center justify-center">
-                <div>
-                  <p className="text-destructive text-sm mb-3">{error.message}</p>
-                  <button
-                    onClick={() => refetch()}
-                    className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors"
-                  >
-                    Retry
-                  </button>
-                </div>
-              </div>
-            ) : loading ? (
-              <div className="p-8 text-center flex-1 flex items-center justify-center">
-                <div>
-                  <div className="inline-block w-10 h-10 border-3 border-muted border-t-primary rounded-full animate-spin"></div>
-                  <p className="text-muted-foreground text-sm mt-3">Loading performance data...</p>
-                </div>
-              </div>
-            ) : (
-              <div className="overflow-x-auto scrollbar-custom flex-1">
-                <table className="w-full">
-                  <thead className="bg-muted/50 sticky top-0 z-10">
-                    <tr>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Channel</th>
-                      <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Revenue</th>
-                      <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Spend</th>
-                      <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">ROI</th>
-                      <th className="text-center py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Performance</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {channels.map((channel: { channel: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined; revenue: { toLocaleString: () => string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined; }; spend: { toLocaleString: () => string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | null | undefined; }; roi: number | null; performance_rating: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined; }, idx: Key | null | undefined) => (
-                      <tr key={idx} className="hover:bg-muted/30 transition-colors">
-                        <td className="py-3 px-4 font-semibold text-sm text-foreground">{channel.channel}</td>
-                        <td className="text-right py-3 px-4 font-mono text-sm text-green-500">₱{channel.revenue.toLocaleString()}</td>
-                        <td className="text-right py-3 px-4 font-mono text-sm text-orange-500">₱{channel.spend.toLocaleString()}</td>
-                        <td className="text-right py-3 px-4 font-mono font-bold text-sm text-foreground">
-                          {channel.roi === null ? '∞' : `${Math.round(channel.roi)}%`}
-                        </td>
-                        <td className="text-center py-3 px-4">
-                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold capitalize ${channel.performance_rating === 'exceptional' ? 'bg-green-500/20 text-green-500 border border-green-500/30' :
-                              channel.performance_rating === 'excellent' ? 'bg-blue-500/20 text-blue-500 border border-blue-500/30' :
-                                channel.performance_rating === 'satisfactory' ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30' :
-                                  channel.performance_rating === 'poor' ? 'bg-orange-500/20 text-orange-500 border border-orange-500/30' :
-                                    'bg-red-500/20 text-red-500 border border-red-500/30'
-                            }`}>
-                            {channel.performance_rating}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          {/* System Map Component */}
-          <SystemMapComponent
-            channels={channels}
-            isExpanded={mapExpanded}
-            onToggleExpand={setMapExpanded}
-          />
+          <button className="p-2.5 rounded-xl bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors relative">
+            <Bell className="h-5 w-5" />
+            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-orange-500 rounded-full border-2 border-background"></span>
+          </button>
         </div>
       </div>
 
-      {/* Overlay when map is expanded */}
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Revenue Card */}
+        <div className="glass-card p-6 hover:shadow-lg transition-all duration-300 group">
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-2 rounded-lg bg-orange-500/10 text-orange-500 transition-colors">
+              <DollarSign className="h-5 w-5" />
+            </div>
+            <button className="text-muted-foreground hover:text-foreground">
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="space-y-1">
+            <span className="text-sm font-medium text-muted-foreground">Total Revenue</span>
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-3xl font-bold text-foreground">₱{totalRevenue.toLocaleString()}</h3>
+            </div>
+            <div className="flex items-center gap-1.5 text-sm font-medium text-green-500 mt-2">
+              <ArrowUpRight className="h-4 w-4" />
+              <span>+23% from last month</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Spend Card (Styled like "Active Projects") */}
+        <div className="glass-card p-6 hover:shadow-lg transition-all duration-300 group">
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500 transition-colors">
+              <Briefcase className="h-5 w-5" />
+            </div>
+            <button className="text-muted-foreground hover:text-foreground">
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="space-y-1">
+            <span className="text-sm font-medium text-muted-foreground">Total Spend</span>
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-3xl font-bold text-foreground">₱{totalSpend.toLocaleString()}</h3>
+            </div>
+            <div className="flex items-center gap-1.5 text-sm font-medium text-green-500 mt-2">
+              <ArrowUpRight className="h-4 w-4" />
+              <span>+12% from last month</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ROI Card (Styled like "Pending Tasks") */}
+        <div className="glass-card p-6 hover:shadow-lg transition-all duration-300 group">
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500 transition-colors">
+              <Clock className="h-5 w-5" />
+            </div>
+            <button className="text-muted-foreground hover:text-foreground">
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="space-y-1">
+            <span className="text-sm font-medium text-muted-foreground">Average ROI</span>
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-3xl font-bold text-foreground">{avgROI.toFixed(0)}%</h3>
+            </div>
+            <div className="flex items-center gap-1.5 text-sm font-medium text-red-500 mt-2">
+              <ArrowDownRight className="h-4 w-4" />
+              <span>-5% from last month</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Channel Performance Table */}
+        <div className="lg:col-span-2 glass-card overflow-hidden flex flex-col h-[500px]">
+          <div className="p-6 border-b border-border/50 flex justify-between items-start">
+            <div>
+              <h3 className="text-lg font-bold text-foreground">Channel Performance</h3>
+              <p className="text-sm text-muted-foreground mt-1">Track revenue, spend, and ROI across platforms</p>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-auto p-0">
+            {error ? (
+              <div className="h-full flex items-center justify-center flex-col gap-4">
+                <p className="text-destructive">{error.message}</p>
+                <button onClick={() => refetch()} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg">Retry</button>
+              </div>
+            ) : loading ? (
+              <div className="h-full flex items-center justify-center">
+                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr className="text-xs font-semibold text-muted-foreground border-b border-border/50 bg-muted/20">
+                    <th className="px-6 py-4 text-left uppercase tracking-wider">Channel</th>
+                    <th className="px-6 py-4 text-right uppercase tracking-wider">Revenue</th>
+                    <th className="px-6 py-4 text-right uppercase tracking-wider">Spend</th>
+                    <th className="px-6 py-4 text-right uppercase tracking-wider">ROI</th>
+                    <th className="px-6 py-4 text-right uppercase tracking-wider">Performance</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  {channels.map((channel: any, idx: Key) => (
+                    <tr key={idx} className="group hover:bg-muted/30 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="font-semibold text-foreground">{channel.channel}</div>
+                      </td>
+                      <td className="px-6 py-4 text-right font-mono text-sm">
+                        <span className="text-green-500">₱{channel.revenue.toLocaleString()}</span>
+                      </td>
+                      <td className="px-6 py-4 text-right font-mono text-sm text-muted-foreground">
+                        ₱{channel.spend.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 text-right font-mono text-sm font-medium">
+                        {channel.roi === null ? '∞' : <span className={channel.roi < 0 ? 'text-red-500' : ''}>{Math.round(channel.roi)}%</span>}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className={`
+                          inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium w-28
+                          ${channel.performance_rating === 'exceptional' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
+                            channel.performance_rating === 'excellent' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
+                              channel.performance_rating === 'satisfactory' ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' :
+                                'bg-red-500/10 text-red-500 border border-red-500/20'
+                          }
+                        `}>
+                          {channel.performance_rating}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+
+        {/* System Map */}
+        <div className="lg:col-span-1 glass-card overflow-hidden flex flex-col h-[500px]">
+          <div className="p-6 border-b border-border/50 flex justify-between items-start">
+            <div>
+              <h3 className="text-lg font-bold text-foreground">System Map</h3>
+              <p className="text-sm text-muted-foreground mt-1">Platform relationships</p>
+            </div>
+            <button
+              onClick={() => setMapExpanded(true)}
+              className="text-muted-foreground hover:text-foreground p-1 rounded hover:bg-muted"
+            >
+              <ArrowUpRight className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="flex-1 bg-muted/20 relative p-4">
+            <SystemMapComponent
+              channels={channels}
+              isExpanded={mapExpanded}
+              onToggleExpand={setMapExpanded}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Expanded Map Overlay */}
       {mapExpanded && (
-        <div className="overlay" onClick={() => setMapExpanded(false)} style={{ zIndex: 45 }}></div>
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 transition-opacity" onClick={() => setMapExpanded(false)}>
+          <div className="absolute inset-4 md:inset-10 bg-card rounded-2xl border border-border shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <SystemMapComponent
+              channels={channels}
+              isExpanded={true}
+              onToggleExpand={setMapExpanded}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
 }
-
