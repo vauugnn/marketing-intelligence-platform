@@ -328,16 +328,36 @@ export default function Integrations() {
 
   const handleConnect = async (platformId: string) => {
     setConnectingPlatform(platformId);
+    // Log user intent to connect a platform (helpful for debugging & analytics)
+    console.info('User initiated connect for platform:', platformId);
+
     try {
       const result = await api.connectPlatform(platformId);
-      if (result.success) {
-        addToast(`Connection to ${platformConfig[platformId]?.name || platformId} initiated!`, 'success');
-        setPlatforms((prev) => prev.map((p) => (p.platform === platformId ? { ...p, ...result.data } : p)));
-      } else {
-        addToast(result.message || 'Connection failed', 'error');
+
+      // API returns the platform-specific payload in `data` (not a wrapper with `success`)
+      // For OAuth flows we expect: { type: 'oauth', authUrl }
+      // For API-key flows we expect: { type: 'api_key', message }
+      if (!result || !result.type) {
+        console.error('Unexpected connect response for', platformId, result);
+        addToast('Unexpected response from server. See console for details.', 'error');
+        return;
       }
-    } catch (error) {
-      addToast('Failed to connect. Please try again.', 'error');
+
+      if (result.type === 'oauth' && result.authUrl) {
+        addToast(`Redirecting to ${platformConfig[platformId]?.name || platformId} for authorization...`, 'info');
+        // open the provider's OAuth URL (this will redirect the whole app)
+        console.info('Redirecting user to OAuth URL:', result.authUrl);
+        window.location.href = result.authUrl;
+        return; // navigation will occur
+      }
+
+      if (result.type === 'api_key') {
+        addToast(result.message || `Provide API key for ${platformId}`, 'info');
+      }
+    } catch (error: any) {
+      console.error('Connect failed for', platformId, error);
+      const msg = error?.message || 'Failed to connect. Please try again.';
+      addToast(msg, 'error');
     } finally {
       setConnectingPlatform(null);
     }

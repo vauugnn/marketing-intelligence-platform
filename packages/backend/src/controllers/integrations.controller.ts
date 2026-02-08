@@ -64,6 +64,9 @@ export async function initiateConnect(req: Request, res: Response): Promise<void
   const service = getOAuthService(platform);
   const authUrl = await service.getAuthUrl(userId);
 
+  // Log the initiation for observability
+  logger.info('IntegrationsController', `Initiating OAuth for platform ${platform} for user ${userId}`, { authUrl });
+
   res.json({
     success: true,
     data: { type: 'oauth', authUrl },
