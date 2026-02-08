@@ -1,0 +1,1107 @@
+openapi: 3.0.3
+info:
+  title: Marketing Intelligence Platform API
+  description: |
+    REST API for the Marketing Intelligence Platform. Provides analytics,
+    platform integrations, pixel tracking, attribution, and sync capabilities.
+
+    ## Authentication
+    Most endpoints require a Supabase JWT token in the `Authorization` header:
+    ```
+    Authorization: Bearer <supabase-jwt-token>
+    ```
+
+    ## Response Envelope
+    Most endpoints wrap responses in a standard envelope:
+    ```json
+    { "success": true, "data": <payload> }
+    ```
+    **Exceptions:** Attribution endpoints (`/api/attribution/*`) return their payloads
+    directly without the `success`/`data` wrapper. The pixel `/track` endpoint returns
+    `{ "success": true, "event_id": "..." }` without a `data` wrapper.
+  version: 1.0.0
+  contact:
+    name: Intelligence Platform Team
+
+servers:
+  - url: http://localhost:3001
+    description: Local development
+
+tags:
+  - name: Analytics
+    description: Channel performance, synergies, journeys, and AI recommendations
+  - name: Integrations
+    description: Platform connection management (OAuth & API key)
+  - name: OAuth
+    description: OAuth callback handling
+  - name: Sync
+    description: Platform data synchronization
+  - name: Attribution
+    description: Cross-reference conversion verification
+  - name: Pixel
+    description: Tracking pixel generation and event collection
+  - name: Health
+    description: Server health check
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Returns server health status. No authentication required.
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  # ── Analytics ─────────────────────────────────────────────
+
+  /api/analytics/performance:
+    get:
+      tags: [Analytics]
+      summary: Get channel performance data
+      description: Returns performance metrics (revenue, spend, ROI, conversions, rating) for each marketing channel.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+      responses:
+        '200':
+          description: Channel performance data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_ChannelPerformanceArray'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/analytics/synergies:
+    get:
+      tags: [Analytics]
+      summary: Get channel synergy data
+      description: |
+        Analyzes how marketing channels work together. Returns synergy scores
+        (multiplier effect), frequency of co-occurrence, and confidence levels.
+
+        Strength thresholds: >= 1.5 strong, >= 1.0 medium, < 1.0 weak.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+      responses:
+        '200':
+          description: Synergy data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_ChannelSynergyArray'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/analytics/recommendations:
+    get:
+      tags: [Analytics]
+      summary: Get AI-enhanced recommendations
+      description: |
+        Returns marketing recommendations enhanced by Google Gemini AI.
+        Results are cached for 5 minutes. Falls back to base recommendations
+        if AI enhancement fails.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+      responses:
+        '200':
+          description: AI recommendations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_AIRecommendationArray'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/analytics/journeys:
+    get:
+      tags: [Analytics]
+      summary: Get journey patterns
+      description: Returns common conversion journey patterns showing how users move through channels before converting.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+      responses:
+        '200':
+          description: Journey patterns
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_JourneyPatternArray'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/analytics/channel-roles:
+    get:
+      tags: [Analytics]
+      summary: Get channel role classifications
+      description: |
+        Classifies each channel's primary role in the conversion funnel:
+        introducer (first touch), closer (last touch), supporter (mid-funnel),
+        or isolated (single-channel conversions).
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+      responses:
+        '200':
+          description: Channel roles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse_ChannelRoleArray'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ── Integrations ──────────────────────────────────────────
+
+  /api/integrations:
+    get:
+      tags: [Integrations]
+      summary: List all platform connections
+      description: |
+        Returns all supported platforms with their connection status.
+        Always returns all platforms (connected or not).
+        Sensitive fields (tokens) are stripped from the response.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Platform connection list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PlatformConnectionSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/integrations/{platform}/connect:
+    post:
+      tags: [Integrations]
+      summary: Initiate platform connection
+      description: |
+        Starts the OAuth flow for the specified platform. Returns an authorization
+        URL for OAuth platforms (GA4, Meta, PayPal) or connection instructions
+        for API key platforms (Stripe).
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PlatformPath'
+      responses:
+        '200':
+          description: Connection initiation response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/ConnectResponse'
+        '400':
+          description: Unsupported platform
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/integrations/{platform}/connect/api-key:
+    post:
+      tags: [Integrations]
+      summary: Connect platform via API key
+      description: |
+        Connects a platform using an API key instead of OAuth.
+        Currently only supported for Stripe. Validates the key by
+        making a test API call before storing.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PlatformPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [apiKey]
+              properties:
+                apiKey:
+                  type: string
+                  description: Platform API secret key
+                  example: sk_live_...
+      responses:
+        '200':
+          description: Platform connected successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Stripe connected successfully. Syncing historical data...
+        '400':
+          description: Missing API key or unsupported platform
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/integrations/{platform}:
+    delete:
+      tags: [Integrations]
+      summary: Disconnect a platform
+      description: Revokes OAuth access (if applicable) and removes the platform connection.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PlatformPath'
+      responses:
+        '200':
+          description: Platform disconnected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Disconnected from stripe
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ── OAuth ─────────────────────────────────────────────────
+
+  /api/oauth/callback:
+    get:
+      tags: [OAuth]
+      summary: OAuth callback handler
+      description: |
+        Handles OAuth redirects from external platforms. Exchanges the
+        authorization code for tokens, stores the connection, triggers
+        background data sync, and redirects the user back to the frontend.
+
+        **Not called directly by the frontend** — platforms redirect here
+        after user authorization.
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Authorization code from the OAuth provider
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Base64url-encoded JSON containing userId, platform, nonce, timestamp
+        - name: error
+          in: query
+          schema:
+            type: string
+          description: OAuth error code (if user denied access)
+        - name: error_description
+          in: query
+          schema:
+            type: string
+          description: Human-readable error description
+      responses:
+        '302':
+          description: Redirects to frontend `/integrations` page with status query params
+        '400':
+          description: Missing code or state parameter
+
+  # ── Sync ──────────────────────────────────────────────────
+
+  /api/sync/status:
+    get:
+      tags: [Sync]
+      summary: Get sync status for all platforms
+      description: Returns the sync status, last sync time, and connection time for all connected platforms.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Sync statuses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SyncStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/sync/{platform}:
+    post:
+      tags: [Sync]
+      summary: Trigger manual re-sync
+      description: |
+        Manually triggers a data re-sync for a connected platform.
+        The sync runs in the background. Returns an error if the platform
+        is not connected or is already syncing.
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PlatformPath'
+      responses:
+        '200':
+          description: Sync started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Sync started for google_analytics_4
+        '400':
+          description: Platform not connected or already syncing
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ── Attribution ───────────────────────────────────────────
+
+  /api/attribution/run:
+    post:
+      tags: [Attribution]
+      summary: Manually trigger attribution
+      description: |
+        Runs the attribution engine for a given date range. Fetches unattributed
+        payment transactions (Stripe/PayPal), matches them against pixel events
+        and GA4 data, and creates verified conversions.
+
+        **Note:** This endpoint does NOT use the standard `{ success, data }` envelope.
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                dateRange:
+                  $ref: '#/components/schemas/DateRange'
+      responses:
+        '200':
+          description: Attribution results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Attribution completed
+                  stats:
+                    type: object
+                    properties:
+                      transactions_found:
+                        type: integer
+                        example: 25
+                      already_attributed:
+                        type: integer
+                        example: 10
+                      newly_attributed:
+                        type: integer
+                        example: 12
+                      failed:
+                        type: integer
+                        example: 3
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          description: Attribution failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  message:
+                    type: string
+
+  /api/attribution/status:
+    get:
+      tags: [Attribution]
+      summary: Get attribution statistics
+      description: |
+        Returns aggregate attribution statistics: total conversions, attribution rate,
+        average confidence score, breakdowns by confidence level and attribution method,
+        and over-attribution count.
+
+        **Note:** This endpoint does NOT use the standard `{ success, data }` envelope.
+        Returns the `AttributionStats` object directly.
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Attribution statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttributionStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/attribution/verified-conversions:
+    get:
+      tags: [Attribution]
+      summary: Get verified conversions
+      description: |
+        Returns paginated verified conversions with optional filters.
+
+        **Note:** This endpoint does NOT use the standard `{ success, data }` envelope.
+        Returns `{ data: [...], pagination: {...} }` directly.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: confidence
+          in: query
+          schema:
+            type: string
+            enum: [high, medium, low]
+          description: Filter by confidence level
+        - name: channel
+          in: query
+          schema:
+            type: string
+          description: Filter by attributed channel
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Start of date range (ISO 8601)
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: End of date range (ISO 8601)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+          description: Number of results to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of results to skip
+      responses:
+        '200':
+          description: Verified conversions with pagination
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VerifiedConversion'
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ── Pixel ─────────────────────────────────────────────────
+
+  /api/pixel/generate:
+    post:
+      tags: [Pixel]
+      summary: Generate a new pixel ID
+      description: |
+        Generates a new tracking pixel ID and returns the HTML snippet
+        for embedding on a website. The pixel ID format is `pix_` followed
+        by 32 hex characters.
+      responses:
+        '200':
+          description: Pixel ID and embed snippet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      pixel_id:
+                        type: string
+                        example: pix_a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4
+                      snippet:
+                        type: string
+                        example: '<script src="http://localhost:3002/track.js" data-pixel-id="pix_a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"></script>'
+
+  /api/pixel/track:
+    post:
+      tags: [Pixel]
+      summary: Receive pixel events
+      description: |
+        Accepts tracking events from the pixel script embedded on customer websites.
+        CORS is open (any origin) since the pixel runs cross-origin.
+        Rate limited to 100 requests per minute per IP.
+
+        **Note:** Returns `{ success, event_id }` — no `data` wrapper.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PixelEventInput'
+      responses:
+        '200':
+          description: Event tracked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  event_id:
+                    type: string
+                    format: uuid
+        '400':
+          description: Validation error (Zod)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: Invalid event data
+                  details:
+                    type: array
+                    items:
+                      type: object
+                      description: Zod validation error details
+        '429':
+          description: Rate limit exceeded
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase JWT access token
+
+  parameters:
+    StartDate:
+      name: startDate
+      in: query
+      schema:
+        type: string
+        format: date-time
+      description: Start of date range (ISO 8601). Defaults to 30 days ago.
+
+    EndDate:
+      name: endDate
+      in: query
+      schema:
+        type: string
+        format: date-time
+      description: End of date range (ISO 8601). Defaults to now.
+
+    PlatformPath:
+      name: platform
+      in: path
+      required: true
+      schema:
+        type: string
+        enum:
+          - google_analytics_4
+          - meta
+          - stripe
+          - paypal
+      description: Platform identifier
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: Missing or invalid authorization header
+
+  schemas:
+    # ── Shared Types ──────────────────────────────────────
+
+    Platform:
+      type: string
+      enum:
+        - google_analytics_4
+        - meta
+        - google_ads
+        - stripe
+        - paypal
+        - hubspot
+        - mailchimp
+        - pixel
+
+    ConnectionStatus:
+      type: string
+      enum: [connected, disconnected, error, pending, syncing]
+
+    DateRange:
+      type: object
+      properties:
+        start:
+          type: string
+          format: date-time
+          example: "2026-02-01T00:00:00Z"
+        end:
+          type: string
+          format: date-time
+          example: "2026-02-07T23:59:59Z"
+
+    # ── Analytics Schemas ─────────────────────────────────
+
+    ChannelPerformance:
+      type: object
+      properties:
+        channel:
+          type: string
+          example: google_ads
+        revenue:
+          type: number
+          format: double
+          example: 125000
+        spend:
+          type: number
+          format: double
+          example: 25000
+        roi:
+          type: number
+          format: double
+          example: 4.0
+        conversions:
+          type: integer
+          example: 150
+        performance_rating:
+          type: string
+          enum: [exceptional, excellent, satisfactory, poor, failing]
+
+    ChannelSynergy:
+      type: object
+      properties:
+        channel_a:
+          type: string
+          example: google_ads
+        channel_b:
+          type: string
+          example: meta
+        synergy_score:
+          type: number
+          format: double
+          description: Multiplier effect (>= 1.5 strong, >= 1.0 medium, < 1.0 weak)
+          example: 1.8
+        frequency:
+          type: integer
+          description: How often these channels appear together
+          example: 45
+        confidence:
+          type: number
+          format: double
+          example: 0.85
+
+    AIRecommendation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [scale, optimize, stop]
+        channel:
+          type: string
+        action:
+          type: string
+        reason:
+          type: string
+        estimated_impact:
+          type: number
+          format: double
+        confidence:
+          type: number
+          format: double
+        priority:
+          type: string
+          enum: [high, medium, low]
+        ai_explanation:
+          type: string
+          nullable: true
+        after_implementation:
+          type: string
+          nullable: true
+        why_it_matters:
+          type: array
+          items:
+            type: string
+          nullable: true
+        ai_enhanced:
+          type: boolean
+
+    JourneyPattern:
+      type: object
+      properties:
+        pattern:
+          type: array
+          items:
+            type: string
+          example: [google_ads, meta, direct]
+        frequency:
+          type: integer
+          example: 12
+        total_revenue:
+          type: number
+          format: double
+          example: 45000
+        avg_revenue:
+          type: number
+          format: double
+          example: 3750
+
+    ChannelRole:
+      type: object
+      properties:
+        channel:
+          type: string
+          example: google_ads
+        primary_role:
+          type: string
+          enum: [introducer, closer, supporter, isolated]
+        solo_conversions:
+          type: integer
+        assisted_conversions:
+          type: integer
+        introducer_count:
+          type: integer
+        closer_count:
+          type: integer
+        supporter_count:
+          type: integer
+
+    # ── Integration Schemas ───────────────────────────────
+
+    PlatformConnectionSummary:
+      type: object
+      properties:
+        platform:
+          $ref: '#/components/schemas/Platform'
+        status:
+          $ref: '#/components/schemas/ConnectionStatus'
+        connected_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_synced_at:
+          type: string
+          format: date-time
+          nullable: true
+        platform_account_id:
+          type: string
+          nullable: true
+
+    ConnectResponse:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [oauth, api_key]
+        authUrl:
+          type: string
+          format: uri
+          description: OAuth authorization URL (for OAuth platforms)
+          nullable: true
+        message:
+          type: string
+          description: Instructions (for API key platforms)
+          nullable: true
+
+    SyncStatus:
+      type: object
+      properties:
+        platform:
+          $ref: '#/components/schemas/Platform'
+        status:
+          $ref: '#/components/schemas/ConnectionStatus'
+        lastSyncedAt:
+          type: string
+          format: date-time
+          nullable: true
+        connectedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    # ── Attribution Schemas ───────────────────────────────
+
+    VerifiedConversion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        transaction_id:
+          type: string
+        email:
+          type: string
+          nullable: true
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+          example: PHP
+        pixel_session_id:
+          type: string
+          format: uuid
+          nullable: true
+        ga4_session_id:
+          type: string
+          nullable: true
+        attributed_channel:
+          type: string
+          nullable: true
+        confidence_score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        confidence_level:
+          type: string
+          enum: [high, medium, low]
+        attribution_method:
+          type: string
+          enum: [dual_verified, single_source, uncertain]
+        is_platform_over_attributed:
+          type: boolean
+        conflicting_sources:
+          type: array
+          items:
+            type: string
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          nullable: true
+
+    AttributionStats:
+      type: object
+      properties:
+        total_conversions:
+          type: integer
+        attributed_conversions:
+          type: integer
+        attribution_rate:
+          type: number
+          format: double
+          description: Percentage (0-100)
+        avg_confidence_score:
+          type: number
+          format: double
+        by_confidence_level:
+          type: object
+          properties:
+            high:
+              type: integer
+            medium:
+              type: integer
+            low:
+              type: integer
+        by_attribution_method:
+          type: object
+          properties:
+            dual_verified:
+              type: integer
+            single_source:
+              type: integer
+            uncertain:
+              type: integer
+        over_attributed_count:
+          type: integer
+
+    # ── Pixel Schemas ─────────────────────────────────────
+
+    PixelEventInput:
+      type: object
+      required:
+        - pixel_id
+        - session_id
+        - event_type
+        - page_url
+        - timestamp
+      properties:
+        pixel_id:
+          type: string
+          pattern: '^pix_[a-f0-9]{32}$'
+          example: pix_a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4
+        session_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          enum: [page_view, conversion, custom]
+        page_url:
+          type: string
+          format: uri
+        referrer:
+          type: string
+          format: uri
+          nullable: true
+        utm_source:
+          type: string
+          maxLength: 255
+        utm_medium:
+          type: string
+          maxLength: 255
+        utm_campaign:
+          type: string
+          maxLength: 255
+        utm_term:
+          type: string
+          maxLength: 255
+        utm_content:
+          type: string
+          maxLength: 255
+        timestamp:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          additionalProperties: true
+
+    # ── Success Wrappers ──────────────────────────────────
+
+    SuccessResponse_ChannelPerformanceArray:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChannelPerformance'
+
+    SuccessResponse_ChannelSynergyArray:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChannelSynergy'
+
+    SuccessResponse_AIRecommendationArray:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AIRecommendation'
+
+    SuccessResponse_JourneyPatternArray:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/JourneyPattern'
+
+    SuccessResponse_ChannelRoleArray:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChannelRole'
