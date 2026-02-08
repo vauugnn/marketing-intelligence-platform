@@ -135,7 +135,7 @@ export default function Dashboard() {
                         ₱{channel.spend.toLocaleString()}
                       </td>
                       <td className="px-6 py-4 text-right font-mono text-sm font-medium">
-                        {channel.roi === null ? '∞' : <span className={channel.roi < 0 ? 'text-red-500' : ''}>{Math.round(channel.roi)}%</span>}
+                        {channel.roi === null ? <span className="text-lg   font-semibold">∞</span> : <span className={channel.roi < 0 ? 'text-red-500' : ''}>{Math.round(channel.roi)}%</span>}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <span className={`

@@ -1,9 +1,5 @@
-import { usePerformance, useJourneyPatterns, useChannelRoles } from '../hooks/useAnalytics';
+import { usePerformance } from '../hooks/useAnalytics';
 import DataPipelineFlow from '../components/data-flow/DataPipelineFlow';
-import JourneyFlowChart from '../components/data-flow/JourneyFlowChart';
-import ChannelRolesChart from '../components/data-flow/ChannelRolesChart';
-import RevenueSpendChart from '../components/data-flow/RevenueSpendChart';
-import ROIComparisonChart from '../components/data-flow/ROIComparisonChart';
 
 export default function DataFlow() {
   const { data: channels = [], isLoading: loadingPerformance } = usePerformance();

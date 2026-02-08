@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import type { ChannelPerformance } from '@shared/types';
+import { useState, useEffect, useMemo } from 'react';
+import type { ChannelPerformance, ChannelSynergy } from '@shared/types';
+import { useSynergies } from '../hooks/useAnalytics';
 
 interface NetworkNode {
   id: string;
@@ -23,77 +24,85 @@ interface SystemMapComponentProps {
 
 // Performance to color mapping — lowercase keys matching API values
 const performanceColors: { [key: string]: string } = {
-  'exceptional': '#10b981', // green
-  'excellent': '#3b82f6',   // blue
-  'satisfactory': '#f59e0b', // yellow/orange
-  'poor': '#f97316',        // orange
-  'failing': '#ef4444'      // red
+  'exceptional': '#10b981',
+  'excellent': '#3b82f6',
+  'satisfactory': '#f59e0b',
+  'poor': '#f97316',
+  'failing': '#ef4444'
 };
+
+// Fixed layout positions for known channel names
+const CHANNEL_POSITIONS: Record<string, { desktop: { x: number; y: number }; mobile: { x: number; y: number } }> = {
+  facebook: { desktop: { x: 28, y: 42 }, mobile: { x: 22, y: 42 } },
+  google: { desktop: { x: 72, y: 42 }, mobile: { x: 78, y: 42 } },
+  instagram: { desktop: { x: 50, y: 25 }, mobile: { x: 50, y: 20 } },
+  email: { desktop: { x: 50, y: 65 }, mobile: { x: 50, y: 68 } },
+  tiktok: { desktop: { x: 20, y: 62 }, mobile: { x: 18, y: 68 } },
+  twitter: { desktop: { x: 20, y: 62 }, mobile: { x: 18, y: 68 } },
+  linkedin: { desktop: { x: 58, y: 65 }, mobile: { x: 62, y: 68 } },
+};
+
+function circlePosition(index: number, total: number): { x: number; y: number } {
+  const cx = 50, cy = 45;
+  const radius = 28;
+  const angle = (2 * Math.PI * index) / total - Math.PI / 2;
+  return { x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) };
+}
+
+function channelToId(channel: string): string {
+  return channel.toLowerCase().replace(/\s+/g, '_');
+}
+
+function capitalizeChannel(channel: string): string {
+  return channel.charAt(0).toUpperCase() + channel.slice(1);
+}
+
+function deriveNodes(channels: ChannelPerformance[], isMobile: boolean): NetworkNode[] {
+  return channels.map((ch, i) => {
+    const id = channelToId(ch.channel);
+    const pos = CHANNEL_POSITIONS[id]
+      ? (isMobile ? CHANNEL_POSITIONS[id].mobile : CHANNEL_POSITIONS[id].desktop)
+      : circlePosition(i, channels.length);
+    return { id, name: capitalizeChannel(ch.channel), revenue: ch.revenue, x: pos.x, y: pos.y };
+  });
+}
+
+function deriveEdges(synergies: ChannelSynergy[]): NetworkEdge[] {
+  return synergies.map((s) => ({
+    from: channelToId(s.channel_a),
+    to: channelToId(s.channel_b),
+    strength: s.synergy_score >= 1.5 ? 'strong' : s.synergy_score >= 1.0 ? 'medium' : 'weak',
+  }));
+}
 
 export default function SystemMapComponent({ channels, isExpanded, onToggleExpand }: SystemMapComponentProps) {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const { data: synergies = [] } = useSynergies();
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Mobile positions (non-overlapping, centered)
-  const mobileNodes: NetworkNode[] = [
-    { id: 'instagram', name: 'Instagram', revenue: 189000, x: 50, y: 20 },
-    { id: 'facebook', name: 'Facebook Ads', revenue: 245000, x: 22, y: 42 },
-    { id: 'google', name: 'Google Ads', revenue: 312000, x: 78, y: 42 },
-    { id: 'twitter', name: 'X (Twitter)', revenue: 98000, x: 18, y: 68 },
-    { id: 'linkedin', name: 'LinkedIn', revenue: 156000, x: 62, y: 68 },
-  ];
+  const networkNodes = useMemo(() => deriveNodes(channels, isMobile), [channels, isMobile]);
+  const networkEdges = useMemo(() => deriveEdges(synergies), [synergies]);
 
-  // Desktop positions (centered)
-  const desktopNodes: NetworkNode[] = [
-    { id: 'facebook', name: 'Facebook Ads', revenue: 245000, x: 28, y: 42 },
-    { id: 'instagram', name: 'Instagram', revenue: 189000, x: 50, y: 25 },
-    { id: 'google', name: 'Google Ads', revenue: 312000, x: 72, y: 42 },
-    { id: 'linkedin', name: 'LinkedIn', revenue: 156000, x: 58, y: 65 },
-    { id: 'twitter', name: 'X (Twitter)', revenue: 98000, x: 20, y: 62 },
-  ];
+  const channelMap = useMemo(() => {
+    const map = new Map<string, ChannelPerformance>();
+    channels.forEach((ch) => map.set(channelToId(ch.channel), ch));
+    return map;
+  }, [channels]);
 
-  const networkNodes = isMobile ? mobileNodes : desktopNodes;
-
-  const networkEdges: NetworkEdge[] = [
-    { from: 'facebook', to: 'instagram', strength: 'strong' },
-    { from: 'instagram', to: 'google', strength: 'strong' },
-    { from: 'google', to: 'linkedin', strength: 'medium' },
-  ];
-
-  // Get color for each node based on channel performance
   const getNodeColor = (nodeId: string): string => {
-    // TikTok, Twitter, and LinkedIn are assumed to be red (failing)
-    if (nodeId === 'tiktok' || nodeId === 'twitter' || nodeId === 'linkedin') {
-      return '#ef4444'; // red
-    }
-
-    // Map node IDs to channel names
-    const channelMap: { [key: string]: string } = {
-      'facebook': 'Facebook',
-      'instagram': 'Instagram Bio',
-      'google': 'Google Ads',
-    };
-
-    const channelName = channelMap[nodeId];
-    const channel = channels.find(ch => ch.channel === channelName || ch.channel.includes(channelName));
-    
-    if (channel) {
-      return performanceColors[channel.performance_rating] || '#64748b';
-    }
-    return '#64748b'; // default gray
+    const ch = channelMap.get(nodeId);
+    if (ch) return performanceColors[ch.performance_rating] || '#64748b';
+    return '#64748b';
   };
 
-  const maxRevenue = Math.max(...networkNodes.map(n => n.revenue));
-  
+  const maxRevenue = Math.max(...networkNodes.map(n => n.revenue), 1);
+
   const getNodeSize = (revenue: number, isExpanded: boolean, isMobile: boolean) => {
     if (isMobile) {
       const minSize = 60;
@@ -120,7 +129,7 @@ export default function SystemMapComponent({ channels, isExpanded, onToggleExpan
 
   const getSocialIcon = (nodeId: string) => {
     const iconProps = { className: "w-6 h-6", fill: "white", viewBox: "0 0 24 24" };
-    
+
     switch (nodeId) {
       case 'facebook':
         return (
@@ -158,13 +167,31 @@ export default function SystemMapComponent({ channels, isExpanded, onToggleExpan
             <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
           </svg>
         );
+      case 'email':
+        return (
+          <svg {...iconProps}>
+            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+          </svg>
+        );
       default:
-        return null;
+        return (
+          <svg {...iconProps}>
+            <circle cx="12" cy="12" r="10" fill="white" opacity="0.3"/>
+          </svg>
+        );
     }
   };
 
+  if (channels.length === 0) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <p className="text-muted-foreground text-sm">No channel data available yet.</p>
+      </div>
+    );
+  }
+
   return (
-    <div 
+    <div
       className={`system-map-container rounded-xl overflow-hidden ${isExpanded ? 'system-map-expanded cursor-default' : ''}`}
       style={{ height: isExpanded ? 'auto' : '450px' }}
     >
@@ -175,7 +202,7 @@ export default function SystemMapComponent({ channels, isExpanded, onToggleExpan
         </div>
         <div className="flex items-center gap-2">
           {!isExpanded && (
-            <button 
+            <button
               onClick={() => onToggleExpand(true)}
               className="expand-button w-7 h-7 rounded-lg hover:bg-gray-700/30 flex items-center justify-center transition-colors text-gray-400"
               title="Expand system map"
@@ -186,7 +213,7 @@ export default function SystemMapComponent({ channels, isExpanded, onToggleExpan
             </button>
           )}
           {isExpanded && (
-            <button 
+            <button
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleExpand(false);
@@ -233,10 +260,9 @@ export default function SystemMapComponent({ channels, isExpanded, onToggleExpan
               const size = getNodeSize(node.revenue, isExpanded, isMobile);
               const isHovered = hoveredNode === node.id;
               const nodeColor = getNodeColor(node.id);
-              
+
               return (
                 <g key={node.id}>
-                  {/* Outer glow effect for hovered node */}
                   {isHovered && (
                     <circle
                       cx={`${node.x}%`}
@@ -246,8 +272,7 @@ export default function SystemMapComponent({ channels, isExpanded, onToggleExpan
                       className="node-glow-hover"
                     />
                   )}
-                  
-                  {/* Glassmorphism background circle */}
+
                   <circle
                     cx={`${node.x}%`}
                     cy={`${node.y}%`}
@@ -258,8 +283,7 @@ export default function SystemMapComponent({ channels, isExpanded, onToggleExpan
                     strokeWidth="2"
                     className="glassmorphism-node"
                   />
-                  
-                  {/* Main colored circle */}
+
                   <circle
                     cx={`${node.x}%`}
                     cy={`${node.y}%`}
@@ -274,8 +298,7 @@ export default function SystemMapComponent({ channels, isExpanded, onToggleExpan
                       cursor: 'pointer'
                     }}
                   />
-                  
-                  {/* Social media icon in center */}
+
                   <foreignObject
                     x={`${node.x - (isExpanded && !isMobile ? 3 : 2)}%`}
                     y={`${node.y - (isExpanded && !isMobile ? 3 : 2)}%`}
@@ -287,11 +310,9 @@ export default function SystemMapComponent({ channels, isExpanded, onToggleExpan
                       {getSocialIcon(node.id)}
                     </div>
                   </foreignObject>
-                  
-                  {/* Only show text labels in expanded view */}
+
                   {isExpanded && (
                     <>
-                      {/* Node name */}
                       <text
                         x={`${node.x}%`}
                         y={`${node.y - (size / 2 / (isMobile ? 5.5 : 4.5)) - (isMobile ? 5 : 6.5)}%`}
@@ -303,8 +324,7 @@ export default function SystemMapComponent({ channels, isExpanded, onToggleExpan
                       >
                         {node.name}
                       </text>
-                      
-                      {/* Revenue label */}
+
                       <text
                         x={`${node.x}%`}
                         y={`${node.y - (size / 2 / (isMobile ? 5.5 : 4.5)) - (isMobile ? 2.5 : 3.5)}%`}
@@ -337,7 +357,7 @@ export default function SystemMapComponent({ channels, isExpanded, onToggleExpan
               </h4>
               <p className="text-xs text-gray-500">Understand the connections</p>
             </div>
-            
+
             <div className="space-y-3 lg:space-y-4 text-xs lg:text-sm">
               <div className="flex items-start">
                 <div className="w-10 lg:w-12 h-1 bg-green-500 mr-2 lg:mr-3 mt-1.5 lg:mt-2 flex-shrink-0 rounded"></div>
@@ -346,7 +366,7 @@ export default function SystemMapComponent({ channels, isExpanded, onToggleExpan
                   <p className="text-gray-400 text-xs">Strong synergy</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start">
                 <div className="w-10 lg:w-12 h-1 bg-yellow-500 mr-2 lg:mr-3 mt-1.5 lg:mt-2 flex-shrink-0 rounded"></div>
                 <div>
@@ -354,7 +374,7 @@ export default function SystemMapComponent({ channels, isExpanded, onToggleExpan
                   <p className="text-gray-400 text-xs">Some reinforcement</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start">
                 <div className="w-10 lg:w-12 h-1 bg-red-500 mr-2 lg:mr-3 mt-1.5 lg:mt-2 flex-shrink-0 rounded"></div>
                 <div>
@@ -362,7 +382,7 @@ export default function SystemMapComponent({ channels, isExpanded, onToggleExpan
                   <p className="text-gray-400 text-xs">Weak connection</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start">
                 <div className="flex items-center mr-2 lg:mr-3 mt-1 flex-shrink-0">
                   <div className="w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-blue-500"></div>

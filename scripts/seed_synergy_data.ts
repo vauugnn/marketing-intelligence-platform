@@ -109,16 +109,17 @@ const journeys: SessionDef[] = [
   { channels: ['instagram'], amount: 160, daysAgo: 19 },
   { channels: ['instagram'], amount: 140, daysAgo: 22 },
 
-  // Solo tiktok — isolated, poor ROI (should trigger "stop" rule)
-  { channels: ['tiktok'], amount: 100, daysAgo: 2 },
-  { channels: ['tiktok'], amount: 90, daysAgo: 5 },
-  { channels: ['tiktok'], amount: 80, daysAgo: 9 },
-  { channels: ['tiktok'], amount: 110, daysAgo: 14 },
-
   // Solo email (supporter role)
   { channels: ['email'], amount: 800, daysAgo: 4 },
   { channels: ['email'], amount: 650, daysAgo: 10 },
   { channels: ['email'], amount: 900, daysAgo: 16 },
+
+  // Additional email journeys for better representation
+  { channels: ['email', 'facebook'], amount: 2400, daysAgo: 5 },
+  { channels: ['email', 'instagram'], amount: 1800, daysAgo: 14 },
+  { channels: ['google', 'email', 'facebook'], amount: 5600, daysAgo: 9 },
+  { channels: ['email'], amount: 700, daysAgo: 21 },
+  { channels: ['email'], amount: 850, daysAgo: 25 },
 ];
 
 async function main() {
@@ -168,7 +169,7 @@ async function main() {
         utm_campaign: `campaign_${j.channels[t]}`,
         timestamp: touchTime.toISOString(),
         user_agent: 'Mozilla/5.0',
-        metadata: { journey_index: i, touchpoint: t },
+        metadata: { journey_index: i, touchpoint: t, ...(j.channels[t] === 'email' ? { email: `customer${i}@example.com` } : {}) },
       });
 
       // Conversion event on last touchpoint
@@ -186,7 +187,7 @@ async function main() {
           utm_campaign: `campaign_${j.channels[t]}`,
           timestamp: convTime.toISOString(),
           user_agent: 'Mozilla/5.0',
-          metadata: { order_id: `ORDER-${2000 + i}` },
+          metadata: { order_id: `ORDER-${2000 + i}`, ...(j.channels[t] === 'email' ? { email: `customer${i}@example.com` } : {}) },
         });
       }
     }
@@ -216,6 +217,8 @@ async function main() {
     { platform: 'google_ads', channel: 'google', spend: 6000 },
     { platform: 'meta', channel: 'instagram', spend: 5000 },  // high spend, low revenue = poor ROI
     { platform: 'google_ads', channel: 'tiktok', spend: 4000 },  // high spend, low revenue = poor ROI
+    { platform: 'hubspot', channel: 'email', spend: 4500 },
+    { platform: 'mailchimp', channel: 'email', spend: 3500 },
   ];
 
   for (const s of spendData) {

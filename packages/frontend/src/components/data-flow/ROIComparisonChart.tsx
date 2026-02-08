@@ -23,7 +23,7 @@ function CustomTooltip({ active, payload }: any) {
     <div className="bg-gray-900/95 backdrop-blur-sm border border-gray-700 rounded-lg p-3 shadow-xl">
       <p className="text-white font-semibold text-sm mb-2">{d.channel}</p>
       <p className="text-orange-400 text-xs">Spend: ₱{d.spend.toLocaleString()}</p>
-      <p className="text-blue-400 text-xs">ROI: {d.roi === null ? '∞' : `${Math.round(d.roi)}%`}</p>
+      <p className="text-blue-400 text-xs">ROI: {d.roi === null ? <span className="text-sm font-semibold">∞</span> : `${Math.round(d.roi)}%`}</p>
       <p className="text-green-400 text-xs">Revenue: ₱{d.revenue.toLocaleString()}</p>
       <p className="text-gray-400 text-xs capitalize mt-1">Rating: {d.performance_rating}</p>
     </div>

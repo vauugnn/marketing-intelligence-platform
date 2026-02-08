@@ -200,7 +200,7 @@ export async function getChannelPerformance(
     .from('raw_events')
     .select('platform, event_data')
     .eq('user_id', userId)
-    .in('platform', ['meta', 'google_analytics_4', 'google_ads'])
+    .in('platform', ['meta', 'google_analytics_4', 'google_ads', 'hubspot', 'mailchimp'])
     .gte('timestamp', dateRange.start)
     .lte('timestamp', dateRange.end);
 
@@ -220,6 +220,8 @@ export async function getChannelPerformance(
         channel = 'facebook';
       } else if (event.platform === 'google_ads') {
         channel = 'google';
+      } else if (event.platform === 'hubspot' || event.platform === 'mailchimp') {
+        channel = normalizeChannel(data?.channel || 'email');
       } else {
         channel = normalizeChannel(data?.channel_group || data?.sessionSource || 'google');
       }

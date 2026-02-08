@@ -1,7 +1,8 @@
  import { Link, useLocation } from 'react-router-dom';
-  import { useState } from 'react';
-  import { LogOut } from 'lucide-react';
+  import { useState, useRef, useEffect } from 'react';
+  import { LogOut, Sun, Moon } from 'lucide-react';
   import { useAuth } from '../../hooks/useAuth';
+  import { useTheme } from '../theme-provider';
 
   const navigation = [
     { 
@@ -49,56 +50,72 @@
         </svg>
       )
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [profileRef]);
+  ];
 
-  const initials = user?.email
-    ? user.email.substring(0, 2).toUpperCase()
-    : '??';
-  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
-  const displayEmail = user?.email || '';
+  export const Sidebar = () => {
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [profileOpen, setProfileOpen] = useState(false);
+    const profileRef = useRef<HTMLDivElement>(null);
+    const location = useLocation();
+    const { user, logout, isLoggingOut } = useAuth();
+    const { theme, setTheme } = useTheme();
 
-  return (
-    <>
-      <button
-        onClick={() => setMobileMenuOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-50 w-10 h-10 rounded-lg bg-background/90 backdrop-blur-sm border border-border flex items-center justify-center text-foreground hover:bg-accent transition-colors"
-      >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      </button>
+    useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+          setProfileOpen(false);
+        }
+      };
 
-      {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }, []);
 
-      <div className={`
-        fixed lg:sticky top-0 inset-y-0 left-0 z-50
-        w-64 min-h-screen p-6
-        bg-card/95 backdrop-blur-xl border-r border-border
-        transform transition-transform duration-300 ease-in-out
-        flex flex-col
-        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        {/* Header */}
-        <div className="mb-10 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
-              <div className="w-4 h-4 bg-white rounded-full" />
+    const initials = user?.email
+      ? user.email.substring(0, 2).toUpperCase()
+      : '??';
+    const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
+    const displayEmail = user?.email || '';
+
+    return (
+      <>
+        <button
+          onClick={() => setMobileMenuOpen(true)}
+          className="lg:hidden fixed top-4 left-4 z-50 w-10 h-10 rounded-lg bg-background/90 backdrop-blur-sm border border-border flex items-center justify-center text-foreground hover:bg-accent transition-colors"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+
+        {mobileMenuOpen && (
+          <div
+            className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
+
+        <div className={`
+          fixed lg:sticky top-0 inset-y-0 left-0 z-50
+          w-64 min-h-screen p-6
+          bg-card/95 backdrop-blur-xl border-r border-border
+          transform transition-transform duration-300 ease-in-out
+          flex flex-col
+          ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}>
+          {/* Header */}
+          <div className="mb-10 flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
+                <div className="w-4 h-4 bg-white rounded-full" />
+              </div>
+              <div>
+                <h1 className="text-foreground text-xl font-bold leading-none tracking-tight">Platform</h1>
+              </div>
             </div>
-            <div>
-              <h1 className="text-foreground text-xl font-bold leading-none tracking-tight">Platform</h1>
-            </div>
-          </div>
-
-          <button
+            <button 
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             className="p-2 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
             title="Toggle theme"
@@ -171,4 +188,6 @@
       </div>
     </>
   );
-}
+};
+
+export default Sidebar;

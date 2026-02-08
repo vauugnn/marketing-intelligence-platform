@@ -36,7 +36,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen bg-background text-foreground transition-colors duration-300 overflow-hidden">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto lg:pl-64 h-full w-full">{children}</main>
+      <main className="flex-1 overflow-y-auto h-full w-full">{children}</main>
     </div>
   );
 }
@@ -72,6 +72,7 @@ function App() {
         <ToastContainer />
       </Router>
     </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 

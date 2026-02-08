@@ -111,6 +111,65 @@ function makePaypalEvent(i: number, userId: string) {
   };
 }
 
+function makeHubspotEvent(i: number, userId: string) {
+  const sends = 500 + i * 20;
+  const opens = Math.round(sends * (0.15 + (i % 10) * 0.02));
+  const clicks = Math.round(opens * (0.08 + (i % 5) * 0.01));
+  return {
+    id: randomUUID(),
+    user_id: userId,
+    platform: 'hubspot',
+    event_type: 'hubspot_marketing_email',
+    event_data: {
+      email_id: `hs_email_${i}`,
+      email_name: `HubSpot Campaign #${i}`,
+      subject: `Promo Email ${i}`,
+      state: 'sent',
+      sends,
+      opens,
+      clicks,
+      bounces: Math.round(sends * 0.02),
+      unsubscribes: Math.round(sends * 0.005),
+      delivered: sends - Math.round(sends * 0.02),
+      channel: 'email',
+      spend: Math.round(((i % 80) + 10) * 1.2 * 100) / 100,
+      currency: 'PHP',
+    },
+    timestamp: randTimestamp(i),
+    created_at: new Date().toISOString(),
+  };
+}
+
+function makeMailchimpEvent(i: number, userId: string) {
+  const emailsSent = 400 + i * 15;
+  const uniqueOpens = Math.round(emailsSent * (0.18 + (i % 8) * 0.015));
+  const uniqueClicks = Math.round(uniqueOpens * (0.1 + (i % 6) * 0.01));
+  return {
+    id: randomUUID(),
+    user_id: userId,
+    platform: 'mailchimp',
+    event_type: 'mailchimp_campaign_report',
+    event_data: {
+      campaign_id: `mc_campaign_${i}`,
+      campaign_title: `Mailchimp Newsletter #${i}`,
+      campaign_type: 'regular',
+      subject_line: `Weekly Update ${i}`,
+      emails_sent: emailsSent,
+      unique_opens: uniqueOpens,
+      open_rate: uniqueOpens / emailsSent,
+      unique_clicks: uniqueClicks,
+      click_rate: uniqueClicks / emailsSent,
+      unsubscribes: Math.round(emailsSent * 0.003),
+      bounces: Math.round(emailsSent * 0.015),
+      channel: 'email',
+      spend: Math.round(((i % 60) + 5) * 0.8 * 100) / 100,
+      currency: 'PHP',
+    },
+    timestamp: randTimestamp(i),
+    created_at: new Date().toISOString(),
+  };
+}
+
 async function insertInBatches(rows: any[], table = 'raw_events', batchSize = 50) {
   for (let i = 0; i < rows.length; i += batchSize) {
     const chunk = rows.slice(i, i + batchSize);
@@ -132,7 +191,9 @@ async function upsertUserAndConnections(userId: string, email?: string) {
     { id: randomUUID(), user_id: userId, platform: 'google_analytics_4', status: 'connected', access_token: 'ga4-seed-token', platform_account_id: `ga_${userId.slice(0,8)}` },
     { id: randomUUID(), user_id: userId, platform: 'meta', status: 'connected', access_token: 'meta-seed-token', platform_account_id: `meta_${userId.slice(0,8)}` },
     { id: randomUUID(), user_id: userId, platform: 'stripe', status: 'connected', access_token: 'stripe-seed-token', platform_account_id: `stripe_${userId.slice(0,8)}` },
-    { id: randomUUID(), user_id: userId, platform: 'paypal', status: 'connected', access_token: 'paypal-seed-token', platform_account_id: `paypal_${userId.slice(0,8)}` }
+    { id: randomUUID(), user_id: userId, platform: 'paypal', status: 'connected', access_token: 'paypal-seed-token', platform_account_id: `paypal_${userId.slice(0,8)}` },
+    { id: randomUUID(), user_id: userId, platform: 'hubspot', status: 'connected', access_token: 'hubspot-seed-token', platform_account_id: `hubspot_${userId.slice(0,8)}` },
+    { id: randomUUID(), user_id: userId, platform: 'mailchimp', status: 'connected', access_token: 'mailchimp-seed-token', platform_account_id: `mailchimp_${userId.slice(0,8)}` },
   ];
 
   for (const c of connections) {
@@ -162,12 +223,20 @@ async function main() {
   const ga4: any[] = [];
   const stripe: any[] = [];
   const paypal: any[] = [];
+  const hubspot: any[] = [];
+  const mailchimp: any[] = [];
 
   for (let i = 1; i <= 100; i++) {
     meta.push(makeMetaEvent(i, userId));
     ga4.push(makeGa4Event(i, userId));
     stripe.push(makeStripeEvent(i, userId));
     paypal.push(makePaypalEvent(i, userId));
+  }
+
+  // Generate more email events (150 each for HubSpot and Mailchimp)
+  for (let i = 1; i <= 150; i++) {
+    hubspot.push(makeHubspotEvent(i, userId));
+    mailchimp.push(makeMailchimpEvent(i, userId));
   }
 
   // Upsert user and connections (ensures user exists and provides pixel_id)
@@ -180,13 +249,16 @@ async function main() {
   await insertInBatches(ga4);
   await insertInBatches(stripe);
   await insertInBatches(paypal);
+  await insertInBatches(hubspot);
+  await insertInBatches(mailchimp);
 
   // Generate pixel events and verified conversions tied to the same user and some stripe transactions
   const pixelEvents: any[] = [];
   const verifiedConversions: any[] = [];
 
   const journeys = [
-    ['facebook','google'], ['email','google'], ['facebook','email','google'], ['google'], ['facebook'], ['instagram']
+    ['facebook','google'], ['email','google'], ['facebook','email','google'], ['google'], ['facebook'], ['instagram'],
+    ['email'], ['facebook','email'], ['email','instagram'], ['google','email'], ['email','facebook','google']
   ];
 
   let convIndex = 1;
@@ -196,9 +268,9 @@ async function main() {
     for (let t = 0; t < j.length; t++) {
       const sessionId = randomUUID();
       sessionIds.push(sessionId);
-      pixelEvents.push({ id: randomUUID(), pixel_id: pixelId || `pix_${userId.replace(/-/g,'').slice(0,16)}`, session_id: sessionId, user_id: userId, event_type: 'page_view', page_url: 'https://example.com/product', referrer: `https://${j[t]}.com`, utm_source: j[t], utm_medium: 'cpc', utm_campaign: `campaign_${j[t]}`, timestamp: randTimestamp(i + t), user_agent: 'Mozilla/5.0', metadata: { journey_index: i, touchpoint: t } });
+      pixelEvents.push({ id: randomUUID(), pixel_id: pixelId || `pix_${userId.replace(/-/g,'').slice(0,16)}`, session_id: sessionId, user_id: userId, event_type: 'page_view', page_url: 'https://example.com/product', referrer: `https://${j[t]}.com`, utm_source: j[t], utm_medium: 'cpc', utm_campaign: `campaign_${j[t]}`, timestamp: randTimestamp(i + t), user_agent: 'Mozilla/5.0', metadata: { journey_index: i, touchpoint: t, ...(j[t] === 'email' ? { email: `user${i}@example.com` } : {}) } });
       if (t === j.length - 1) {
-        pixelEvents.push({ id: randomUUID(), pixel_id: pixelId || `pix_${userId.replace(/-/g,'').slice(0,16)}`, session_id: sessionId, user_id: userId, event_type: 'conversion', page_url: 'https://example.com/checkout/complete', referrer: 'https://example.com/product', utm_source: j[t], utm_medium: 'cpc', utm_campaign: `campaign_${j[t]}`, timestamp: randTimestamp(i + t), user_agent: 'Mozilla/5.0', metadata: { order_id: `ORDER-${2000 + i}` } });
+        pixelEvents.push({ id: randomUUID(), pixel_id: pixelId || `pix_${userId.replace(/-/g,'').slice(0,16)}`, session_id: sessionId, user_id: userId, event_type: 'conversion', page_url: 'https://example.com/checkout/complete', referrer: 'https://example.com/product', utm_source: j[t], utm_medium: 'cpc', utm_campaign: `campaign_${j[t]}`, timestamp: randTimestamp(i + t), user_agent: 'Mozilla/5.0', metadata: { order_id: `ORDER-${2000 + i}`, ...(j[t] === 'email' ? { email: `user${i}@example.com` } : {}) } });
       }
     }
 

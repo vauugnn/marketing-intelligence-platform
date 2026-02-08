@@ -17,7 +17,7 @@ function CustomTooltip({ active, payload, label }: any) {
       <p className="text-white font-semibold text-sm mb-2">{label}</p>
       <p className="text-green-400 text-xs">Revenue: ₱{revenue.toLocaleString()}</p>
       <p className="text-orange-400 text-xs">Spend: ₱{spend.toLocaleString()}</p>
-      <p className="text-blue-400 text-xs font-semibold mt-1">ROI: {roi}%</p>
+      <p className="text-blue-400 text-xs font-semibold mt-1">ROI: {roi === '∞' ? <span className="text-sm font-semibold">∞</span> : `${roi}%`}</p>
     </div>
   );
 }

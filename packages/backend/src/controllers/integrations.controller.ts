@@ -7,7 +7,7 @@ import * as syncService from '../services/sync.service';
 import { logger } from '../utils/logger';
 
 // All platforms that can be connected
-const ALL_PLATFORMS: Platform[] = ['google_analytics_4', 'meta', 'stripe', 'paypal'];
+const ALL_PLATFORMS: Platform[] = ['google_analytics_4', 'meta', 'stripe', 'paypal', 'hubspot', 'mailchimp'];
 
 /**
  * Lists all platform connections for the authenticated user.
@@ -60,6 +60,18 @@ export async function initiateConnect(req: Request, res: Response): Promise<void
     return;
   }
 
+  // HubSpot and Mailchimp use API key flow (OAuth not yet implemented)
+  if (platform === 'hubspot' || platform === 'mailchimp') {
+    res.json({
+      success: true,
+      data: {
+        type: 'api_key',
+        message: `Please provide your ${platform === 'hubspot' ? 'HubSpot' : 'Mailchimp'} API key to connect.`,
+      },
+    });
+    return;
+  }
+
   // Generate OAuth authorization URL using class-based service
   const service = getOAuthService(platform);
   const authUrl = await service.getAuthUrl(userId);
@@ -74,7 +86,7 @@ export async function initiateConnect(req: Request, res: Response): Promise<void
 }
 
 /**
- * Connects a platform using an API key (used for Stripe).
+ * Connects a platform using an API key (used for Stripe, HubSpot, Mailchimp).
  * Validates the key, stores the connection, and triggers historical sync.
  */
 export async function connectWithApiKey(req: Request, res: Response): Promise<void> {
@@ -87,14 +99,17 @@ export async function connectWithApiKey(req: Request, res: Response): Promise<vo
     return;
   }
 
-  if (platform !== 'stripe') {
+  const apiKeyPlatforms: Platform[] = ['stripe', 'hubspot', 'mailchimp'];
+  if (!apiKeyPlatforms.includes(platform)) {
     res.status(400).json({ success: false, error: `API key connection is not supported for ${platform}` });
     return;
   }
 
-  // Validate the Stripe API key by making a test call
-  const stripe = new Stripe(apiKey);
-  await stripe.balance.retrieve();
+  // Platform-specific validation
+  if (platform === 'stripe') {
+    const stripe = new Stripe(apiKey);
+    await stripe.balance.retrieve();
+  }
 
   // Store the connection
   await connectionService.upsertConnection({
@@ -104,14 +119,15 @@ export async function connectWithApiKey(req: Request, res: Response): Promise<vo
     accessToken: apiKey,
   });
 
-  logger.info('IntegrationsController', `Stripe connected for user ${userId}`);
+  const platformName = platform === 'hubspot' ? 'HubSpot' : platform === 'mailchimp' ? 'Mailchimp' : 'Stripe';
+  logger.info('IntegrationsController', `${platformName} connected for user ${userId}`);
 
   // Trigger historical sync in the background
   syncService.syncHistoricalData(userId, platform).catch(err => {
-    logger.error('IntegrationsController', 'Background Stripe sync failed', err);
+    logger.error('IntegrationsController', `Background ${platformName} sync failed`, err);
   });
 
-  res.json({ success: true, message: 'Stripe connected successfully. Syncing historical data...' });
+  res.json({ success: true, message: `${platformName} connected successfully. Syncing historical data...` });
 }
 
 /**
