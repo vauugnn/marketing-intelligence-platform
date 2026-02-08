@@ -130,6 +130,51 @@ export interface AIRecommendation {
   estimated_impact: number;
   confidence: number;
   priority: 'high' | 'medium' | 'low';
+  ai_explanation?: string;
+  after_implementation?: string;
+  why_it_matters?: string[];
+  ai_enhanced?: boolean;
+}
+
+// Journey & Synergy Analysis Types
+export interface Touchpoint {
+  session_id: string;
+  channel: string;
+  timestamp: string;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  event_count: number;
+}
+
+export interface ConversionJourney {
+  conversion_id: string;
+  amount: number;
+  channel_sequence: string[];
+  touchpoints: Touchpoint[];
+  is_multi_touch: boolean;
+}
+
+export interface JourneyPattern {
+  pattern: string[];
+  frequency: number;
+  total_revenue: number;
+  avg_revenue: number;
+}
+
+export interface ChannelRole {
+  channel: string;
+  primary_role: 'introducer' | 'closer' | 'supporter' | 'isolated';
+  solo_conversions: number;
+  assisted_conversions: number;
+  introducer_count: number;
+  closer_count: number;
+  supporter_count: number;
+}
+
+export interface DateRange {
+  start: string;
+  end: string;
 }
 
 // OAuth Connect Response

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-
+import type { ChannelPerformance } from '@shared/types';
 
 interface NetworkNode {
   id: string;
@@ -15,26 +15,19 @@ interface NetworkEdge {
   strength: 'strong' | 'medium' | 'weak';
 }
 
-interface ChannelPerformance {
-  channel: string;
-  revenue: number;
-  spend: number;
-  roi: number;
-  performance: string;
-}
-
 interface SystemMapComponentProps {
   channels: ChannelPerformance[];
   isExpanded: boolean;
   onToggleExpand: (expanded: boolean) => void;
 }
 
-// Performance to color mapping
+// Performance to color mapping — lowercase keys matching API values
 const performanceColors: { [key: string]: string } = {
-  'Exceptional': '#10b981', // green
-  'Excellent': '#3b82f6',   // blue
-  'Satisfactory': '#f59e0b', // yellow/orange
-  'Failing': '#ef4444'      // red
+  'exceptional': '#10b981', // green
+  'excellent': '#3b82f6',   // blue
+  'satisfactory': '#f59e0b', // yellow/orange
+  'poor': '#f97316',        // orange
+  'failing': '#ef4444'      // red
 };
 
 export default function SystemMapComponent({ channels, isExpanded, onToggleExpand }: SystemMapComponentProps) {
@@ -94,7 +87,7 @@ export default function SystemMapComponent({ channels, isExpanded, onToggleExpan
     const channel = channels.find(ch => ch.channel === channelName || ch.channel.includes(channelName));
     
     if (channel) {
-      return performanceColors[channel.performance] || '#64748b';
+      return performanceColors[channel.performance_rating] || '#64748b';
     }
     return '#64748b'; // default gray
   };

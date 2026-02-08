@@ -9,7 +9,7 @@ export class StripeService extends BaseOAuthService {
   readonly platform: Platform = 'stripe';
 
   private stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2024-12-18.acacia'
+    apiVersion: '2024-12-18.acacia' as Stripe.LatestApiVersion,
   });
 
   private readonly AUTH_ENDPOINT = 'https://connect.stripe.com/oauth/authorize';

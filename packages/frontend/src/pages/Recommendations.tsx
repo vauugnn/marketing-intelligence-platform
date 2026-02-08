@@ -1,33 +1,15 @@
-import { useEffect, useState } from 'react';
-import { api } from '../services/api';
+import { useState } from 'react';
+import { useRecommendations } from '../hooks/useAnalytics';
 
 type Priority = 'high' | 'medium' | 'low';
 type FilterTab = 'all' | 'high' | 'medium' | 'low';
 
 export default function Recommendations() {
-  const [recommendations, setRecommendations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: recommendations = [], isLoading: loading, error, refetch } = useRecommendations();
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
   const [appliedRecs, setAppliedRecs] = useState<Set<number>>(new Set());
   const [dismissedRecs, setDismissedRecs] = useState<Set<number>>(new Set());
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
-
-  useEffect(() => {
-    loadRecommendations();
-  }, []);
-
-  const loadRecommendations = async () => {
-    try {
-      const result = await api.getRecommendations();
-      if (result.success) {
-        setRecommendations(result.data);
-      }
-    } catch (error) {
-      console.error('Failed to load recommendations:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const toggleExpand = (idx: number) => {
     const next = new Set(expandedCards);
@@ -347,7 +329,23 @@ export default function Recommendations() {
     );
   };
 
-  /* ─── Loading state ─── */
+  /* ─── Loading / Error state ─── */
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400 text-sm mb-3">{error.message}</p>
+          <button
+            onClick={() => refetch()}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-lg transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center">

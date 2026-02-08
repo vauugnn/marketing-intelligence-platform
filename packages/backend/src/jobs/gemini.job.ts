@@ -3,17 +3,13 @@
  *
  * Background job that runs AI analysis for all active users
  * and generates fresh marketing recommendations.
- *
- * Scheduled: Daily at 2:00 AM
  */
 
 import { supabaseAdmin } from '../config/supabase';
 import { logger } from '../utils/logger';
-import { isGeminiAvailable } from '../config/gemini.config';
-import {
-    analyzeAndGenerateRecommendations,
-    type RecommendationAnalysis,
-} from '../services/gemini.service';
+import { getGeminiClient } from '../config/gemini';
+import { enhanceRecommendationsWithAI } from '../services/gemini.service';
+import type { DateRange, AIRecommendation } from '@shared/types';
 
 interface JobResult {
     success: boolean;
@@ -34,13 +30,11 @@ export async function runGeminiRecommendationJob(): Promise<JobResult> {
 
     logger.info('GeminiJob', 'Starting AI recommendation job');
 
-    // Check if Gemini is available
-    if (!isGeminiAvailable()) {
+    if (!getGeminiClient()) {
         logger.warn('GeminiJob', 'Gemini API not configured, using fallback logic');
     }
 
     try {
-        // Get all users with enough data (at least some verified conversions)
         const { data: users, error } = await supabaseAdmin
             .from('users')
             .select('id')
@@ -60,16 +54,19 @@ export async function runGeminiRecommendationJob(): Promise<JobResult> {
         const userIds = users?.map((u) => u.id) || [];
         logger.info('GeminiJob', `Found ${userIds.length} users to process`);
 
-        // Process each user
+        const dateRange: DateRange = {
+            start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+            end: new Date().toISOString(),
+        };
+
         for (const userId of userIds) {
             try {
-                const analysis = await analyzeAndGenerateRecommendations(userId);
+                const recs = await enhanceRecommendationsWithAI(userId, dateRange);
                 usersProcessed++;
-                recommendationsGenerated += analysis.recommendations.length;
+                recommendationsGenerated += recs.length;
 
                 logger.info('GeminiJob', `Processed user ${userId}`, {
-                    recommendations: analysis.recommendations.length,
-                    totalImpact: analysis.totalEstimatedImpact,
+                    recommendations: recs.length,
                 });
             } catch (userError) {
                 const errorMsg = userError instanceof Error ? userError.message : 'Unknown error';
@@ -89,13 +86,7 @@ export async function runGeminiRecommendationJob(): Promise<JobResult> {
             durationMs: duration,
         });
 
-        return {
-            success,
-            usersProcessed,
-            recommendationsGenerated,
-            errors,
-            duration,
-        };
+        return { success, usersProcessed, recommendationsGenerated, errors, duration };
     } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
         logger.error('GeminiJob', 'Job failed', { error });
@@ -108,14 +99,4 @@ export async function runGeminiRecommendationJob(): Promise<JobResult> {
             duration: Date.now() - startTime,
         };
     }
-}
-
-/**
- * Runs AI analysis for a single user (for manual triggering)
- */
-export async function runGeminiAnalysisForUser(
-    userId: string
-): Promise<RecommendationAnalysis> {
-    logger.info('GeminiJob', `Running manual analysis for user ${userId}`);
-    return analyzeAndGenerateRecommendations(userId);
 }
