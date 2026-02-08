@@ -130,6 +130,10 @@ export interface AIRecommendation {
   estimated_impact: number;
   confidence: number;
   priority: 'high' | 'medium' | 'low';
+  ai_explanation?: string;
+  after_implementation?: string;
+  why_it_matters?: string[];
+  ai_enhanced?: boolean;
 }
 
 // Journey & Synergy Analysis Types

@@ -4,10 +4,10 @@ import { asyncHandler } from '../middleware/error-handler.middleware';
 import {
   getChannelPerformance,
   analyzeChannelSynergies,
-  generateRecommendations,
   getJourneyPatterns,
   identifyChannelRoles,
 } from '../services/synergy.service';
+import { enhanceRecommendationsWithAI } from '../services/gemini.service';
 import type { DateRange } from '@shared/types';
 
 const router = Router();
@@ -49,7 +49,7 @@ router.get(
   authMiddleware,
   asyncHandler(async (req, res) => {
     const dateRange = parseDateRange(req.query);
-    const data = await generateRecommendations(req.userId!, dateRange);
+    const data = await enhanceRecommendationsWithAI(req.userId!, dateRange);
     res.json({ success: true, data });
   })
 );

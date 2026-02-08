@@ -472,18 +472,27 @@ export async function identifyChannelRoles(
  * Generates rule-based recommendations from synergy, performance,
  * and role analysis.
  */
+export interface AnalysisData {
+  synergies: ChannelSynergy[];
+  performance: ChannelPerformance[];
+  roles: ChannelRole[];
+}
+
 export async function generateRecommendations(
   userId: string,
-  dateRange: DateRange
+  dateRange: DateRange,
+  prefetched?: AnalysisData
 ): Promise<AIRecommendation[]> {
   logger.info('SynergyService', 'Generating recommendations', { userId, dateRange });
 
-  // Run analyses in parallel
-  const [synergies, performance, roles] = await Promise.all([
-    analyzeChannelSynergies(userId, dateRange),
-    getChannelPerformance(userId, dateRange),
-    identifyChannelRoles(userId, dateRange),
-  ]);
+  // Use pre-fetched data or run analyses in parallel
+  const [synergies, performance, roles] = prefetched
+    ? [prefetched.synergies, prefetched.performance, prefetched.roles]
+    : await Promise.all([
+        analyzeChannelSynergies(userId, dateRange),
+        getChannelPerformance(userId, dateRange),
+        identifyChannelRoles(userId, dateRange),
+      ]);
 
   const recommendations: AIRecommendation[] = [];
   let idCounter = 1;

@@ -179,6 +179,11 @@ export default function Recommendations() {
                 >
                   {theme.label}
                 </span>
+                {rec.ai_enhanced && (
+                  <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/30">
+                    AI
+                  </span>
+                )}
                 {isApplied && (
                   <span className="text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">
                     Applied
@@ -190,6 +195,11 @@ export default function Recommendations() {
               <p className="text-sm text-gray-400 leading-relaxed">
                 {rec.action}
               </p>
+              {rec.ai_explanation && (
+                <p className="text-xs text-gray-500 italic mt-1 leading-relaxed">
+                  {rec.ai_explanation}
+                </p>
+              )}
 
               {/* Metrics row */}
               <div className="mt-4 grid grid-cols-3 gap-3">
@@ -308,14 +318,15 @@ export default function Recommendations() {
                         After Implementation
                       </p>
                       <p className="text-sm text-gray-300 leading-relaxed">
-                        {rec.type === 'scale' &&
-                          `Increased budget will capture ${Math.round(
-                            rec.confidence * 1.2
-                          )}% more conversions with optimized targeting.`}
-                        {rec.type === 'optimize' &&
-                          `Optimized campaign will improve efficiency by ${rec.confidence}% through better targeting and ad creative.`}
-                        {rec.type === 'stop' &&
-                          `Resources reallocated to high-performing channels, eliminating ${rec.confidence}% of wasted spend.`}
+                        {rec.after_implementation
+                          ? rec.after_implementation
+                          : rec.type === 'scale'
+                          ? `Increased budget will capture ${Math.round(
+                              rec.confidence * 1.2
+                            )}% more conversions with optimized targeting.`
+                          : rec.type === 'optimize'
+                          ? `Optimized campaign will improve efficiency by ${rec.confidence}% through better targeting and ad creative.`
+                          : `Resources reallocated to high-performing channels, eliminating ${rec.confidence}% of wasted spend.`}
                       </p>
                     </div>
                   </div>
@@ -332,23 +343,33 @@ export default function Recommendations() {
                       Why This Matters
                     </p>
                     <ul className="text-sm text-gray-400 space-y-1.5">
-                      <li className="flex items-start gap-2">
-                        <span className="text-gray-600 mt-0.5">&#8226;</span>
-                        Based on {30 + ((idx * 13) % 60)} days of performance
-                        data
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-gray-600 mt-0.5">&#8226;</span>
-                        Analyzed {1000 + ((idx * 317) % 4000)} conversions
-                        across channel
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-gray-600 mt-0.5">&#8226;</span>
-                        Industry benchmark:{' '}
-                        {rec.confidence > 70
-                          ? 'Above average'
-                          : 'Below average'}
-                      </li>
+                      {rec.why_it_matters && rec.why_it_matters.length > 0
+                        ? rec.why_it_matters.map((bullet: string, i: number) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <span className="text-gray-600 mt-0.5">&#8226;</span>
+                              {bullet}
+                            </li>
+                          ))
+                        : <>
+                            <li className="flex items-start gap-2">
+                              <span className="text-gray-600 mt-0.5">&#8226;</span>
+                              Based on {30 + ((idx * 13) % 60)} days of performance
+                              data
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-gray-600 mt-0.5">&#8226;</span>
+                              Analyzed {1000 + ((idx * 317) % 4000)} conversions
+                              across channel
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <span className="text-gray-600 mt-0.5">&#8226;</span>
+                              Industry benchmark:{' '}
+                              {rec.confidence > 70
+                                ? 'Above average'
+                                : 'Below average'}
+                            </li>
+                          </>
+                      }
                     </ul>
                   </div>
                 </div>
