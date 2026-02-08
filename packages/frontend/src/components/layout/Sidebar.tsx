@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
-import { LogOut, Sun, Moon, Network, ArrowRightLeft, Lightbulb, Link as LucideLink, LayoutDashboard, ShoppingBag } from 'lucide-react';
+import { LogOut, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../theme-provider';
 
@@ -112,7 +112,7 @@ export const Sidebar = () => {
               <div className="w-4 h-4 bg-white rounded-full" />
             </div>
             <div>
-              <h1 className="text-foreground text-xl font-bold leading-none tracking-tight">Platform</h1>
+              <h1 className="text-foreground text-xl font-bold leading-none tracking-tight">Neuralys</h1>
             </div>
           </div>
           <button

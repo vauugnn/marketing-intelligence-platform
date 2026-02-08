@@ -1,7 +1,8 @@
 import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { Sparkles, ArrowRight, CheckCircle2, TrendingUp, Target } from 'lucide-react';
+import { ArrowRight, CheckCircle2, TrendingUp, Target } from 'lucide-react';
+import SystemMap from './SystemMap';
 
 export default function Hero() {
     const navigate = useNavigate();
@@ -15,7 +16,10 @@ export default function Hero() {
     const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
 
     return (
-        <section ref={containerRef} className="relative min-h-screen flex items-center pt-20 overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-[#0a0e27] dark:via-[#0f1535] dark:to-[#0a0e27]">
+        <section ref={containerRef} className="relative min-h-screen flex items-center pt-32 pb-20 overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-[#0a0e27] dark:via-[#0f1535] dark:to-[#0a0e27]">
+            {/* Grid Background */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+
             <div className="absolute inset-0 overflow-hidden">
                 <div className="absolute top-20 left-10 w-72 h-72 bg-[#fc763f]/10 rounded-full blur-3xl" />
                 <div className="absolute bottom-20 right-10 w-96 h-96 bg-[#e05a2b]/10 rounded-full blur-3xl" />
@@ -26,36 +30,17 @@ export default function Hero() {
                 <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
                     <motion.div
                         style={{ y, opacity }}
-                        className="space-y-8"
+                        className="space-y-6 flex flex-col justify-center" // Added flex-col justify-center for better grouping
                     >
-                        <motion.div
-                            initial={{ opacity: 0, x: -50 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#fc763f]/10 border border-[#fc763f]/20"
-                        >
-                            <Sparkles className="w-4 h-4 text-[#fc763f]" />
-                            <span className="text-sm font-semibold text-[#e05a2b]">Marketing Intelligence Platform</span>
-                        </motion.div>
+                        {/* Duplicate "Marketing Intelligence Platform" pill removed here */}
 
-                        <motion.h1
-                            initial={{ opacity: 0, y: 30 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-                            className="text-5xl sm:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-white leading-[1.1] tracking-tight"
-                        >
-                            See Your Marketing{' '}
-                            <span className="bg-gradient-to-r from-[#fc763f] to-[#e05a2b] bg-clip-text text-transparent">
-                                As a System
-                            </span>
-                            , Not Scattered Channels
-                        </motion.h1>
+                        <TypewriterHeading />
 
                         <motion.p
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                            className="text-xl text-gray-600 dark:text-gray-300 leading-relaxed max-w-lg"
+                            transition={{ duration: 0.8, delay: 2.5, ease: [0.22, 1, 0.36, 1] }} // Delayed after typewriter
+                            className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed max-w-lg"
                         >
                             A channel-agnostic system that evaluates marketing as an interconnected ecosystem. Map synergies, verify platform truth, and get AI recommendations with financial impact.
                         </motion.p>
@@ -63,8 +48,8 @@ export default function Hero() {
                         <motion.div
                             initial={{ opacity: 0, y: 30 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                            className="flex flex-wrap gap-4"
+                            transition={{ duration: 0.8, delay: 2.7, ease: [0.22, 1, 0.36, 1] }}
+                            className="flex flex-wrap gap-4 pt-2"
                         >
                             <motion.button
                                 whileHover={{ scale: 1.05, boxShadow: '0 20px 40px -10px rgba(252, 118, 63, 0.4)' }}
@@ -80,7 +65,7 @@ export default function Hero() {
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            transition={{ duration: 0.8, delay: 0.5 }}
+                            transition={{ duration: 0.8, delay: 2.9 }}
                             className="flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400"
                         >
                             <div className="flex items-center gap-2">
@@ -97,201 +82,115 @@ export default function Hero() {
                     <motion.div
                         initial={{ opacity: 0, scale: 0.8, rotateY: -15 }}
                         animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-                        transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                        className="relative"
+                        transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
+                        className="relative hidden lg:block"
                     >
-                        <div className="relative w-full aspect-square">
-                            <motion.div
-                                animate={{
-                                    rotateX: [0, 10, 0],
-                                    rotateY: [0, -10, 0],
-                                }}
-                                transition={{
-                                    duration: 8,
-                                    repeat: Infinity,
-                                    ease: "easeInOut"
-                                }}
-                                className="absolute inset-0"
-                                style={{ transformStyle: 'preserve-3d', perspective: 1000 }}
-                            >
-                                <svg viewBox="0 0 600 600" className="w-full h-full">
-                                    <defs>
-                                        <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" stopColor="#fc763f" stopOpacity="0.8" />
-                                            <stop offset="100%" stopColor="#e05a2b" stopOpacity="0.6" />
-                                        </linearGradient>
-                                        <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" stopColor="#e05a2b" stopOpacity="0.9" />
-                                            <stop offset="100%" stopColor="#fc763f" stopOpacity="0.7" />
-                                        </linearGradient>
-                                        <filter id="glow">
-                                            <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-                                            <feMerge>
-                                                <feMergeNode in="coloredBlur" />
-                                                <feMergeNode in="SourceGraphic" />
-                                            </feMerge>
-                                        </filter>
-                                    </defs>
+                        <SystemMap />
 
-                                    <motion.g
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        transition={{ duration: 1, delay: 0.5 }}
-                                    >
-                                        <path d="M300 100 L450 200 L450 400 L300 500 L150 400 L150 200 Z"
-                                            fill="url(#grad1)" opacity="0.3" />
-                                        <path d="M300 150 L400 220 L400 380 L300 450 L200 380 L200 220 Z"
-                                            fill="url(#grad2)" opacity="0.5" />
-
-                                        <motion.path
-                                            d="M300 180 L370 230 L370 370 L300 420 L230 370 L230 230 Z"
-                                            fill="#fc763f"
-                                            opacity="0.9"
-                                            animate={{
-                                                fill: ['#fc763f', '#e05a2b', '#fc763f'],
-                                            }}
-                                            transition={{ duration: 3, repeat: Infinity }}
-                                        />
-
-                                        <motion.circle cx="300" cy="100" r="12" fill="#fc763f" filter="url(#glow)"
-                                            animate={{ scale: [1, 1.2, 1] }}
-                                            transition={{ duration: 2, repeat: Infinity }}
-                                        />
-                                        <motion.circle cx="450" cy="200" r="8" fill="#e05a2b" filter="url(#glow)"
-                                            animate={{ scale: [1, 1.3, 1] }}
-                                            transition={{ duration: 2.5, repeat: Infinity, delay: 0.3 }}
-                                        />
-                                        <motion.circle cx="450" cy="400" r="10" fill="#fc763f" filter="url(#glow)"
-                                            animate={{ scale: [1, 1.2, 1] }}
-                                            transition={{ duration: 2.2, repeat: Infinity, delay: 0.6 }}
-                                        />
-                                        <motion.circle cx="300" cy="500" r="14" fill="#e05a2b" filter="url(#glow)"
-                                            animate={{ scale: [1, 1.25, 1] }}
-                                            transition={{ duration: 2.8, repeat: Infinity, delay: 0.9 }}
-                                        />
-                                        <motion.circle cx="150" cy="400" r="8" fill="#fc763f" filter="url(#glow)"
-                                            animate={{ scale: [1, 1.3, 1] }}
-                                            transition={{ duration: 2.3, repeat: Infinity, delay: 1.2 }}
-                                        />
-                                        <motion.circle cx="150" cy="200" r="10" fill="#e05a2b" filter="url(#glow)"
-                                            animate={{ scale: [1, 1.2, 1] }}
-                                            transition={{ duration: 2.6, repeat: Infinity, delay: 1.5 }}
-                                        />
-
-                                        <motion.path
-                                            d="M300 100 L450 200" stroke="#fc763f" strokeWidth="2" opacity="0.6"
-                                            initial={{ pathLength: 0 }}
-                                            animate={{ pathLength: 1 }}
-                                            transition={{ duration: 1.5, delay: 0.8 }}
-                                        />
-                                        <motion.path
-                                            d="M450 200 L450 400" stroke="#fc763f" strokeWidth="2" opacity="0.6"
-                                            initial={{ pathLength: 0 }}
-                                            animate={{ pathLength: 1 }}
-                                            transition={{ duration: 1.5, delay: 1 }}
-                                        />
-                                        <motion.path
-                                            d="M450 400 L300 500" stroke="#fc763f" strokeWidth="2" opacity="0.6"
-                                            initial={{ pathLength: 0 }}
-                                            animate={{ pathLength: 1 }}
-                                            transition={{ duration: 1.5, delay: 1.2 }}
-                                        />
-                                        <motion.path
-                                            d="M300 500 L150 400" stroke="#fc763f" strokeWidth="2" opacity="0.6"
-                                            initial={{ pathLength: 0 }}
-                                            animate={{ pathLength: 1 }}
-                                            transition={{ duration: 1.5, delay: 1.4 }}
-                                        />
-                                        <motion.path
-                                            d="M150 400 L150 200" stroke="#fc763f" strokeWidth="2" opacity="0.6"
-                                            initial={{ pathLength: 0 }}
-                                            animate={{ pathLength: 1 }}
-                                            transition={{ duration: 1.5, delay: 1.6 }}
-                                        />
-                                        <motion.path
-                                            d="M150 200 L300 100" stroke="#fc763f" strokeWidth="2" opacity="0.6"
-                                            initial={{ pathLength: 0 }}
-                                            animate={{ pathLength: 1 }}
-                                            transition={{ duration: 1.5, delay: 1.8 }}
-                                        />
-
-                                        <motion.path
-                                            d="M300 100 L300 180" stroke="#e05a2b" strokeWidth="3" opacity="0.8"
-                                            initial={{ pathLength: 0 }}
-                                            animate={{ pathLength: 1 }}
-                                            transition={{ duration: 1, delay: 2 }}
-                                        />
-                                        <motion.path
-                                            d="M450 200 L370 230" stroke="#e05a2b" strokeWidth="3" opacity="0.8"
-                                            initial={{ pathLength: 0 }}
-                                            animate={{ pathLength: 1 }}
-                                            transition={{ duration: 1, delay: 2.1 }}
-                                        />
-                                        <motion.path
-                                            d="M450 400 L370 370" stroke="#e05a2b" strokeWidth="3" opacity="0.8"
-                                            initial={{ pathLength: 0 }}
-                                            animate={{ pathLength: 1 }}
-                                            transition={{ duration: 1, delay: 2.2 }}
-                                        />
-                                        <motion.path
-                                            d="M300 500 L300 420" stroke="#e05a2b" strokeWidth="3" opacity="0.8"
-                                            initial={{ pathLength: 0 }}
-                                            animate={{ pathLength: 1 }}
-                                            transition={{ duration: 1, delay: 2.3 }}
-                                        />
-                                        <motion.path
-                                            d="M150 400 L230 370" stroke="#e05a2b" strokeWidth="3" opacity="0.8"
-                                            initial={{ pathLength: 0 }}
-                                            animate={{ pathLength: 1 }}
-                                            transition={{ duration: 1, delay: 2.4 }}
-                                        />
-                                        <motion.path
-                                            d="M150 200 L230 230" stroke="#e05a2b" strokeWidth="3" opacity="0.8"
-                                            initial={{ pathLength: 0 }}
-                                            animate={{ pathLength: 1 }}
-                                            transition={{ duration: 1, delay: 2.5 }}
-                                        />
-                                    </motion.g>
-                                </svg>
-                            </motion.div>
-
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ duration: 0.5, delay: 1 }}
-                                className="absolute -top-4 -right-4 bg-white dark:bg-[#162044] rounded-2xl p-4 shadow-xl border border-gray-100 dark:border-gray-700"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#fc763f] to-[#e05a2b] flex items-center justify-center">
-                                        <TrendingUp className="w-5 h-5 text-white" />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">Revenue Impact</p>
-                                        <p className="text-lg font-bold text-gray-900 dark:text-white">+47%</p>
-                                    </div>
+                        {/* Floating Stats Cards */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.5, delay: 1 }}
+                            className="absolute -top-4 -right-4 bg-white dark:bg-[#162044] rounded-2xl p-4 shadow-xl border border-gray-100 dark:border-gray-700 z-30"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#fc763f] to-[#e05a2b] flex items-center justify-center">
+                                    <TrendingUp className="w-5 h-5 text-white" />
                                 </div>
-                            </motion.div>
-
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ duration: 0.5, delay: 1.2 }}
-                                className="absolute -bottom-4 -left-4 bg-white dark:bg-[#162044] rounded-2xl p-4 shadow-xl border border-gray-100 dark:border-gray-700"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#e05a2b] to-[#fc763f] flex items-center justify-center">
-                                        <Target className="w-5 h-5 text-white" />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">Attribution Accuracy</p>
-                                        <p className="text-lg font-bold text-gray-900 dark:text-white">99.2%</p>
-                                    </div>
+                                <div>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Revenue Impact</p>
+                                    <p className="text-lg font-bold text-gray-900 dark:text-white">+47%</p>
                                 </div>
-                            </motion.div>
-                        </div>
+                            </div>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.5, delay: 1.2 }}
+                            className="absolute -bottom-4 -left-4 bg-white dark:bg-[#162044] rounded-2xl p-4 shadow-xl border border-gray-100 dark:border-gray-700 z-30"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#e05a2b] to-[#fc763f] flex items-center justify-center">
+                                    <Target className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Attribution Accuracy</p>
+                                    <p className="text-lg font-bold text-gray-900 dark:text-white">99.2%</p>
+                                </div>
+                            </div>
+                        </motion.div>
                     </motion.div>
                 </div>
             </div>
         </section>
+    );
+}
+
+function TypewriterHeading() {
+    const text1 = "See Your Marketing ";
+    const text2 = "As a System";
+    const text3 = ", Not Scattered Channels";
+
+    // We want to animate the characters one by one. 
+    // Since we have mixed styling, we can stagger children.
+
+    const sentence = {
+        hidden: { opacity: 1 },
+        visible: {
+            opacity: 1,
+            transition: {
+                delay: 0.5,
+                staggerChildren: 0.05,
+            },
+        },
+    };
+
+    const letter = {
+        hidden: { opacity: 0, y: 10 },
+        visible: {
+            opacity: 1,
+            y: 0,
+        },
+    };
+
+    return (
+        <motion.h1
+            className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white leading-[1.1] tracking-tight relative"
+            variants={sentence}
+            initial="hidden"
+            animate="visible"
+        >
+            {text1.split("").map((char, index) => (
+                <motion.span key={index + "char1"} variants={letter}>
+                    {char}
+                </motion.span>
+            ))}
+            <span className="bg-gradient-to-r from-[#fc763f] to-[#e05a2b] bg-clip-text text-transparent">
+                {text2.split("").map((char, index) => (
+                    <motion.span key={index + "char2"} variants={letter} className="text-transparent">
+                        {/* We need to ensure the gradient applies correctly. 
+                             bg-clip-text works on the text content. 
+                             If we split it, we might lose the continuous gradient unless we are careful.
+                             Actually, applying class to span-parent is better.
+                             But animatingOpacity of children within a gradient-clipped parent works? 
+                             Yes, usually. */}
+                        {char}
+                    </motion.span>
+                ))}
+            </span>
+            {text3.split("").map((char, index) => (
+                <motion.span key={index + "char3"} variants={letter}>
+                    {char}
+                </motion.span>
+            ))}
+            <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0, 1, 0] }}
+                transition={{ repeat: Infinity, duration: 0.8 }}
+                className="inline-block ml-1 w-1 h-[1em] bg-[#fc763f] align-bottom"
+            />
+        </motion.h1>
     );
 }
