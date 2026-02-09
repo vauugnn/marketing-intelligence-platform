@@ -28,7 +28,7 @@ router.post('/generate', cors({ origin: process.env.FRONTEND_URL || 'http://loca
       success: true,
       data: {
         pixel_id: pixelId,
-        snippet: `<script src="${process.env.PIXEL_URL || 'http://localhost:3002'}/track.js" data-pixel-id="${pixelId}"></script>`
+        snippet: `<script src="${process.env.PIXEL_URL || 'http://localhost:3002'}/track.js" data-pixel-id="${pixelId}" data-api-url="${process.env.BACKEND_URL || 'http://localhost:3001'}/api/pixel/track"></script>`
       }
     });
   } catch (error) {
