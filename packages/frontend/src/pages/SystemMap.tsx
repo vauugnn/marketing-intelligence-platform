@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Key } from 'react';
 import { usePerformance, useSynergies } from '../hooks/useAnalytics';
 import { useFilteredChannels } from '../hooks/useFilteredChannels';
+import { useDashboardPreferences } from '../stores/useDashboardPreferences';
 import DashboardControls from '../components/DashboardControls';
 import type { ChannelPerformance, ChannelSynergy } from '@shared/types';
 
@@ -92,6 +93,7 @@ export default function SystemMap() {
   const { data: performance = [], isLoading: loadingPerf, error: errorPerf, refetch: refetchPerf } = usePerformance();
   const { data: synergies = [], isLoading: loadingSyn, refetch: refetchSyn } = useSynergies();
   const filteredPerformance = useFilteredChannels(performance);
+  const metricView = useDashboardPreferences((s) => s.metricView);
   const allChannelNames = performance.map((ch) => ch.channel);
 
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
@@ -132,6 +134,15 @@ export default function SystemMap() {
     });
     return map;
   }, [synergies]);
+
+  // Filtered synergies for the synergy table — only pairs where both channels are visible
+  const filteredSynergies = useMemo(() => {
+    return synergies.filter((s) => {
+      const aId = channelToId(s.channel_a);
+      const bId = channelToId(s.channel_b);
+      return visibleNodeIds.has(aId) && visibleNodeIds.has(bId);
+    });
+  }, [synergies, visibleNodeIds]);
 
   // Animate nodes on mount
   useEffect(() => {
@@ -231,10 +242,10 @@ export default function SystemMap() {
   // Loading state
   if (loading && performance.length === 0) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="inline-block w-10 h-10 border-[3px] border-gray-700 border-t-blue-500 rounded-full animate-spin" />
-          <p className="text-gray-400 text-sm mt-3">Loading system map...</p>
+          <div className="inline-block w-10 h-10 border-[3px] border-muted border-t-primary rounded-full animate-spin" />
+          <p className="text-muted-foreground text-sm mt-3">Loading neural analysis...</p>
         </div>
       </div>
     );
@@ -243,12 +254,12 @@ export default function SystemMap() {
   // Error state
   if (errorPerf && performance.length === 0) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <p className="text-red-400 text-sm mb-3">{errorPerf.message}</p>
+          <p className="text-destructive text-sm mb-3">{errorPerf.message}</p>
           <button
             onClick={() => { refetchPerf(); refetchSyn(); }}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-lg transition-colors"
+            className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors"
           >
             Retry
           </button>
@@ -260,317 +271,465 @@ export default function SystemMap() {
   // Empty state
   if (performance.length === 0) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <p className="text-gray-500 text-sm">No channel data available yet.</p>
-          <p className="text-gray-600 text-xs mt-1">Connect platforms and seed data to see your system map.</p>
+          <p className="text-muted-foreground text-sm">No channel data available yet.</p>
+          <p className="text-muted-foreground/60 text-xs mt-1">Connect platforms and seed data to see your neural analysis.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden relative">
-      <div className="absolute inset-0 bg-grid-white/[0.02] -z-10" />
-      {/* Header */}
-      <div className="p-4 md:p-8 z-10">
-        <div className="mb-3 lg:mb-2">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
-            System Map
-          </h1>
-          <p className="text-muted-foreground text-sm mb-4">
-            Real-time insights into your marketing channels
-          </p>
-          <DashboardControls channels={allChannelNames} showMetricToggle={false} />
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative z-0">
-        {/* Graph and Legend */}
-        <div className="flex-1 flex flex-col px-4 sm:px-6 pb-4 lg:pt-0 overflow-hidden">
-          <div className="flex-1 bg-card/40 backdrop-blur-sm border border-border rounded-xl overflow-hidden flex flex-col min-h-0 shadow-sm">
-            <div
-              className="flex-1 relative overflow-hidden"
-              style={{
-                backgroundImage: `
-                  linear-gradient(hsl(var( --muted-foreground) / 0.1) 1px, transparent 1px),
-                  linear-gradient(90deg, hsl(var(--muted-foreground) / 0.1) 1px, transparent 1px)
-                `,
-                backgroundSize: '30px 30px',
-                backgroundPosition: 'center center',
-              }}
-            >
-              <svg className="w-full h-full animate-float" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                {/* Edges */}
-                {networkEdges.map((edge, idx) => {
-                  const fromNode = networkNodes.find((n) => n.id === edge.from);
-                  const toNode = networkNodes.find((n) => n.id === edge.to);
-                  if (!fromNode || !toNode) return null;
-
-                  const style = getEdgeStyle(edge.strength);
-                  const isConnectedToSelected = selectedNode === edge.from || selectedNode === edge.to;
-
-                  const fromSize = getNodeSize(fromNode.revenue) / 15;
-                  const toSize = getNodeSize(toNode.revenue) / 15;
-                  const dx = toNode.x - fromNode.x;
-                  const dy = toNode.y - fromNode.y;
-                  const angle = Math.atan2(dy, dx);
-                  const hasOverlap = checkNodeOverlap(fromNode, toNode);
-                  const padding = hasOverlap ? 0.5 : 0.3;
-                  const x1 = fromNode.x + Math.cos(angle) * (fromSize + padding);
-                  const y1 = fromNode.y + Math.sin(angle) * (fromSize + padding);
-                  const x2 = toNode.x - Math.cos(angle) * (toSize + padding);
-                  const y2 = toNode.y - Math.sin(angle) * (toSize + padding);
-
-                  return (
-                    <g key={idx}>
-                      <defs>
-                        <marker id={`arrow-${idx}`} markerWidth="4" markerHeight="4" refX="3.5" refY="2" orient="auto" markerUnits="strokeWidth">
-                          <path d="M0,0 L0,4 L4,2 z" fill={style.stroke} />
-                        </marker>
-                      </defs>
-                      <line x1={x1} y1={y1} x2={x2} y2={y2}
-                        stroke={style.stroke} strokeWidth={isConnectedToSelected ? 0.6 : 0.4}
-                        opacity={isConnectedToSelected ? 1 : style.opacity}
-                        markerEnd={`url(#arrow-${idx})`} className="transition-all duration-500"
-                      />
-                    </g>
-                  );
-                })}
-
-                {/* Nodes */}
-                {networkNodes.map((node) => {
-                  const baseSize = getNodeSize(node.revenue);
-                  const size = baseSize / 15;
-                  const isHovered = hoveredNode === node.id;
-                  const isSelected = selectedNode === node.id;
-                  const nodeColor = getNodeColor(node.id);
-                  const isAnimated = animatedNodes.has(node.id);
-
-                  return (
-                    <g key={node.id} style={{
-                      opacity: isAnimated ? 1 : 0, transform: isAnimated ? 'scale(1)' : 'scale(0)',
-                      transformOrigin: `${node.x}px ${node.y}px`, transition: 'all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                    }}>
-                      {(isHovered || isSelected) && (
-                        <>
-                          <circle cx={node.x} cy={node.y} r={size * VISUAL_CONFIG.PULSE_SCALE + 2} fill={nodeColor} opacity="0.2" className="animate-pulse-strong" />
-                          <circle cx={node.x} cy={node.y} r={size * VISUAL_CONFIG.PULSE_SCALE + 1} fill={nodeColor} opacity="0.35" className="animate-pulse-strong" style={{ animationDelay: '0.2s' }} />
-                          <circle cx={node.x} cy={node.y} r={size * 1.08} fill={nodeColor} opacity="0.5" className="animate-pulse-strong" style={{ animationDelay: '0.4s' }} />
-                        </>
-                      )}
-                      <circle cx={node.x} cy={node.y} r={size + 0.3} fill="none" stroke={nodeColor}
-                        strokeWidth={isSelected ? '0.3' : '0.15'} opacity={isSelected ? 0.8 : 0.4} className="transition-all duration-300"
-                      />
-                      <circle cx={node.x} cy={node.y} r={size} fill={nodeColor} fillOpacity="0.15"
-                        stroke={nodeColor} strokeWidth={isSelected ? '0.25' : '0.15'} className="backdrop-blur-sm transition-all duration-300"
-                      />
-                      <circle cx={node.x} cy={node.y} r={(size - 0.3) * (isHovered || isSelected ? 1.08 : 1)}
-                        fill={nodeColor} opacity="0.95"
-                        className="cursor-pointer transition-all duration-500 ease-out hover:opacity-100"
-                        onMouseEnter={() => setHoveredNode(node.id)}
-                        onMouseLeave={() => setHoveredNode(null)}
-                        onClick={() => setSelectedNode(selectedNode === node.id ? null : node.id)}
-                        style={{ filter: (isHovered || isSelected) ? 'brightness(1.3) drop-shadow(0 0 8px currentColor)' : 'brightness(1)', transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
-                      />
-                      <foreignObject x={node.x - VISUAL_CONFIG.ICON_SIZE / 2} y={node.y - VISUAL_CONFIG.ICON_SIZE / 2}
-                        width={VISUAL_CONFIG.ICON_SIZE} height={VISUAL_CONFIG.ICON_SIZE} className="pointer-events-none"
-                      >
-                        <div className="w-full h-full flex items-center justify-center text-white opacity-95">
-                          {getSocialIcon(node.id)}
-                        </div>
-                      </foreignObject>
-                    </g>
-                  );
-                })}
-              </svg>
-            </div>
-
-            {/* Legend */}
-            <div className={`border-t border-border p-3 sm:p-6 bg-card/95 ${selectedNode ? 'hidden lg:block' : 'block'}`}>
-              <div className="mb-3 sm:mb-4">
-                <h4 className="font-bold text-sm sm:text-base mb-1 flex items-center text-primary">
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Legend
-                </h4>
-                <p className="text-xs text-muted-foreground">Understand the connections</p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
-                <div className="flex items-start">
-                  <div className="w-10 sm:w-12 h-1 bg-green-500 mr-2 sm:mr-3 mt-1.5 sm:mt-2 flex-shrink-0 rounded"></div>
-                  <div><p className="text-foreground font-semibold">Green solid</p><p className="text-muted-foreground text-xs">Strong synergy (score &ge; 1.5)</p></div>
-                </div>
-                <div className="flex items-start">
-                  <div className="w-10 sm:w-12 h-1 bg-yellow-500 mr-2 sm:mr-3 mt-1.5 sm:mt-2 flex-shrink-0 rounded"></div>
-                  <div><p className="text-foreground font-semibold">Yellow solid</p><p className="text-muted-foreground text-xs">Some reinforcement (score &ge; 1.0)</p></div>
-                </div>
-                <div className="flex items-start">
-                  <div className="w-10 sm:w-12 h-1 bg-red-500 mr-2 sm:mr-3 mt-1.5 sm:mt-2 flex-shrink-0 rounded"></div>
-                  <div><p className="text-foreground font-semibold">Red solid</p><p className="text-muted-foreground text-xs">Weak connection</p></div>
-                </div>
-                <div className="flex items-start">
-                  <div className="flex items-center mr-2 sm:mr-3 mt-1 flex-shrink-0">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-500"></div>
-                    <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-blue-500 -ml-2 sm:-ml-3"></div>
-                  </div>
-                  <div><p className="text-foreground font-semibold">Node size</p><p className="text-muted-foreground text-xs">Revenue volume indicator</p></div>
-                </div>
-              </div>
-              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border">
-                <p className="text-xs text-muted-foreground">Click on nodes to see detailed information and relationships.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Details Panel */}
-        {selectedNode && (
-          <div className="lg:w-96 px-4 sm:px-6 pb-4 lg:pl-0 animate-slide-in lg:overflow-auto z-20">
-            <div className="h-full bg-card/90 backdrop-blur-md border border-border rounded-xl overflow-auto max-h-[60vh] lg:max-h-none shadow-xl">
-              <div className="p-4 sm:p-6">
-                {/* Header */}
-                <div className="flex items-start justify-between mb-4 sm:mb-6">
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: getNodeColor(selectedNode) }}>
-                      <div className="text-white">{getSocialIcon(selectedNode)}</div>
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-base sm:text-xl text-foreground">{getNodeDetails(selectedNode).node?.name}</h3>
-                      <p className="text-xs sm:text-sm text-muted-foreground">Platform Details</p>
-                    </div>
-                  </div>
-                  <button onClick={() => setSelectedNode(null)}
-                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-muted hover:bg-destructive/10 border border-border hover:border-destructive/30 flex items-center justify-center transition-all text-muted-foreground hover:text-destructive"
-                  >
-                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-
-                {/* Metrics */}
-                {getNodeDetails(selectedNode).channel ? (
-                  <div className="space-y-3 sm:space-y-4">
-                    <div className="bg-primary/5 rounded-lg p-3 sm:p-4 border border-primary/10 shadow-sm">
-                      <div className="text-xs text-muted-foreground mb-1">Revenue Generated</div>
-                      <div className="text-2xl sm:text-3xl font-bold text-foreground">
-                        ₱{(getNodeDetails(selectedNode).node?.revenue || 0).toLocaleString()}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                      <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border border-border">
-                        <div className="text-xs text-muted-foreground mb-1">Ad Spend</div>
-                        <div className="text-base sm:text-lg font-bold text-foreground">
-                          ₱{(getNodeDetails(selectedNode).channel?.spend || 0).toLocaleString()}
-                        </div>
-                      </div>
-                      <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border border-border">
-                        <div className="text-xs text-muted-foreground mb-1">ROI</div>
-                        <div className="text-base sm:text-lg font-bold text-foreground">
-                          {Math.round(getNodeDetails(selectedNode).channel?.roi || 0)}%
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border border-border">
-                      <div className="text-xs text-muted-foreground mb-2">Performance Status</div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full animate-pulse"
-                          style={{ backgroundColor: performanceColors[getNodeDetails(selectedNode).channel?.performance_rating || ''] }}
-                        ></div>
-                        <div className="text-sm sm:text-base font-semibold text-foreground capitalize">
-                          {getNodeDetails(selectedNode).channel?.performance_rating}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Connections */}
-                    <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border border-border">
-                      <div className="text-xs text-muted-foreground mb-3 font-semibold flex items-center">
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                        </svg>
-                        Platform Connections
-                      </div>
-                      <div className="space-y-3">
-                        {getNodeConnections(selectedNode).map((conn, idx) => {
-                          const metrics = getConnectionMetrics(conn.fromNode, conn.toNode);
-                          return (
-                            <div key={idx} className="bg-card/50 p-3 rounded border border-border shadow-sm">
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-1 flex-1 text-xs sm:text-sm">
-                                  <span className="text-foreground/90 font-medium truncate">{getNodeNameById(conn.fromNode)}</span>
-                                  <svg className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                  </svg>
-                                  <span className="text-foreground/90 font-medium truncate">{getNodeNameById(conn.toNode)}</span>
-                                </div>
-                                <div className="px-2 py-1 rounded text-xs font-semibold flex-shrink-0 ml-2"
-                                  style={{ backgroundColor: `${getStrengthColor(conn.strength)}20`, color: getStrengthColor(conn.strength) }}
-                                >
-                                  {conn.strength}
-                                </div>
-                              </div>
-                              <div className="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-border">
-                                <div>
-                                  <div className="text-xs text-muted-foreground mb-0.5">Synergy</div>
-                                  <div className="text-sm font-bold text-foreground">{metrics.score}x</div>
-                                </div>
-                                <div>
-                                  <div className="text-xs text-muted-foreground mb-0.5">Frequency</div>
-                                  <div className="text-sm font-bold text-blue-500">{metrics.frequency}</div>
-                                </div>
-                                <div>
-                                  <div className="text-xs text-muted-foreground mb-0.5">Confidence</div>
-                                  <div className="text-sm font-bold text-green-500">{metrics.confidence}%</div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                        {getNodeConnections(selectedNode).length === 0 && (
-                          <p className="text-xs text-muted-foreground">No synergy connections found for this channel.</p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 sm:p-4">
-                      <p className="text-xs text-primary/80">
-                        This platform is{' '}
-                        {getNodeDetails(selectedNode).channel?.performance_rating === 'exceptional' || getNodeDetails(selectedNode).channel?.performance_rating === 'excellent'
-                          ? 'performing well' : getNodeDetails(selectedNode).channel?.performance_rating === 'satisfactory' ? 'performing adequately' : 'underperforming'}{' '}
-                        and generating{' '}
-                        {((getNodeDetails(selectedNode).node?.revenue || 0) / networkNodes.reduce((sum, n) => sum + n.revenue, 0) * 100).toFixed(1)}%{' '}
-                        of total revenue.
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-muted/30 rounded-lg p-6 text-center border border-border">
-                    <div className="text-muted-foreground text-sm">No detailed metrics available for this platform yet.</div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300 p-4 md:p-8">
       <style>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-8px); }
+        .glass-card {
+          background: hsl(var(--card));
+          border: 1px solid hsl(var(--border) / 0.5);
+          border-radius: 1rem;
         }
-        .animate-float { animation: float ${VISUAL_CONFIG.FLOAT_ANIMATION_DURATION} ease-in-out infinite; }
         @keyframes pulse-strong {
           0%, 100% { transform: scale(1); opacity: 0.4; }
           50% { transform: scale(1.1); opacity: 0.8; }
         }
       `}</style>
+
+      {/* Header */}
+      <div className="mb-10">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Neural Analysis</h1>
+        <p className="text-muted-foreground mt-1 mb-4">Visualize channel performance, network connections, and synergy patterns</p>
+        <DashboardControls channels={allChannelNames} showMetricToggle={true} />
+      </div>
+
+      {/* Section 1: Channel Performance Table */}
+      <div className="glass-card overflow-hidden mb-8">
+        <div className="p-6 border-b border-border/50">
+          <h3 className="text-lg font-bold text-foreground">Channel Performance</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            {metricView === 'revenue'
+              ? 'Track revenue, spend, and ROI across platforms'
+              : 'Track conversions, spend, and cost per lead across platforms'}
+          </p>
+        </div>
+
+        <div className="overflow-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="text-xs font-semibold text-muted-foreground border-b border-border/50 bg-muted/20">
+                <th className="px-6 py-4 text-left uppercase tracking-wider">Channel</th>
+                {metricView === 'revenue' ? (
+                  <>
+                    <th className="px-6 py-4 text-right uppercase tracking-wider">Revenue</th>
+                    <th className="px-6 py-4 text-right uppercase tracking-wider">Spend</th>
+                    <th className="px-6 py-4 text-right uppercase tracking-wider">ROI</th>
+                  </>
+                ) : (
+                  <>
+                    <th className="px-6 py-4 text-right uppercase tracking-wider">Conversions</th>
+                    <th className="px-6 py-4 text-right uppercase tracking-wider">Spend</th>
+                    <th className="px-6 py-4 text-right uppercase tracking-wider">CPL</th>
+                  </>
+                )}
+                <th className="px-6 py-4 text-right uppercase tracking-wider">Performance</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/50">
+              {filteredPerformance.map((channel: any, idx: Key) => (
+                <tr key={idx} className="group hover:bg-muted/30 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="font-semibold text-foreground">{channel.channel}</div>
+                  </td>
+                  {metricView === 'revenue' ? (
+                    <>
+                      <td className="px-6 py-4 text-right font-mono text-sm">
+                        <span className="text-green-500">
+                          ₱{channel.revenue.toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right font-mono text-sm text-muted-foreground">
+                        ₱{channel.spend.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 text-right font-mono text-sm font-medium">
+                        {channel.roi === null
+                          ? <span className="text-lg font-semibold">∞</span>
+                          : <span className={channel.roi < 0 ? 'text-red-500' : ''}>{Math.round(channel.roi)}%</span>}
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-6 py-4 text-right font-mono text-sm">
+                        <span className="text-emerald-500">
+                          {channel.conversions.toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right font-mono text-sm text-muted-foreground">
+                        ₱{channel.spend.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 text-right font-mono text-sm font-medium">
+                        {channel.conversions > 0
+                          ? <span>₱{(channel.spend / channel.conversions).toFixed(0)}</span>
+                          : <span className="text-muted-foreground">-</span>}
+                      </td>
+                    </>
+                  )}
+                  <td className="px-6 py-4 text-right">
+                    <span className={`
+                      inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium w-28
+                      ${channel.performance_rating === 'exceptional' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
+                        channel.performance_rating === 'excellent' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
+                          channel.performance_rating === 'satisfactory' ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' :
+                            'bg-red-500/10 text-red-500 border border-red-500/20'
+                      }
+                    `}>
+                      {channel.performance_rating}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Section 2: Channel Network Graph */}
+      <div className="glass-card overflow-hidden mb-8">
+        <div className="p-6 border-b border-border/50">
+          <h3 className="text-lg font-bold text-foreground">Channel Network</h3>
+          <p className="text-sm text-muted-foreground mt-1">Interactive visualization of channel relationships and synergies</p>
+        </div>
+
+        <div
+          className="relative overflow-hidden"
+          style={{
+            height: '500px',
+            backgroundImage: `
+              linear-gradient(hsl(var(--muted-foreground) / 0.1) 1px, transparent 1px),
+              linear-gradient(90deg, hsl(var(--muted-foreground) / 0.1) 1px, transparent 1px)
+            `,
+            backgroundSize: '30px 30px',
+            backgroundPosition: 'center center',
+          }}
+        >
+          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+            {/* Edges */}
+            {networkEdges.map((edge, idx) => {
+              const fromNode = networkNodes.find((n) => n.id === edge.from);
+              const toNode = networkNodes.find((n) => n.id === edge.to);
+              if (!fromNode || !toNode) return null;
+
+              const style = getEdgeStyle(edge.strength);
+              const isConnectedToSelected = selectedNode === edge.from || selectedNode === edge.to;
+
+              const fromSize = getNodeSize(fromNode.revenue) / 15;
+              const toSize = getNodeSize(toNode.revenue) / 15;
+              const dx = toNode.x - fromNode.x;
+              const dy = toNode.y - fromNode.y;
+              const angle = Math.atan2(dy, dx);
+              const hasOverlap = checkNodeOverlap(fromNode, toNode);
+              const padding = hasOverlap ? 0.5 : 0.3;
+              const x1 = fromNode.x + Math.cos(angle) * (fromSize + padding);
+              const y1 = fromNode.y + Math.sin(angle) * (fromSize + padding);
+              const x2 = toNode.x - Math.cos(angle) * (toSize + padding);
+              const y2 = toNode.y - Math.sin(angle) * (toSize + padding);
+
+              return (
+                <g key={idx}>
+                  <defs>
+                    <marker id={`arrow-${idx}`} markerWidth="4" markerHeight="4" refX="3.5" refY="2" orient="auto" markerUnits="strokeWidth">
+                      <path d="M0,0 L0,4 L4,2 z" fill={style.stroke} />
+                    </marker>
+                  </defs>
+                  <line x1={x1} y1={y1} x2={x2} y2={y2}
+                    stroke={style.stroke} strokeWidth={isConnectedToSelected ? 0.6 : 0.4}
+                    opacity={isConnectedToSelected ? 1 : style.opacity}
+                    markerEnd={`url(#arrow-${idx})`} className="transition-all duration-500"
+                  />
+                </g>
+              );
+            })}
+
+            {/* Nodes */}
+            {networkNodes.map((node) => {
+              const baseSize = getNodeSize(node.revenue);
+              const size = baseSize / 15;
+              const isHovered = hoveredNode === node.id;
+              const isSelected = selectedNode === node.id;
+              const nodeColor = getNodeColor(node.id);
+              const isAnimated = animatedNodes.has(node.id);
+
+              return (
+                <g key={node.id} style={{
+                  opacity: isAnimated ? 1 : 0, transform: isAnimated ? 'scale(1)' : 'scale(0)',
+                  transformOrigin: `${node.x}px ${node.y}px`, transition: 'all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                }}>
+                  {(isHovered || isSelected) && (
+                    <>
+                      <circle cx={node.x} cy={node.y} r={size * VISUAL_CONFIG.PULSE_SCALE + 2} fill={nodeColor} opacity="0.2" className="animate-pulse-strong" />
+                      <circle cx={node.x} cy={node.y} r={size * VISUAL_CONFIG.PULSE_SCALE + 1} fill={nodeColor} opacity="0.35" className="animate-pulse-strong" style={{ animationDelay: '0.2s' }} />
+                      <circle cx={node.x} cy={node.y} r={size * 1.08} fill={nodeColor} opacity="0.5" className="animate-pulse-strong" style={{ animationDelay: '0.4s' }} />
+                    </>
+                  )}
+                  <circle cx={node.x} cy={node.y} r={size + 0.3} fill="none" stroke={nodeColor}
+                    strokeWidth={isSelected ? '0.3' : '0.15'} opacity={isSelected ? 0.8 : 0.4} className="transition-all duration-300"
+                  />
+                  <circle cx={node.x} cy={node.y} r={size} fill={nodeColor} fillOpacity="0.15"
+                    stroke={nodeColor} strokeWidth={isSelected ? '0.25' : '0.15'} className="backdrop-blur-sm transition-all duration-300"
+                  />
+                  <circle cx={node.x} cy={node.y} r={(size - 0.3) * (isHovered || isSelected ? 1.08 : 1)}
+                    fill={nodeColor} opacity="0.95"
+                    className="cursor-pointer transition-all duration-500 ease-out hover:opacity-100"
+                    onMouseEnter={() => setHoveredNode(node.id)}
+                    onMouseLeave={() => setHoveredNode(null)}
+                    onClick={() => setSelectedNode(selectedNode === node.id ? null : node.id)}
+                    style={{ filter: (isHovered || isSelected) ? 'brightness(1.3) drop-shadow(0 0 8px currentColor)' : 'brightness(1)', transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+                  />
+                  <foreignObject x={node.x - VISUAL_CONFIG.ICON_SIZE / 2} y={node.y - VISUAL_CONFIG.ICON_SIZE / 2}
+                    width={VISUAL_CONFIG.ICON_SIZE} height={VISUAL_CONFIG.ICON_SIZE} className="pointer-events-none"
+                  >
+                    <div className="w-full h-full flex items-center justify-center text-white opacity-95">
+                      {getSocialIcon(node.id)}
+                    </div>
+                  </foreignObject>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+
+        {/* Legend */}
+        <div className="border-t border-border p-3 sm:p-6 bg-card/95">
+          <div className="mb-3 sm:mb-4">
+            <h4 className="font-bold text-sm sm:text-base mb-1 flex items-center text-primary">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Legend
+            </h4>
+            <p className="text-xs text-muted-foreground">Understand the connections</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-xs sm:text-sm">
+            <div className="flex items-start">
+              <div className="w-10 sm:w-12 h-1 bg-green-500 mr-2 sm:mr-3 mt-1.5 sm:mt-2 flex-shrink-0 rounded"></div>
+              <div><p className="text-foreground font-semibold">Green solid</p><p className="text-muted-foreground text-xs">Strong synergy (score &ge; 1.5)</p></div>
+            </div>
+            <div className="flex items-start">
+              <div className="w-10 sm:w-12 h-1 bg-yellow-500 mr-2 sm:mr-3 mt-1.5 sm:mt-2 flex-shrink-0 rounded"></div>
+              <div><p className="text-foreground font-semibold">Yellow solid</p><p className="text-muted-foreground text-xs">Some reinforcement (score &ge; 1.0)</p></div>
+            </div>
+            <div className="flex items-start">
+              <div className="w-10 sm:w-12 h-1 bg-red-500 mr-2 sm:mr-3 mt-1.5 sm:mt-2 flex-shrink-0 rounded"></div>
+              <div><p className="text-foreground font-semibold">Red solid</p><p className="text-muted-foreground text-xs">Weak connection</p></div>
+            </div>
+            <div className="flex items-start">
+              <div className="flex items-center mr-2 sm:mr-3 mt-1 flex-shrink-0">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-500"></div>
+                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-blue-500 -ml-2 sm:-ml-3"></div>
+              </div>
+              <div><p className="text-foreground font-semibold">Node size</p><p className="text-muted-foreground text-xs">Revenue volume indicator</p></div>
+            </div>
+          </div>
+          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border">
+            <p className="text-xs text-muted-foreground">Click on nodes to see detailed information and relationships.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Node Detail Overlay Modal */}
+      {selectedNode && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 transition-opacity" onClick={() => setSelectedNode(null)}>
+          <div className="absolute inset-4 md:inset-y-10 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-lg bg-card rounded-2xl border border-border shadow-2xl overflow-auto" onClick={e => e.stopPropagation()}>
+            <div className="p-4 sm:p-6">
+              {/* Header */}
+              <div className="flex items-start justify-between mb-4 sm:mb-6">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: getNodeColor(selectedNode) }}>
+                    <div className="text-white">{getSocialIcon(selectedNode)}</div>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-base sm:text-xl text-foreground">{getNodeDetails(selectedNode).node?.name}</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Platform Details</p>
+                  </div>
+                </div>
+                <button onClick={() => setSelectedNode(null)}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-muted hover:bg-destructive/10 border border-border hover:border-destructive/30 flex items-center justify-center transition-all text-muted-foreground hover:text-destructive"
+                >
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Metrics */}
+              {getNodeDetails(selectedNode).channel ? (
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="bg-primary/5 rounded-lg p-3 sm:p-4 border border-primary/10 shadow-sm">
+                    <div className="text-xs text-muted-foreground mb-1">Revenue Generated</div>
+                    <div className="text-2xl sm:text-3xl font-bold text-foreground">
+                      ₱{(getNodeDetails(selectedNode).node?.revenue || 0).toLocaleString()}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                    <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border border-border">
+                      <div className="text-xs text-muted-foreground mb-1">Ad Spend</div>
+                      <div className="text-base sm:text-lg font-bold text-foreground">
+                        ₱{(getNodeDetails(selectedNode).channel?.spend || 0).toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border border-border">
+                      <div className="text-xs text-muted-foreground mb-1">ROI</div>
+                      <div className="text-base sm:text-lg font-bold text-foreground">
+                        {Math.round(getNodeDetails(selectedNode).channel?.roi || 0)}%
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border border-border">
+                    <div className="text-xs text-muted-foreground mb-2">Performance Status</div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full animate-pulse"
+                        style={{ backgroundColor: performanceColors[getNodeDetails(selectedNode).channel?.performance_rating || ''] }}
+                      ></div>
+                      <div className="text-sm sm:text-base font-semibold text-foreground capitalize">
+                        {getNodeDetails(selectedNode).channel?.performance_rating}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Connections */}
+                  <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border border-border">
+                    <div className="text-xs text-muted-foreground mb-3 font-semibold flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                      </svg>
+                      Platform Connections
+                    </div>
+                    <div className="space-y-3">
+                      {getNodeConnections(selectedNode).map((conn, idx) => {
+                        const metrics = getConnectionMetrics(conn.fromNode, conn.toNode);
+                        return (
+                          <div key={idx} className="bg-card/50 p-3 rounded border border-border shadow-sm">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-1 flex-1 text-xs sm:text-sm">
+                                <span className="text-foreground/90 font-medium truncate">{getNodeNameById(conn.fromNode)}</span>
+                                <svg className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                </svg>
+                                <span className="text-foreground/90 font-medium truncate">{getNodeNameById(conn.toNode)}</span>
+                              </div>
+                              <div className="px-2 py-1 rounded text-xs font-semibold flex-shrink-0 ml-2"
+                                style={{ backgroundColor: `${getStrengthColor(conn.strength)}20`, color: getStrengthColor(conn.strength) }}
+                              >
+                                {conn.strength}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-border">
+                              <div>
+                                <div className="text-xs text-muted-foreground mb-0.5">Synergy</div>
+                                <div className="text-sm font-bold text-foreground">{metrics.score}x</div>
+                              </div>
+                              <div>
+                                <div className="text-xs text-muted-foreground mb-0.5">Frequency</div>
+                                <div className="text-sm font-bold text-blue-500">{metrics.frequency}</div>
+                              </div>
+                              <div>
+                                <div className="text-xs text-muted-foreground mb-0.5">Confidence</div>
+                                <div className="text-sm font-bold text-green-500">{metrics.confidence}%</div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {getNodeConnections(selectedNode).length === 0 && (
+                        <p className="text-xs text-muted-foreground">No synergy connections found for this channel.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 sm:p-4">
+                    <p className="text-xs text-primary/80">
+                      This platform is{' '}
+                      {getNodeDetails(selectedNode).channel?.performance_rating === 'exceptional' || getNodeDetails(selectedNode).channel?.performance_rating === 'excellent'
+                        ? 'performing well' : getNodeDetails(selectedNode).channel?.performance_rating === 'satisfactory' ? 'performing adequately' : 'underperforming'}{' '}
+                      and generating{' '}
+                      {((getNodeDetails(selectedNode).node?.revenue || 0) / networkNodes.reduce((sum, n) => sum + n.revenue, 0) * 100).toFixed(1)}%{' '}
+                      of total revenue.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-muted/30 rounded-lg p-6 text-center border border-border">
+                  <div className="text-muted-foreground text-sm">No detailed metrics available for this platform yet.</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Section 3: Channel Synergies Table */}
+      <div className="glass-card overflow-hidden">
+        <div className="p-6 border-b border-border/50">
+          <h3 className="text-lg font-bold text-foreground">Channel Synergies</h3>
+          <p className="text-sm text-muted-foreground mt-1">Cross-channel reinforcement patterns and interaction strength</p>
+        </div>
+
+        <div className="overflow-auto">
+          {filteredSynergies.length === 0 ? (
+            <div className="p-8 text-center">
+              <p className="text-muted-foreground text-sm">No synergy data available for the selected channels.</p>
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="text-xs font-semibold text-muted-foreground border-b border-border/50 bg-muted/20">
+                  <th className="px-6 py-4 text-left uppercase tracking-wider">Channel A</th>
+                  <th className="px-6 py-4 text-left uppercase tracking-wider">Channel B</th>
+                  <th className="px-6 py-4 text-right uppercase tracking-wider">Score</th>
+                  <th className="px-6 py-4 text-right uppercase tracking-wider">Frequency</th>
+                  <th className="px-6 py-4 text-right uppercase tracking-wider">Confidence</th>
+                  <th className="px-6 py-4 text-right uppercase tracking-wider">Strength</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {filteredSynergies.map((synergy, idx) => {
+                  const strength = synergy.synergy_score >= 1.5 ? 'Strong' : synergy.synergy_score >= 1.0 ? 'Medium' : 'Weak';
+                  const strengthClass = strength === 'Strong'
+                    ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                    : strength === 'Medium'
+                      ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20'
+                      : 'bg-red-500/10 text-red-500 border border-red-500/20';
+
+                  return (
+                    <tr key={idx} className="group hover:bg-muted/30 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="font-semibold text-foreground">{capitalizeChannel(synergy.channel_a)}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="font-semibold text-foreground">{capitalizeChannel(synergy.channel_b)}</div>
+                      </td>
+                      <td className="px-6 py-4 text-right font-mono text-sm text-foreground">
+                        {synergy.synergy_score.toFixed(2)}x
+                      </td>
+                      <td className="px-6 py-4 text-right font-mono text-sm text-muted-foreground">
+                        {synergy.frequency}
+                      </td>
+                      <td className="px-6 py-4 text-right font-mono text-sm text-muted-foreground">
+                        {synergy.confidence}%
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium w-20 ${strengthClass}`}>
+                          {strength}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

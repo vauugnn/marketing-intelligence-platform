@@ -341,7 +341,7 @@ export default function Recommendations() {
   /* ─── Loading / Error state ─── */
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-400 text-sm mb-3">{error.message}</p>
           <button
@@ -357,10 +357,10 @@ export default function Recommendations() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block w-10 h-10 border-[3px] border-gray-700 border-t-purple-500 rounded-full animate-spin" />
-          <p className="text-gray-400 text-sm mt-3">
+          <div className="inline-block w-10 h-10 border-[3px] border-muted border-t-primary rounded-full animate-spin" />
+          <p className="text-muted-foreground text-sm mt-3">
             Loading recommendations...
           </p>
         </div>
