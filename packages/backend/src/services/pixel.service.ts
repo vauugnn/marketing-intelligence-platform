@@ -58,7 +58,7 @@ export class PixelService {
   ): Promise<{ id: string }> {
     const dedupKey = this.generateDedupKey(event);
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('pixel_events')
       .upsert({
         pixel_id: event.pixel_id,
