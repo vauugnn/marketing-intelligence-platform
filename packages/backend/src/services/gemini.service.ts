@@ -21,7 +21,6 @@ import type {
   ChannelSynergy,
   ChannelRole,
   JourneyPattern,
-  BusinessType,
 } from '@shared/types';
 
 // Compatibility exports / wrappers for legacy tests
@@ -69,7 +68,7 @@ interface CacheEntry {
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const cache = new Map<string, CacheEntry>();
 
-function getCacheKey(userId: string, dateRange: DateRange, businessType: BusinessType = 'sales'): string {
+function getCacheKey(userId: string, dateRange: DateRange, businessType: 'sales' | 'leads' = 'sales'): string {
   return `${userId}:${dateRange.start}:${dateRange.end}:${businessType}`;
 }
 
@@ -138,7 +137,7 @@ function buildPrompt(
   roles: ChannelRole[],
   patterns: JourneyPattern[],
   ruleBasedRecs: AIRecommendation[],
-  businessType: BusinessType = 'sales'
+  businessType: 'sales' | 'leads' = 'sales'
 ): string {
   const intro = businessType === 'leads'
     ? `You are a senior marketing analytics consultant advising a Philippine lead generation business (₱ PHP currency). This business measures success by conversion volume and cost-per-lead (CPL), NOT by revenue.`
@@ -261,7 +260,7 @@ function mergeResults(
 export async function enhanceRecommendationsWithAI(
   userId: string,
   dateRange: DateRange,
-  businessType: BusinessType = 'sales'
+  businessType: 'sales' | 'leads' = 'sales'
 ): Promise<AIRecommendation[]> {
   // 1. Fetch all analysis data once
   const [performance, synergies, roles, patterns] = await Promise.all([

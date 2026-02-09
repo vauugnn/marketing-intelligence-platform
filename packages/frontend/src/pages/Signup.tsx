@@ -1,16 +1,14 @@
 import { useState, useRef, type FormEvent, type KeyboardEvent, type ClipboardEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { Label } from '../components/ui/label';
-import { ShoppingCart, Globe, ArrowRight, CheckCircle, Mail } from 'lucide-react';
-import type { BusinessType } from '@shared/types';
+import { Mail } from 'lucide-react';
 
-type Step = 'credentials' | 'otp' | 'business-type';
+type Step = 'credentials' | 'otp';
 
 export default function Signup() {
   const [step, setStep] = useState<Step>('credentials');
@@ -19,10 +17,8 @@ export default function Signup() {
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [otpError, setOtpError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
-  const [savingType, setSavingType] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const { signup, loginWithGoogle, isSigningUp, signupError } = useAuth();
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   // Step 1: Create account
@@ -49,7 +45,7 @@ export default function Signup() {
         type: 'signup',
       });
       if (error) throw error;
-      setStep('business-type');
+      navigate('/dashboard', { replace: true });
     } catch (err: any) {
       setOtpError(err?.message || 'Invalid code. Please try again.');
     } finally {
@@ -101,31 +97,6 @@ export default function Signup() {
     inputRefs.current[focusIndex]?.focus();
     if (pasted.length === 6) {
       handleVerifyOtp(pasted);
-    }
-  };
-
-  // Step 3: Select business type
-  const handleSelectType = async (type: BusinessType) => {
-    setSavingType(true);
-    try {
-      const { error } = await supabase.auth.updateUser({
-        data: { business_type: type },
-      });
-      if (error) throw error;
-      // Refresh auth cache
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        queryClient.setQueryData(['auth', 'user'], {
-          id: session.user.id,
-          email: session.user.email ?? '',
-          created_at: session.user.created_at ?? '',
-          user_metadata: session.user.user_metadata,
-        });
-      }
-      navigate('/dashboard', { replace: true });
-    } catch (err) {
-      console.error('Failed to save business type:', err);
-      setSavingType(false);
     }
   };
 
@@ -231,126 +202,64 @@ export default function Signup() {
   }
 
   // --- Step 2: OTP verification ---
-  if (step === 'otp') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background px-4">
-        <div className="w-full max-w-sm">
-          <Card className="border-border bg-card/80 backdrop-blur-sm">
-            <CardHeader className="text-center">
-              <div className="w-12 h-12 rounded-full bg-primary/15 flex items-center justify-center mx-auto mb-2">
-                <Mail className="w-6 h-6 text-primary" />
-              </div>
-              <CardTitle className="text-xl text-foreground">Verify your email</CardTitle>
-              <CardDescription>
-                We sent a 6-digit code to <span className="text-foreground font-medium">{email}</span>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {otpError && (
-                <div className="mb-4 rounded-lg bg-destructive/20 border border-destructive/30 px-4 py-3 text-sm text-destructive">
-                  {otpError}
-                </div>
-              )}
-
-              <div className="flex justify-center gap-2 mb-6">
-                {otpDigits.map((digit, i) => (
-                  <input
-                    key={i}
-                    ref={(el) => { inputRefs.current[i] = el; }}
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleOtpChange(i, e.target.value)}
-                    onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                    onPaste={i === 0 ? handleOtpPaste : undefined}
-                    disabled={verifying}
-                    autoFocus={i === 0}
-                    className="w-10 h-12 text-center text-lg font-mono font-semibold rounded-lg border border-input bg-background/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:opacity-50 transition-all"
-                  />
-                ))}
-              </div>
-
-              <Button
-                onClick={() => handleVerifyOtp()}
-                disabled={verifying || otpDigits.join('').length !== 6}
-                className="w-full"
-              >
-                {verifying ? 'Verifying...' : 'Verify'}
-              </Button>
-
-              <p className="mt-4 text-center text-sm text-muted-foreground">
-                Didn't receive a code?{' '}
-                <button
-                  onClick={handleResendOtp}
-                  className="text-primary hover:underline font-medium"
-                >
-                  Resend
-                </button>
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  // --- Step 3: Business type selection ---
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-2xl text-center">
-        <div className="w-14 h-14 rounded-full bg-emerald-500/15 flex items-center justify-center mx-auto mb-4">
-          <CheckCircle className="w-7 h-7 text-emerald-400" />
-        </div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
-          Welcome! One last thing...
-        </h1>
-        <p className="text-muted-foreground text-sm mb-8">
-          How do you use your website? This helps us show you the right metrics.
-        </p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto">
-          <button
-            onClick={() => handleSelectType('sales')}
-            disabled={savingType}
-            className="group relative rounded-xl border border-border bg-card/80 backdrop-blur-sm p-6 text-left transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
-          >
-            <div className="w-12 h-12 rounded-lg bg-emerald-500/15 flex items-center justify-center mb-4">
-              <ShoppingCart className="w-6 h-6 text-emerald-400" />
+      <div className="w-full max-w-sm">
+        <Card className="border-border bg-card/80 backdrop-blur-sm">
+          <CardHeader className="text-center">
+            <div className="w-12 h-12 rounded-full bg-primary/15 flex items-center justify-center mx-auto mb-2">
+              <Mail className="w-6 h-6 text-primary" />
             </div>
-            <h3 className="text-base font-semibold text-foreground mb-1">
-              I sell products or services online
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Track purchases, revenue, and ROI across your marketing channels
-            </p>
-            <ArrowRight className="absolute top-6 right-5 w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-          </button>
+            <CardTitle className="text-xl text-foreground">Verify your email</CardTitle>
+            <CardDescription>
+              We sent a 6-digit code to <span className="text-foreground font-medium">{email}</span>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {otpError && (
+              <div className="mb-4 rounded-lg bg-destructive/20 border border-destructive/30 px-4 py-3 text-sm text-destructive">
+                {otpError}
+              </div>
+            )}
 
-          <button
-            onClick={() => handleSelectType('leads')}
-            disabled={savingType}
-            className="group relative rounded-xl border border-border bg-card/80 backdrop-blur-sm p-6 text-left transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
-          >
-            <div className="w-12 h-12 rounded-lg bg-blue-500/15 flex items-center justify-center mb-4">
-              <Globe className="w-6 h-6 text-blue-400" />
+            <div className="flex justify-center gap-2 mb-6">
+              {otpDigits.map((digit, i) => (
+                <input
+                  key={i}
+                  ref={(el) => { inputRefs.current[i] = el; }}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleOtpChange(i, e.target.value)}
+                  onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                  onPaste={i === 0 ? handleOtpPaste : undefined}
+                  disabled={verifying}
+                  autoFocus={i === 0}
+                  className="w-10 h-12 text-center text-lg font-mono font-semibold rounded-lg border border-input bg-background/50 text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:opacity-50 transition-all"
+                />
+              ))}
             </div>
-            <h3 className="text-base font-semibold text-foreground mb-1">
-              I drive leads and traffic
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Track signups, campaign performance, and visitor attribution
-            </p>
-            <ArrowRight className="absolute top-6 right-5 w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-          </button>
-        </div>
 
-        {savingType && (
-          <div className="mt-6 flex items-center justify-center gap-2 text-muted-foreground text-sm">
-            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            Setting up your dashboard...
-          </div>
-        )}
+            <Button
+              onClick={() => handleVerifyOtp()}
+              disabled={verifying || otpDigits.join('').length !== 6}
+              className="w-full"
+            >
+              {verifying ? 'Verifying...' : 'Verify'}
+            </Button>
+
+            <p className="mt-4 text-center text-sm text-muted-foreground">
+              Didn't receive a code?{' '}
+              <button
+                onClick={handleResendOtp}
+                className="text-primary hover:underline font-medium"
+              >
+                Resend
+              </button>
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
