@@ -3,11 +3,10 @@ import { useAuth } from '../../hooks/useAuth';
 
 interface Props {
   children: React.ReactNode;
-  skipOnboardingCheck?: boolean;
 }
 
-export default function ProtectedRoute({ children, skipOnboardingCheck }: Props) {
-  const { isAuthenticated, isLoading, user } = useAuth();
+export default function ProtectedRoute({ children }: Props) {
+  const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -19,10 +18,6 @@ export default function ProtectedRoute({ children, skipOnboardingCheck }: Props)
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
-  }
-
-  if (!skipOnboardingCheck && !user?.user_metadata?.business_type) {
-    return <Navigate to="/onboarding" replace />;
   }
 
   return <>{children}</>;

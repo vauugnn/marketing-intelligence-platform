@@ -11,9 +11,6 @@ export type Platform =
 
 export type ConnectionStatus = 'connected' | 'disconnected' | 'error' | 'pending' | 'syncing';
 
-// Business Type (onboarding)
-export type BusinessType = 'sales' | 'leads';
-
 // User & Account
 export interface User {
   id: string;
