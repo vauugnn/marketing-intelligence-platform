@@ -51,14 +51,23 @@
     return true;
   }
 
-  // Generate or retrieve session ID (only with consent)
-  function getSessionId(useCookie: boolean): string {
-    if (!useCookie) return generateId();
+  // Generate or retrieve session ID (consistent within tab regardless of consent)
+  function getSessionId(): string {
+    // Always reuse existing cookie if present
     let sessionId = getCookie(sessionCookieName);
-    if (!sessionId) {
-      sessionId = generateId();
+    if (sessionId) return sessionId;
+
+    // Fall back to sessionStorage (consistent within tab)
+    const storageKey = `_pxl_ss_${pixelId}`;
+    sessionId = sessionStorage.getItem(storageKey) || null;
+    if (sessionId) return sessionId;
+
+    // Generate new session
+    sessionId = generateId();
+    if (consentMode === 'accepted') {
       setCookie(sessionCookieName, sessionId, 30);
     }
+    sessionStorage.setItem(storageKey, sessionId);
     return sessionId;
   }
 
@@ -129,7 +138,7 @@
   }
 
   // --- Core tracking (consent-aware) ---
-  let consentMode: 'accepted' | 'declined' = 'accepted';
+  let consentMode: 'accepted' | 'declined' | 'pending' = 'pending';
 
   const KNOWN_TYPES = ['page_view', 'conversion', 'custom', 'form_submit'];
 
@@ -143,8 +152,7 @@
     const normalizedType = KNOWN_TYPES.includes(eventType) ? eventType : 'custom';
     const extraMeta = normalizedType !== eventType ? { event_name: eventType } : {};
 
-    const useCookie = consentMode === 'accepted';
-    const sessionId = getSessionId(useCookie);
+    const sessionId = getSessionId();
     const utmParams = getUTMParams();
     const pageMetadata = getPageMetadata();
     const scriptData = getScriptData();
@@ -157,7 +165,7 @@
       page_url: window.location.href,
       referrer: document.referrer || undefined,
       timestamp: new Date().toISOString(),
-      consent_status: consentMode,
+      consent_status: consentMode === 'pending' ? undefined : consentMode,
       metadata: { ...extraMeta, ...pageMetadata, ...scriptData, ...dataLayerData, ...data },
       ...utmParams
     };
@@ -198,8 +206,15 @@
   // --- Full tracking initialization (after consent accepted) ---
   function initFullTracking(): void {
     consentMode = 'accepted';
+    // Promote sessionStorage session to cookie now that consent is given
+    const storageKey = `_pxl_ss_${pixelId}`;
+    const existingSession = sessionStorage.getItem(storageKey);
+    if (existingSession && !getCookie(sessionCookieName)) {
+      setCookie(sessionCookieName, existingSession, 30);
+    }
     trackEvent('page_view');
     setupFormListener();
+    (window as any).__pixelTrack = trackEvent;
   }
 
   // --- Cookieless mode (after consent declined) ---
