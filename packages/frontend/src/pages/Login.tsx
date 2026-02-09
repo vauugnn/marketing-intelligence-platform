@@ -5,7 +5,11 @@ import { Card, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { Label } from '../components/ui/label';
-import { Network } from 'lucide-react';
+
+// Actually I'll just remove the line if it's the only import, or remove Network from the list.
+// Login.tsx had: import { Network } from 'lucide-react';
+// I will just remove the line.
+import Logo from '../Logo.svg';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -35,9 +39,7 @@ export default function Login() {
 
         <div className="relative z-10">
           <div className="flex items-center gap-2 text-2xl font-bold">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#fc763f] to-[#e05a2b] flex items-center justify-center shadow-lg shadow-orange-500/25">
-              <Network className="w-5 h-5 text-white" />
-            </div>
+            <img src={Logo} alt="Neuralys" className="w-10 h-10" />
             Neuralys
           </div>
         </div>

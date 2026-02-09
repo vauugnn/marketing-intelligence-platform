@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Network, Sun, Moon, Menu, X } from 'lucide-react';
+import { Sun, Moon, Menu, X } from 'lucide-react';
 import { useTheme } from '../theme-provider';
+import Logo from '../../Logo.svg';
 
 export default function Navigation() {
     const navigate = useNavigate();
@@ -62,9 +63,7 @@ export default function Navigation() {
                         className="flex items-center gap-2"
                         whileHover={{ scale: 1.02 }}
                     >
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#fc763f] to-[#e05a2b] flex items-center justify-center shadow-lg shadow-orange-500/25">
-                            <Network className="w-5 h-5 text-white" />
-                        </div>
+                        <img src={Logo} alt="Neuralys" className="w-10 h-10" />
                         <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#fc763f] to-[#e05a2b]">
                             Neuralys
                         </span>

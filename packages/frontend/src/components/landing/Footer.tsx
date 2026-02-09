@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { Network } from 'lucide-react';
+
+import Logo from '../../Logo.svg';
 
 export default function Footer() {
     return (
@@ -12,9 +13,7 @@ export default function Footer() {
                         viewport={{ once: true }}
                     >
                         <div className="flex items-center gap-2 mb-6">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#fc763f] to-[#e05a2b] flex items-center justify-center">
-                                <Network className="w-5 h-5 text-white" />
-                            </div>
+                            <img src={Logo} alt="Neuralys" className="w-10 h-10" />
                             <span className="font-bold text-xl">Neuralys</span>
                         </div>
                         <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-sm">

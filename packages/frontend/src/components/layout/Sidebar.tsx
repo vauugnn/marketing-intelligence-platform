@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { LogOut, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../theme-provider';
+import Logo from '../../Logo.svg';
 
 const navigation = [
   {
@@ -90,9 +91,7 @@ export const Sidebar = () => {
         {/* Header */}
         <div className="mb-10 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
-              <div className="w-4 h-4 bg-white rounded-full" />
-            </div>
+            <img src={Logo} alt="Neuralys" className="w-10 h-10" />
             <div>
               <h1 className="text-foreground text-xl font-bold leading-none tracking-tight">Neuralys</h1>
             </div>
