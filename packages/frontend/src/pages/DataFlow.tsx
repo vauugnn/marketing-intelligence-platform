@@ -1,5 +1,6 @@
 import { usePerformance } from '../hooks/useAnalytics';
 import DataPipelineFlow from '../components/data-flow/DataPipelineFlow';
+import DashboardControls from '../components/DashboardControls';
 
 export default function DataFlow() {
   const { data: channels = [], isLoading: loadingPerformance } = usePerformance();
@@ -33,9 +34,10 @@ export default function DataFlow() {
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-1">
             Data Intelligence
           </h1>
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-400 text-sm mb-4">
             Visualize how data flows from your platforms and tracking pixel into actionable insights
           </p>
+          <DashboardControls showMetricToggle={false} showChannelFilter={false} />
         </div>
 
         {/* Section 1: Data Pipeline Flow */}

@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { usePerformance, useSynergies } from '../hooks/useAnalytics';
+import { useFilteredChannels } from '../hooks/useFilteredChannels';
+import DashboardControls from '../components/DashboardControls';
 import type { ChannelPerformance, ChannelSynergy } from '@shared/types';
 
 interface NetworkNode {
@@ -89,6 +91,8 @@ function deriveEdges(synergies: ChannelSynergy[]): NetworkEdge[] {
 export default function SystemMap() {
   const { data: performance = [], isLoading: loadingPerf, error: errorPerf, refetch: refetchPerf } = usePerformance();
   const { data: synergies = [], isLoading: loadingSyn, refetch: refetchSyn } = useSynergies();
+  const filteredPerformance = useFilteredChannels(performance);
+  const allChannelNames = performance.map((ch) => ch.channel);
 
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
@@ -103,9 +107,13 @@ export default function SystemMap() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Derive graph data from store
-  const networkNodes = useMemo(() => deriveNodes(performance, isMobile), [performance, isMobile]);
-  const networkEdges = useMemo(() => deriveEdges(synergies), [synergies]);
+  // Derive graph data from store (using filtered channels)
+  const networkNodes = useMemo(() => deriveNodes(filteredPerformance, isMobile), [filteredPerformance, isMobile]);
+  const visibleNodeIds = useMemo(() => new Set(networkNodes.map((n) => n.id)), [networkNodes]);
+  const networkEdges = useMemo(
+    () => deriveEdges(synergies).filter((e) => visibleNodeIds.has(e.from) && visibleNodeIds.has(e.to)),
+    [synergies, visibleNodeIds]
+  );
 
   // Build a lookup from channel id → ChannelPerformance
   const channelMap = useMemo(() => {
@@ -270,9 +278,10 @@ export default function SystemMap() {
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
             System Map
           </h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-sm mb-4">
             Real-time insights into your marketing channels
           </p>
+          <DashboardControls channels={allChannelNames} showMetricToggle={false} />
         </div>
       </div>
 
