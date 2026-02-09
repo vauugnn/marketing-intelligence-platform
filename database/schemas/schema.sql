@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS pixel_events (
   ip_address INET,
   metadata JSONB,
   dedup_key TEXT UNIQUE,
+  consent_status TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

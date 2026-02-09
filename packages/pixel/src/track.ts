@@ -151,6 +151,7 @@
       page_url: window.location.href,
       referrer: document.referrer || undefined,
       timestamp: new Date().toISOString(),
+      consent_status: consentMode,
       metadata: { ...pageMetadata, ...scriptData, ...dataLayerData, ...data },
       ...utmParams
     };

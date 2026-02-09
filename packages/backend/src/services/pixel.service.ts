@@ -77,6 +77,7 @@ export class PixelService {
         ip_address: ipAddress || null,
         metadata: event.metadata || null,
         dedup_key: dedupKey,
+        consent_status: event.consent_status || null,
         // Extract metadata fields if available
         page_title: event.metadata?.page_title || null,
         visitor_id: event.metadata?.visitor_id || null,

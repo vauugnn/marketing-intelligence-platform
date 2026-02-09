@@ -12,6 +12,7 @@ export const PixelEventSchema = z.object({
   utm_term: z.string().max(255).optional(),
   utm_content: z.string().max(255).optional(),
   timestamp: z.string().datetime(),
+  consent_status: z.enum(['accepted', 'declined']).optional(),
   metadata: z.record(z.any()).optional()
 });
 
