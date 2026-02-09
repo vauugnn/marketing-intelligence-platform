@@ -23,7 +23,6 @@ import type {
   ChannelRole,
   AIRecommendation,
   DateRange,
-  BusinessType,
 } from '@shared/types';
 
 /**
@@ -172,7 +171,7 @@ export async function getConversionJourneys(
 export async function getChannelPerformance(
   userId: string,
   dateRange: DateRange,
-  businessType: BusinessType = 'sales'
+  businessType: 'sales' | 'leads' = 'sales'
 ): Promise<ChannelPerformance[]> {
   logger.info('SynergyService', 'Calculating channel performance', { userId, dateRange });
 
@@ -283,7 +282,7 @@ export async function getChannelPerformance(
 export async function analyzeChannelSynergies(
   userId: string,
   dateRange: DateRange,
-  businessType: BusinessType = 'sales'
+  businessType: 'sales' | 'leads' = 'sales'
 ): Promise<ChannelSynergy[]> {
   logger.info('SynergyService', 'Analyzing channel synergies', { userId, dateRange });
 
@@ -417,7 +416,7 @@ export async function analyzeChannelSynergies(
 export async function getJourneyPatterns(
   userId: string,
   dateRange: DateRange,
-  businessType: BusinessType = 'sales'
+  businessType: 'sales' | 'leads' = 'sales'
 ): Promise<JourneyPattern[]> {
   logger.info('SynergyService', 'Analyzing journey patterns', { userId, dateRange });
 
@@ -574,7 +573,7 @@ export async function generateRecommendations(
   userId: string,
   dateRange: DateRange,
   prefetched?: AnalysisData,
-  businessType: BusinessType = 'sales'
+  businessType: 'sales' | 'leads' = 'sales'
 ): Promise<AIRecommendation[]> {
   logger.info('SynergyService', 'Generating recommendations', { userId, dateRange, businessType });
 

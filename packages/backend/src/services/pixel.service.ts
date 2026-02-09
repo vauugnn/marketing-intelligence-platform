@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { supabase, supabaseAdmin } from '../config/supabase';
 import { PixelEventInput } from '../validators/pixel.validator';
+import type { PixelSession, PixelEvent } from '../types/attribution.types';
 
 export class PixelService {
   /**
@@ -76,6 +77,7 @@ export class PixelService {
         ip_address: ipAddress || null,
         metadata: event.metadata || null,
         dedup_key: dedupKey,
+        consent_status: event.consent_status || null,
         // Extract metadata fields if available
         page_title: event.metadata?.page_title || null,
         visitor_id: event.metadata?.visitor_id || null,
@@ -92,6 +94,66 @@ export class PixelService {
     }
 
     return { id: data.id };
+  }
+
+  /**
+   * Get all sessions for a pixel ID, grouped by session_id
+   */
+  async getSessionsByPixelId(pixelId: string): Promise<PixelSession[]> {
+    const { data: events, error } = await supabaseAdmin
+      .from('pixel_events')
+      .select('*')
+      .eq('pixel_id', pixelId)
+      .order('timestamp', { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to fetch pixel events: ${error.message}`);
+    }
+
+    if (!events || events.length === 0) {
+      return [];
+    }
+
+    // Group events by session_id (same logic as attribution.service.ts)
+    const sessionMap = new Map<string, PixelEvent[]>();
+    for (const event of events as PixelEvent[]) {
+      if (!sessionMap.has(event.session_id)) {
+        sessionMap.set(event.session_id, []);
+      }
+      sessionMap.get(event.session_id)!.push(event);
+    }
+
+    const sessions: PixelSession[] = [];
+    for (const [sessionId, sessionEvents] of sessionMap.entries()) {
+      sessionEvents.sort(
+        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+
+      const firstEvent = sessionEvents[0];
+      const timestamps = sessionEvents.map((e) => new Date(e.timestamp));
+
+      sessions.push({
+        session_id: sessionId,
+        pixel_id: firstEvent.pixel_id,
+        events: sessionEvents,
+        first_event_timestamp: new Date(Math.min(...timestamps.map((t) => t.getTime()))),
+        last_event_timestamp: new Date(Math.max(...timestamps.map((t) => t.getTime()))),
+        utm_source: firstEvent.utm_source,
+        utm_medium: firstEvent.utm_medium,
+        utm_campaign: firstEvent.utm_campaign,
+        utm_term: firstEvent.utm_term,
+        utm_content: firstEvent.utm_content,
+        has_conversion_event: sessionEvents.some((e) => e.event_type === 'conversion'),
+        event_count: sessionEvents.length,
+      });
+    }
+
+    // Sort sessions by most recent first
+    sessions.sort(
+      (a, b) => b.last_event_timestamp.getTime() - a.last_event_timestamp.getTime()
+    );
+
+    return sessions;
   }
 
   /**

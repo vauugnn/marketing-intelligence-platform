@@ -90,4 +90,26 @@ router.post('/track', cors(pixelCors), trackRateLimiter, async (req, res) => {
   }
 });
 
+// GET /api/pixel/sessions - Get grouped sessions for the user's pixel
+const dashboardCors = cors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000', credentials: true });
+router.options('/sessions', dashboardCors);
+router.get('/sessions', dashboardCors, authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId!;
+    const pixelId = await pixelService.getOrCreatePixel(userId);
+    const sessions = await pixelService.getSessionsByPixelId(pixelId);
+
+    res.json({
+      success: true,
+      data: sessions,
+    });
+  } catch (error) {
+    console.error('Failed to fetch sessions:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch sessions',
+    });
+  }
+});
+
 export default router;

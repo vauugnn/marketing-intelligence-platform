@@ -10,29 +10,7 @@
     return;
   }
 
-  // --- Dedup guard ---
-  function shouldTrack(eventType: string): boolean {
-    if (eventType !== 'page_view') return true;
-    const key = `_pxl_pv_${pixelId}`;
-    const tracked = sessionStorage.getItem(key);
-    if (tracked === window.location.href) return false;
-    sessionStorage.setItem(key, window.location.href);
-    return true;
-  }
-
-  // Generate or retrieve session ID
-  function getSessionId(): string {
-    const cookieName = `_pxl_sid_${pixelId}`;
-    let sessionId = getCookie(cookieName);
-
-    if (!sessionId) {
-      sessionId = generateId();
-      setCookie(cookieName, sessionId, 30); // 30 day expiry
-    }
-
-    return sessionId;
-  }
-
+  // --- Cookie helpers ---
   function getCookie(name: string): string | null {
     const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
     return match ? match[2] : null;
@@ -49,6 +27,48 @@
       const v = c === 'x' ? r : (r & 0x3 | 0x8);
       return v.toString(16);
     });
+  }
+
+  // --- Consent management ---
+  const consentCookieName = `_pxl_consent_${pixelId}`;
+  const sessionCookieName = `_pxl_sid_${pixelId}`;
+
+  function getConsent(): string | null {
+    return getCookie(consentCookieName);
+  }
+
+  function setConsent(value: 'accepted' | 'declined'): void {
+    setCookie(consentCookieName, value, 365);
+  }
+
+  // --- Dedup guard ---
+  function shouldTrack(eventType: string): boolean {
+    if (eventType !== 'page_view') return true;
+    const key = `_pxl_pv_${pixelId}`;
+    const tracked = sessionStorage.getItem(key);
+    if (tracked === window.location.href) return false;
+    sessionStorage.setItem(key, window.location.href);
+    return true;
+  }
+
+  // Generate or retrieve session ID (consistent within tab regardless of consent)
+  function getSessionId(): string {
+    // Always reuse existing cookie if present
+    let sessionId = getCookie(sessionCookieName);
+    if (sessionId) return sessionId;
+
+    // Fall back to sessionStorage (consistent within tab)
+    const storageKey = `_pxl_ss_${pixelId}`;
+    sessionId = sessionStorage.getItem(storageKey) || null;
+    if (sessionId) return sessionId;
+
+    // Generate new session
+    sessionId = generateId();
+    if (consentMode === 'accepted') {
+      setCookie(sessionCookieName, sessionId, 30);
+    }
+    sessionStorage.setItem(storageKey, sessionId);
+    return sessionId;
   }
 
   function getPageMetadata(): Record<string, string> {
@@ -117,8 +137,20 @@
     return utm;
   }
 
+  // --- Core tracking (consent-aware) ---
+  let consentMode: 'accepted' | 'declined' | 'pending' = 'pending';
+
+  const KNOWN_TYPES = ['page_view', 'conversion', 'custom', 'form_submit'];
+
   function trackEvent(eventType: string = 'page_view', data?: Record<string, any>): void {
     if (!shouldTrack(eventType)) return;
+
+    // In declined mode, only allow form_submit and checkout events
+    if (consentMode === 'declined' && eventType === 'page_view') return;
+
+    // Normalize unknown event types to 'custom' and preserve original name
+    const normalizedType = KNOWN_TYPES.includes(eventType) ? eventType : 'custom';
+    const extraMeta = normalizedType !== eventType ? { event_name: eventType } : {};
 
     const sessionId = getSessionId();
     const utmParams = getUTMParams();
@@ -129,11 +161,12 @@
     const event = {
       pixel_id: pixelId,
       session_id: sessionId,
-      event_type: eventType,
+      event_type: normalizedType,
       page_url: window.location.href,
       referrer: document.referrer || undefined,
       timestamp: new Date().toISOString(),
-      metadata: { ...pageMetadata, ...scriptData, ...dataLayerData, ...data },
+      consent_status: consentMode === 'pending' ? undefined : consentMode,
+      metadata: { ...extraMeta, ...pageMetadata, ...scriptData, ...dataLayerData, ...data },
       ...utmParams
     };
 
@@ -170,12 +203,75 @@
     }, true);
   }
 
-  // Track initial page view
-  trackEvent('page_view');
+  // --- Full tracking initialization (after consent accepted) ---
+  function initFullTracking(): void {
+    consentMode = 'accepted';
+    // Promote sessionStorage session to cookie now that consent is given
+    const storageKey = `_pxl_ss_${pixelId}`;
+    const existingSession = sessionStorage.getItem(storageKey);
+    if (existingSession && !getCookie(sessionCookieName)) {
+      setCookie(sessionCookieName, existingSession, 30);
+    }
+    trackEvent('page_view');
+    setupFormListener();
+    (window as any).__pixelTrack = trackEvent;
+  }
+
+  // --- Cookieless mode (after consent declined) ---
+  function initCookielessTracking(): void {
+    consentMode = 'declined';
+    // Only capture form submissions — no page_view, no session cookie
+    setupFormListener();
+  }
+
+  // --- Consent banner ---
+  function showConsentBanner(): void {
+    const banner = document.createElement('div');
+    banner.id = '_pxl_consent_banner';
+    banner.innerHTML =
+      '<div style="position:fixed;bottom:0;left:0;right:0;z-index:2147483647;background:#1a1a2e;color:#e0e0e0;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;font-family:-apple-system,system-ui,sans-serif;font-size:14px;box-shadow:0 -2px 10px rgba(0,0,0,.3)">' +
+        '<span style="flex:1;min-width:200px">This site uses cookies to analyze traffic and improve your experience.</span>' +
+        '<div style="display:flex;gap:8px">' +
+          '<button id="_pxl_decline" style="padding:8px 18px;border:1px solid #555;border-radius:6px;background:transparent;color:#e0e0e0;cursor:pointer;font-size:13px">Decline</button>' +
+          '<button id="_pxl_accept" style="padding:8px 18px;border:none;border-radius:6px;background:#6c63ff;color:#fff;cursor:pointer;font-size:13px;font-weight:600">Accept</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(banner);
+
+    document.getElementById('_pxl_accept')!.addEventListener('click', () => {
+      setConsent('accepted');
+      banner.remove();
+      initFullTracking();
+    });
+
+    document.getElementById('_pxl_decline')!.addEventListener('click', () => {
+      setConsent('declined');
+      banner.remove();
+      initCookielessTracking();
+    });
+  }
+
+  // --- Entry point: check consent state ---
+  const existingConsent = getConsent();
+
+  if (existingConsent === 'accepted') {
+    // Previously accepted — full tracking, no banner
+    initFullTracking();
+  } else if (existingConsent === 'declined') {
+    // Previously declined — cookieless mode, no banner
+    initCookielessTracking();
+  } else {
+    // No consent yet — show banner, do NOT track anything until user chooses
+    // Expose global function early so custom events queue up after consent
+    (window as any).__pixelTrack = trackEvent;
+    if (document.body) {
+      showConsentBanner();
+    } else {
+      document.addEventListener('DOMContentLoaded', showConsentBanner);
+    }
+    return; // Exit early — tracking starts only after consent choice
+  }
 
   // Expose global tracking function
   (window as any).__pixelTrack = trackEvent;
-
-  // Auto-capture form submissions
-  setupFormListener();
 })();

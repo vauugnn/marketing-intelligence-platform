@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useRecommendations } from '../hooks/useAnalytics';
+import DashboardControls from '../components/DashboardControls';
 
 type Priority = 'high' | 'medium' | 'low';
 type FilterTab = 'all' | 'high' | 'medium' | 'low';
@@ -407,9 +408,10 @@ export default function Recommendations() {
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
             AI Recommendations
           </h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-sm mb-4">
             Data-driven actions to improve your marketing ROI
           </p>
+          <DashboardControls showMetricToggle={false} showChannelFilter={false} />
         </div>
 
         {/* Summary cards */}

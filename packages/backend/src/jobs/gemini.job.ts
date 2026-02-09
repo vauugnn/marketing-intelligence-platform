@@ -9,7 +9,7 @@ import { supabaseAdmin } from '../config/supabase';
 import { logger } from '../utils/logger';
 import { getGeminiClient } from '../config/gemini';
 import { enhanceRecommendationsWithAI } from '../services/gemini.service';
-import type { DateRange, AIRecommendation, BusinessType } from '@shared/types';
+import type { DateRange, AIRecommendation } from '@shared/types';
 
 interface JobResult {
     success: boolean;
@@ -61,24 +61,12 @@ export async function runGeminiRecommendationJob(): Promise<JobResult> {
 
         for (const userId of userIds) {
             try {
-                // Resolve business_type from auth metadata
-                let businessType: BusinessType = 'sales';
-                try {
-                    const { data: { user } } = await supabaseAdmin.auth.admin.getUserById(userId);
-                    if (user?.user_metadata?.business_type === 'leads') {
-                        businessType = 'leads';
-                    }
-                } catch {
-                    logger.warn('GeminiJob', `Could not fetch auth metadata for user ${userId}, defaulting to sales`);
-                }
-
-                const recs = await enhanceRecommendationsWithAI(userId, dateRange, businessType);
+                const recs = await enhanceRecommendationsWithAI(userId, dateRange, 'sales');
                 usersProcessed++;
                 recommendationsGenerated += recs.length;
 
                 logger.info('GeminiJob', `Processed user ${userId}`, {
                     recommendations: recs.length,
-                    businessType,
                 });
             } catch (userError) {
                 const errorMsg = userError instanceof Error ? userError.message : 'Unknown error';

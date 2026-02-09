@@ -64,24 +64,37 @@ export function disconnectPlatform(platform: string): Promise<PlatformConnection
 
 // --- Analytics ---
 
-export function getPerformance(): Promise<ChannelPerformance[]> {
-  return fetchApi('/analytics/performance');
+export interface DateParams {
+  startDate?: string;
+  endDate?: string;
 }
 
-export function getSynergies(): Promise<ChannelSynergy[]> {
-  return fetchApi('/analytics/synergies');
+function buildDateQuery(params?: DateParams): string {
+  if (!params?.startDate && !params?.endDate) return '';
+  const parts: string[] = [];
+  if (params.startDate) parts.push(`startDate=${params.startDate}`);
+  if (params.endDate) parts.push(`endDate=${params.endDate}`);
+  return `?${parts.join('&')}`;
 }
 
-export function getRecommendations(): Promise<AIRecommendation[]> {
-  return fetchApi('/analytics/recommendations');
+export function getPerformance(params?: DateParams): Promise<ChannelPerformance[]> {
+  return fetchApi(`/analytics/performance${buildDateQuery(params)}`);
 }
 
-export function getJourneyPatterns(): Promise<JourneyPattern[]> {
-  return fetchApi('/analytics/journeys');
+export function getSynergies(params?: DateParams): Promise<ChannelSynergy[]> {
+  return fetchApi(`/analytics/synergies${buildDateQuery(params)}`);
 }
 
-export function getChannelRoles(): Promise<ChannelRole[]> {
-  return fetchApi('/analytics/channel-roles');
+export function getRecommendations(params?: DateParams): Promise<AIRecommendation[]> {
+  return fetchApi(`/analytics/recommendations${buildDateQuery(params)}`);
+}
+
+export function getJourneyPatterns(params?: DateParams): Promise<JourneyPattern[]> {
+  return fetchApi(`/analytics/journeys${buildDateQuery(params)}`);
+}
+
+export function getChannelRoles(params?: DateParams): Promise<ChannelRole[]> {
+  return fetchApi(`/analytics/channel-roles${buildDateQuery(params)}`);
 }
 
 // --- Sync ---
