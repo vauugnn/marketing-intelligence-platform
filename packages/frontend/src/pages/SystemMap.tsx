@@ -48,11 +48,10 @@ const VISUAL_CONFIG = {
 
 // Fixed layout positions for common channel names
 const CHANNEL_POSITIONS: Record<string, { desktop: { x: number; y: number }; mobile: { x: number; y: number } }> = {
-  facebook: { desktop: { x: 2, y: 45 }, mobile: { x: 20, y: 45 } },
-  google: { desktop: { x: 98, y: 45 }, mobile: { x: 80, y: 45 } },
-  email: { desktop: { x: 50, y: 78 }, mobile: { x: 50, y: 72 } },
-  instagram: { desktop: { x: 50, y: 30 }, mobile: { x: 50, y: 25 } },
-  tiktok: { desktop: { x: 25, y: 20 }, mobile: { x: 25, y: 20 } },
+  facebook: { desktop: { x: 2, y: 50 }, mobile: { x: 20, y: 50 } },
+  google: { desktop: { x: 98, y: 50 }, mobile: { x: 80, y: 50 } },
+  email: { desktop: { x: 50, y: 80 }, mobile: { x: 50, y: 75 } },
+  instagram: { desktop: { x: 50, y: 20 }, mobile: { x: 50, y: 25 } },
 };
 
 // Fallback positions arranged in a circle when channel isn't in the lookup
@@ -200,8 +199,6 @@ export default function SystemMap() {
         return <svg {...iconProps} viewBox="0 0 48 48"><path fill="white" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" /></svg>;
       case 'email':
         return <svg {...iconProps}><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" /></svg>;
-      case 'tiktok':
-        return <svg {...iconProps}><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" /></svg>;
       default:
         return <svg {...iconProps}><circle cx="12" cy="12" r="10" fill="white" opacity="0.3" /></svg>;
     }

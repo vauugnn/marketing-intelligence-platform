@@ -1,15 +1,15 @@
 /**
  * Seed: 90-day Revenue + Coverage dataset for Neural Analysis page
  *
- * Creates conversion journeys across 5 channels (google, facebook, email,
- * instagram, tiktok) with weekly spend events, so the Neural Analysis page
+ * Creates conversion journeys across 4 channels (google, facebook, email,
+ * instagram) with weekly spend events, so the Neural Analysis page
  * shows meaningful data across performance table, network graph, and synergy table.
  *
  * Calibrated to produce:
- *   - 9 synergy pairs: 1 Strong, 5 Medium, 3 Weak
- *   - 5 channel roles: google (closer), facebook (introducer), email (introducer),
- *     instagram (isolated), tiktok (isolated)
- *   - 5 performance ratings: exceptional, satisfactory, poor, failing, failing
+ *   - 6 synergy pairs: 1 Strong, 3 Medium, 2 Weak
+ *   - 4 channel roles: google (closer), facebook (introducer), email (introducer),
+ *     instagram (isolated)
+ *   - 4 performance ratings: exceptional, satisfactory, poor, failing
  *
  * Usage:
  *   npx tsx scripts/seed_neural_analysis.ts [--email user@example.com]
@@ -137,22 +137,6 @@ const journeys: SessionDef[] = [
   { channels: ['instagram'], amount: 310, daysAgo: 87 },
   { channels: ['instagram'], amount: 360, daysAgo: 89 },
 
-  // ── TikTok solo (14 journeys, avg ~275) ──
-  { channels: ['tiktok'], amount: 250, daysAgo: 2 },
-  { channels: ['tiktok'], amount: 300, daysAgo: 7 },
-  { channels: ['tiktok'], amount: 200, daysAgo: 12 },
-  { channels: ['tiktok'], amount: 350, daysAgo: 18 },
-  { channels: ['tiktok'], amount: 220, daysAgo: 24 },
-  { channels: ['tiktok'], amount: 280, daysAgo: 30 },
-  { channels: ['tiktok'], amount: 310, daysAgo: 36 },
-  { channels: ['tiktok'], amount: 240, daysAgo: 42 },
-  { channels: ['tiktok'], amount: 270, daysAgo: 50 },
-  { channels: ['tiktok'], amount: 300, daysAgo: 56 },
-  { channels: ['tiktok'], amount: 260, daysAgo: 63 },
-  { channels: ['tiktok'], amount: 290, daysAgo: 70 },
-  { channels: ['tiktok'], amount: 230, daysAgo: 78 },
-  { channels: ['tiktok'], amount: 250, daysAgo: 85 },
-
   // ═══════════════════════════════════════════════════════════════════
   // 2-touch pairs — HIGH amounts drive synergy scores
   // ═══════════════════════════════════════════════════════════════════
@@ -196,12 +180,6 @@ const journeys: SessionDef[] = [
   { channels: ['email', 'facebook'], amount: 1200, daysAgo: 55 },
   { channels: ['email', 'facebook'], amount: 1100, daysAgo: 75 },
 
-  // ── tiktok → facebook (4 journeys, avg ~2,000) ──
-  { channels: ['tiktok', 'facebook'], amount: 1800, daysAgo: 8 },
-  { channels: ['tiktok', 'facebook'], amount: 2200, daysAgo: 30 },
-  { channels: ['tiktok', 'facebook'], amount: 1900, daysAgo: 55 },
-  { channels: ['tiktok', 'facebook'], amount: 2100, daysAgo: 78 },
-
   // ── instagram → google (3 journeys, avg ~1,750) → synergy ~0.6 Weak ──
   { channels: ['instagram', 'google'], amount: 1600, daysAgo: 5 },
   { channels: ['instagram', 'google'], amount: 1900, daysAgo: 35 },
@@ -211,10 +189,6 @@ const journeys: SessionDef[] = [
   { channels: ['email', 'instagram'], amount: 1050, daysAgo: 9 },
   { channels: ['email', 'instagram'], amount: 1250, daysAgo: 40 },
   { channels: ['email', 'instagram'], amount: 1150, daysAgo: 72 },
-
-  // ── tiktok → google (2 journeys, avg ~950) → synergy ~0.3 Weak ──
-  { channels: ['tiktok', 'google'], amount: 900, daysAgo: 20 },
-  { channels: ['tiktok', 'google'], amount: 1000, daysAgo: 60 },
 
   // ── instagram → facebook (1 journey) ──
   { channels: ['instagram', 'facebook'], amount: 600, daysAgo: 45 },
@@ -232,9 +206,6 @@ const journeys: SessionDef[] = [
   { channels: ['google', 'email', 'facebook'], amount: 2600, daysAgo: 25 },
   { channels: ['google', 'email', 'facebook'], amount: 3000, daysAgo: 60 },
 
-  // ── tiktok → instagram → facebook (2 journeys, avg ~500) ──
-  { channels: ['tiktok', 'instagram', 'facebook'], amount: 450, daysAgo: 35 },
-  { channels: ['tiktok', 'instagram', 'facebook'], amount: 550, daysAgo: 65 },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -252,7 +223,6 @@ const spendConfig = [
   { platform: 'meta',                 eventData: { spend: 0 },                        channel: 'facebook',  minSpend: 600,  maxSpend: 900  },
   { platform: 'hubspot',              eventData: { spend: 0, channel: 'email' },      channel: 'email',     minSpend: 300,  maxSpend: 500  },
   { platform: 'google_analytics_4',   eventData: { spend: 0, channel_group: 'instagram' }, channel: 'instagram', minSpend: 400, maxSpend: 700 },
-  { platform: 'google_analytics_4',   eventData: { spend: 0, channel_group: 'tiktok' },    channel: 'tiktok',    minSpend: 500, maxSpend: 700 },
 ];
 
 async function main() {

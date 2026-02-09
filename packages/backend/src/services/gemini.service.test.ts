@@ -102,7 +102,7 @@ describe('Gemini Service', () => {
         });
 
         it('should title-case unknown channels', () => {
-            expect(normalizeChannelName('TikTok')).toBe('Tiktok');
+            expect(normalizeChannelName('linkedin')).toBe('Linkedin');
         });
     });
 

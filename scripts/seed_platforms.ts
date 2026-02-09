@@ -57,7 +57,7 @@ function randTimestamp(i: number) {
 }
 
 function makeMetaEvent(i: number, userId: string) {
-  const channel = (i % 5) === 0 ? 'instagram' : (i % 5) === 1 ? 'facebook' : (i % 5) === 2 ? 'google' : (i % 5) === 3 ? 'tiktok' : 'email';
+  const channel = (i % 4) === 0 ? 'instagram' : (i % 4) === 1 ? 'facebook' : (i % 4) === 2 ? 'google' : 'email';
   const clicks = (i % 200) + 1;
   const spend = Math.round(clicks * 1.5 * 100) / 100;
   return {
