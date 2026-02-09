@@ -86,7 +86,7 @@ export default function Features() {
                                         {feature.highlights.map((highlight) => (
                                             <span
                                                 key={highlight}
-                                                className="px-3 py-1 rounded-full bg-white dark:bg-[#162044] text-sm font-medium text-gray-700 border border-gray-200 dark:border-gray-700"
+                                                className="px-3 py-1 rounded-full bg-white dark:bg-[#162044] text-sm font-medium text-gray-700 dark:text-white border border-gray-200 dark:border-gray-700"
                                             >
                                                 {highlight}
                                             </span>
