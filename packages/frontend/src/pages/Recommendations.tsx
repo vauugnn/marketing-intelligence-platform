@@ -8,8 +8,6 @@ type FilterTab = 'all' | 'high' | 'medium' | 'low';
 export default function Recommendations() {
   const { data: recommendations = [], isLoading: loading, error, refetch } = useRecommendations();
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
-  const [appliedRecs, setAppliedRecs] = useState<Set<number>>(new Set());
-  const [dismissedRecs, setDismissedRecs] = useState<Set<number>>(new Set());
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
 
   const toggleExpand = (idx: number) => {
@@ -17,14 +15,6 @@ export default function Recommendations() {
     if (next.has(idx)) next.delete(idx);
     else next.add(idx);
     setExpandedCards(next);
-  };
-
-  const applyRecommendation = (idx: number) => {
-    setAppliedRecs(new Set(appliedRecs).add(idx));
-  };
-
-  const dismissRecommendation = (idx: number) => {
-    setDismissedRecs(new Set(dismissedRecs).add(idx));
   };
 
   const getPriority = (confidence: number, impact: number): Priority => {
@@ -35,9 +25,7 @@ export default function Recommendations() {
 
   const getGlobalIndex = (rec: any) => recommendations.indexOf(rec);
 
-  const visibleRecs = recommendations.filter(
-    (_: any, idx: number) => !dismissedRecs.has(idx)
-  );
+  const visibleRecs = recommendations;
 
   const grouped: Record<Priority, any[]> = { high: [], medium: [], low: [] };
   visibleRecs.forEach((r: { confidence: number; estimated_impact: number; }) => {
@@ -121,14 +109,12 @@ export default function Recommendations() {
     const idx = getGlobalIndex(rec);
     const theme = typeTheme[rec.type as keyof typeof typeTheme] || typeTheme.optimize;
     const isExpanded = expandedCards.has(idx);
-    const isApplied = appliedRecs.has(idx);
     const priority = getPriority(rec.confidence, rec.estimated_impact);
 
     return (
       <div
         key={idx}
-        className={`rec-card rounded-xl overflow-hidden transition-all duration-300 ${isApplied ? 'opacity-60' : ''
-          }`}
+        className="rec-card rounded-xl overflow-hidden transition-all duration-300"
         style={{
           backgroundColor: 'hsl(var(--card))',
           color: 'hsl(var(--card-foreground))',
@@ -153,11 +139,7 @@ export default function Recommendations() {
               >
                 {theme.label}
               </span>
-              {isApplied && (
-                <span className="text-[10px] font-semibold bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                  Applied
-                </span>
-              )}
+
             </div>
             <span className="text-xs text-muted-foreground font-mono">{rec.confidence}%</span>
           </div>
@@ -238,24 +220,12 @@ export default function Recommendations() {
           {/* Actions */}
           <div className="mt-3 flex items-center gap-1.5">
             <button
-              onClick={() => applyRecommendation(idx)}
-              disabled={isApplied}
-              className={`${theme.btnBg} text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-lg transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed`}
-            >
-              {isApplied ? 'Applied' : 'Apply'}
-            </button>
-            <button
               onClick={() => toggleExpand(idx)}
               className="bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-all border border-border"
             >
               {isExpanded ? 'Less' : 'More'}
             </button>
-            <button
-              onClick={() => dismissRecommendation(idx)}
-              className="bg-muted/50 hover:bg-destructive/10 text-muted-foreground hover:text-destructive text-[11px] px-2 py-1.5 rounded-lg transition-all border border-border ml-auto"
-            >
-              ×
-            </button>
+
           </div>
 
           {/* Expanded details */}
@@ -427,30 +397,12 @@ export default function Recommendations() {
           </div>
           <div className="rec-metric rounded-xl p-4">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-              Active
+              Total Recommendations
             </p>
             <p className="text-xl sm:text-2xl font-bold font-mono text-foreground mt-1">
               {visibleRecs.length}
             </p>
             <p className="text-[10px] text-muted-foreground mt-0.5">recommendations</p>
-          </div>
-          <div className="rec-metric rounded-xl p-4">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-              Applied
-            </p>
-            <p className="text-xl sm:text-2xl font-bold font-mono text-blue-500 mt-1">
-              {appliedRecs.size}
-            </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">implemented</p>
-          </div>
-          <div className="rec-metric rounded-xl p-4">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-              Dismissed
-            </p>
-            <p className="text-xl sm:text-2xl font-bold font-mono text-muted-foreground mt-1">
-              {dismissedRecs.size}
-            </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">skipped</p>
           </div>
         </div>
 

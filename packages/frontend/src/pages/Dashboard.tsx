@@ -50,9 +50,6 @@ export default function Dashboard() {
                   <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1">Total Revenue</div>
                   <h3 className="text-4xl font-bold">₱{totalRevenue.toLocaleString()}</h3>
                 </div>
-                <div className="text-sm font-medium opacity-90 mt-4">
-                  +23% from last month
-                </div>
               </div>
             </div>
 
@@ -64,9 +61,6 @@ export default function Dashboard() {
                   <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1 text-orange-950/70">Total Spend</div>
                   <h3 className="text-4xl font-bold text-white">₱{totalSpend.toLocaleString()}</h3>
                 </div>
-                <div className="text-sm font-medium opacity-90 mt-4 text-white">
-                  +12% from last month
-                </div>
               </div>
             </div>
 
@@ -77,9 +71,6 @@ export default function Dashboard() {
                 <div>
                   <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1">Average ROI</div>
                   <h3 className="text-4xl font-bold">{avgROI.toFixed(0)}%</h3>
-                </div>
-                <div className="text-sm font-medium opacity-90 mt-4">
-                  -5% from last month
                 </div>
               </div>
             </div>
@@ -94,9 +85,6 @@ export default function Dashboard() {
                   <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1">Total Conversions</div>
                   <h3 className="text-4xl font-bold">{totalConversions.toLocaleString()}</h3>
                 </div>
-                <div className="text-sm font-medium opacity-90 mt-4">
-                  +18% from last month
-                </div>
               </div>
             </div>
 
@@ -107,9 +95,6 @@ export default function Dashboard() {
                 <div>
                   <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1 text-orange-950/70">Total Spend</div>
                   <h3 className="text-4xl font-bold text-white">₱{totalSpend.toLocaleString()}</h3>
-                </div>
-                <div className="text-sm font-medium opacity-90 mt-4 text-white">
-                  +12% from last month
                 </div>
               </div>
             </div>
