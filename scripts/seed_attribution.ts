@@ -59,17 +59,18 @@ async function main() {
   }
 
   // Records (UUIDs chosen explicitly)
+  const pixelId = `pix_${randomUUID().replace(/-/g, '')}`;
   const user = {
     id: resolvedUserId || '11111111-1111-1111-1111-111111111111',
     email: argv.email || 'customer@example.com',
-    pixel_id: 'pixel_abc123',
+    pixel_id: pixelId,
     created_at: new Date('2026-02-01T08:00:00Z').toISOString(),
     updated_at: new Date('2026-02-01T08:00:00Z').toISOString()
   };
 
   const connections = [
     {
-      id: '22222222-2222-2222-2222-222222222222',
+      id: randomUUID(),
       user_id: user.id,
       platform: 'google_analytics_4',
       status: 'connected',
@@ -80,7 +81,7 @@ async function main() {
       last_synced_at: '2026-02-06T09:00:00Z'
     },
     {
-      id: '33333333-3333-3333-3333-333333333333',
+      id: randomUUID(),
       user_id: user.id,
       platform: 'stripe',
       status: 'connected',
@@ -109,7 +110,7 @@ async function main() {
 
     pixelEvents.push({
       id: randomUUID(),
-      pixel_id: 'pixel_abc123',
+      pixel_id: pixelId,
       session_id: sessionId,
       user_id: user.id,
       event_type: 'page_view',
@@ -127,7 +128,7 @@ async function main() {
 
     pixelEvents.push({
       id: randomUUID(),
-      pixel_id: 'pixel_abc123',
+      pixel_id: pixelId,
       session_id: sessionId,
       user_id: user.id,
       event_type: 'conversion',

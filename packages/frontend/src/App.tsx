@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
+import AuthRedirect from './components/auth/AuthRedirect';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Sidebar from './components/layout/Sidebar';
 import Dashboard from './pages/Dashboard';
@@ -50,7 +51,7 @@ function App() {
         <Router>
           <Routes>
             {/* Public routes */}
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/" element={<AuthRedirect><LandingPage /></AuthRedirect>} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
 
