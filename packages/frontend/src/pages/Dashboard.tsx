@@ -1,16 +1,25 @@
 import { Key, useState } from 'react';
 import { usePerformance } from '../hooks/useAnalytics';
+import { useFilteredChannels } from '../hooks/useFilteredChannels';
+import { useDashboardPreferences } from '../stores/useDashboardPreferences';
+import DashboardControls from '../components/DashboardControls';
 import SystemMapComponent from '../components/SystemMapComponent';
 
 
 export default function Dashboard() {
   const { data: channels = [], isLoading: loading, error, refetch } = usePerformance();
+  const filteredChannels = useFilteredChannels(channels);
+  const metricView = useDashboardPreferences((s) => s.metricView);
   const [mapExpanded, setMapExpanded] = useState(false);
 
-  // Calculate metrics
-  const totalRevenue = channels.reduce((sum: number, ch: { revenue: number }) => sum + ch.revenue, 0);
-  const totalSpend = channels.reduce((sum: number, ch: { spend: number }) => sum + ch.spend, 0);
+  const allChannelNames = channels.map((ch) => ch.channel);
+
+  // Calculate metrics from filtered channels
+  const totalRevenue = filteredChannels.reduce((sum: number, ch) => sum + ch.revenue, 0);
+  const totalSpend = filteredChannels.reduce((sum: number, ch) => sum + ch.spend, 0);
   const avgROI = totalSpend > 0 ? ((totalRevenue - totalSpend) / totalSpend) * 100 : 0;
+  const totalConversions = filteredChannels.reduce((sum: number, ch) => sum + ch.conversions, 0);
+  const avgCPL = totalConversions > 0 ? totalSpend / totalConversions : 0;
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300 p-4 md:p-8">
@@ -22,61 +31,104 @@ export default function Dashboard() {
         }
        `}</style>
 
-      {/* Top Bar: Header Only (Search/Bell removed) */}
+      {/* Top Bar: Header + Controls */}
       <div className="mb-10">
         <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Real-time insights into your marketing channels</p>
+        <p className="text-muted-foreground mt-1 mb-4">Real-time insights into your marketing channels</p>
+        <DashboardControls channels={allChannelNames} />
       </div>
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {/* Revenue Card - Orange Gradient */}
-        <div className="rounded-2xl p-6 shadow-lg bg-gradient-to-br from-orange-500 to-orange-600 text-white relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
-          {/* Abstract Circle Decoration */}
-          <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+        {metricView === 'revenue' ? (
+          <>
+            {/* Revenue Card */}
+            <div className="rounded-2xl p-6 shadow-lg bg-gradient-to-br from-orange-500 to-orange-600 text-white relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+              <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+              <div className="relative z-10 flex flex-col h-full justify-between">
+                <div>
+                  <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1">Total Revenue</div>
+                  <h3 className="text-4xl font-bold">₱{totalRevenue.toLocaleString()}</h3>
+                </div>
+                <div className="text-sm font-medium opacity-90 mt-4">
+                  +23% from last month
+                </div>
+              </div>
+            </div>
 
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div>
-              <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1">Total Revenue</div>
-              <h3 className="text-4xl font-bold">₱{totalRevenue.toLocaleString()}</h3>
+            {/* Spend Card */}
+            <div className="rounded-2xl p-6 shadow-lg bg-gradient-to-br from-orange-300 to-orange-400 text-white relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+              <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/20 rounded-full blur-2xl"></div>
+              <div className="relative z-10 flex flex-col h-full justify-between">
+                <div>
+                  <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1 text-orange-950/70">Total Spend</div>
+                  <h3 className="text-4xl font-bold text-white">₱{totalSpend.toLocaleString()}</h3>
+                </div>
+                <div className="text-sm font-medium opacity-90 mt-4 text-white">
+                  +12% from last month
+                </div>
+              </div>
             </div>
-            <div className="text-sm font-medium opacity-90 mt-4">
-              +23% from last month
-            </div>
-          </div>
-        </div>
 
-        {/* Spend Card - Peach/Orange Gradient (to stay in Blue/Orange theme but distinct) */}
-        <div className="rounded-2xl p-6 shadow-lg bg-gradient-to-br from-orange-300 to-orange-400 text-white relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
-          {/* Abstract Circle Decoration */}
-          <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/20 rounded-full blur-2xl"></div>
+            {/* ROI Card */}
+            <div className="rounded-2xl p-6 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+              <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+              <div className="relative z-10 flex flex-col h-full justify-between">
+                <div>
+                  <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1">Average ROI</div>
+                  <h3 className="text-4xl font-bold">{avgROI.toFixed(0)}%</h3>
+                </div>
+                <div className="text-sm font-medium opacity-90 mt-4">
+                  -5% from last month
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Conversions Card */}
+            <div className="rounded-2xl p-6 shadow-lg bg-gradient-to-br from-emerald-500 to-emerald-600 text-white relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+              <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+              <div className="relative z-10 flex flex-col h-full justify-between">
+                <div>
+                  <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1">Total Conversions</div>
+                  <h3 className="text-4xl font-bold">{totalConversions.toLocaleString()}</h3>
+                </div>
+                <div className="text-sm font-medium opacity-90 mt-4">
+                  +18% from last month
+                </div>
+              </div>
+            </div>
 
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div>
-              <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1 text-orange-950/70">Total Spend</div>
-              <h3 className="text-4xl font-bold text-white">₱{totalSpend.toLocaleString()}</h3>
+            {/* Spend Card */}
+            <div className="rounded-2xl p-6 shadow-lg bg-gradient-to-br from-orange-300 to-orange-400 text-white relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+              <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/20 rounded-full blur-2xl"></div>
+              <div className="relative z-10 flex flex-col h-full justify-between">
+                <div>
+                  <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1 text-orange-950/70">Total Spend</div>
+                  <h3 className="text-4xl font-bold text-white">₱{totalSpend.toLocaleString()}</h3>
+                </div>
+                <div className="text-sm font-medium opacity-90 mt-4 text-white">
+                  +12% from last month
+                </div>
+              </div>
             </div>
-            <div className="text-sm font-medium opacity-90 mt-4 text-white">
-              +12% from last month
-            </div>
-          </div>
-        </div>
 
-        {/* ROI Card - Blue Gradient (Replacing Purple) */}
-        <div className="rounded-2xl p-6 shadow-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
-          {/* Abstract Circle Decoration */}
-          <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
-
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div>
-              <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1">Average ROI</div>
-              <h3 className="text-4xl font-bold">{avgROI.toFixed(0)}%</h3>
+            {/* CPL Card */}
+            <div className="rounded-2xl p-6 shadow-lg bg-gradient-to-br from-violet-500 to-violet-600 text-white relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+              <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+              <div className="relative z-10 flex flex-col h-full justify-between">
+                <div>
+                  <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1">Cost Per Lead</div>
+                  <h3 className="text-4xl font-bold">₱{avgCPL.toFixed(0)}</h3>
+                </div>
+                <div className="text-sm font-medium opacity-90 mt-4">
+                  Per conversion
+                </div>
+              </div>
             </div>
-            <div className="text-sm font-medium opacity-90 mt-4">
-              -5% from last month
-            </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
 
       {/* Main Content Grid */}
@@ -86,7 +138,11 @@ export default function Dashboard() {
           <div className="p-6 border-b border-border/50 flex justify-between items-start">
             <div>
               <h3 className="text-lg font-bold text-foreground">Channel Performance</h3>
-              <p className="text-sm text-muted-foreground mt-1">Track revenue, spend, and ROI across platforms</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {metricView === 'revenue'
+                  ? 'Track revenue, spend, and ROI across platforms'
+                  : 'Track conversions, spend, and cost per lead across platforms'}
+              </p>
             </div>
           </div>
 
@@ -105,31 +161,61 @@ export default function Dashboard() {
                 <thead>
                   <tr className="text-xs font-semibold text-muted-foreground border-b border-border/50 bg-muted/20">
                     <th className="px-6 py-4 text-left uppercase tracking-wider">Channel</th>
-                    <th className="px-6 py-4 text-right uppercase tracking-wider">Revenue</th>
-                    <th className="px-6 py-4 text-right uppercase tracking-wider">Spend</th>
-                    <th className="px-6 py-4 text-right uppercase tracking-wider">ROI</th>
+                    {metricView === 'revenue' ? (
+                      <>
+                        <th className="px-6 py-4 text-right uppercase tracking-wider">Revenue</th>
+                        <th className="px-6 py-4 text-right uppercase tracking-wider">Spend</th>
+                        <th className="px-6 py-4 text-right uppercase tracking-wider">ROI</th>
+                      </>
+                    ) : (
+                      <>
+                        <th className="px-6 py-4 text-right uppercase tracking-wider">Conversions</th>
+                        <th className="px-6 py-4 text-right uppercase tracking-wider">Spend</th>
+                        <th className="px-6 py-4 text-right uppercase tracking-wider">CPL</th>
+                      </>
+                    )}
                     <th className="px-6 py-4 text-right uppercase tracking-wider">Performance</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
-                  {channels.map((channel: any, idx: Key) => (
+                  {filteredChannels.map((channel: any, idx: Key) => (
                     <tr key={idx} className="group hover:bg-muted/30 transition-colors">
                       <td className="px-6 py-4">
                         <div className="font-semibold text-foreground">{channel.channel}</div>
                       </td>
-                      <td className="px-6 py-4 text-right font-mono text-sm">
-                        <span className="text-green-500">
-                          ₱{channel.revenue.toLocaleString()}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right font-mono text-sm text-muted-foreground">
-                        ₱{channel.spend.toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 text-right font-mono text-sm font-medium">
-                        {channel.roi === null
-                          ? <span className="text-lg font-semibold">∞</span>
-                          : <span className={channel.roi < 0 ? 'text-red-500' : ''}>{Math.round(channel.roi)}%</span>}
-                      </td>
+                      {metricView === 'revenue' ? (
+                        <>
+                          <td className="px-6 py-4 text-right font-mono text-sm">
+                            <span className="text-green-500">
+                              ₱{channel.revenue.toLocaleString()}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right font-mono text-sm text-muted-foreground">
+                            ₱{channel.spend.toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 text-right font-mono text-sm font-medium">
+                            {channel.roi === null
+                              ? <span className="text-lg font-semibold">∞</span>
+                              : <span className={channel.roi < 0 ? 'text-red-500' : ''}>{Math.round(channel.roi)}%</span>}
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="px-6 py-4 text-right font-mono text-sm">
+                            <span className="text-emerald-500">
+                              {channel.conversions.toLocaleString()}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right font-mono text-sm text-muted-foreground">
+                            ₱{channel.spend.toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 text-right font-mono text-sm font-medium">
+                            {channel.conversions > 0
+                              ? <span>₱{(channel.spend / channel.conversions).toFixed(0)}</span>
+                              : <span className="text-muted-foreground">-</span>}
+                          </td>
+                        </>
+                      )}
                       <td className="px-6 py-4 text-right">
                         <span className={`
                           inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium w-28
@@ -153,9 +239,8 @@ export default function Dashboard() {
         {/* System Map */}
         <div className="lg:col-span-1 glass-card overflow-hidden flex flex-col h-[500px]">
           <div className="flex-1 bg-muted/20 relative p-4">
-            {/* Header is handled internally by SystemMapComponent */}
             <SystemMapComponent
-              channels={channels}
+              channels={filteredChannels}
               isExpanded={mapExpanded}
               onToggleExpand={setMapExpanded}
             />
@@ -168,7 +253,7 @@ export default function Dashboard() {
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 transition-opacity" onClick={() => setMapExpanded(false)}>
           <div className="absolute inset-4 md:inset-10 bg-card rounded-2xl border border-border shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
             <SystemMapComponent
-              channels={channels}
+              channels={filteredChannels}
               isExpanded={true}
               onToggleExpand={setMapExpanded}
             />
