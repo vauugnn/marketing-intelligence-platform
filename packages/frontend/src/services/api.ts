@@ -1,7 +1,7 @@
 import type {
   ChannelPerformance,
   ChannelSynergy,
-  AIRecommendation,
+  ChannelInsight,
   JourneyPattern,
   ChannelRole,
   PlatformConnection,
@@ -85,7 +85,7 @@ export function getSynergies(params?: DateParams): Promise<ChannelSynergy[]> {
   return fetchApi(`/analytics/synergies${buildDateQuery(params)}`);
 }
 
-export function getRecommendations(params?: DateParams): Promise<AIRecommendation[]> {
+export function getChannelInsights(params?: DateParams): Promise<ChannelInsight[]> {
   return fetchApi(`/analytics/recommendations${buildDateQuery(params)}`);
 }
 

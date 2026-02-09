@@ -27,11 +27,11 @@ export function useSynergies() {
   });
 }
 
-export function useRecommendations() {
+export function useChannelInsights() {
   const { dateRange, dateParams } = useDateParams();
   return useQuery({
-    queryKey: ['analytics', 'recommendations', dateRange],
-    queryFn: () => api.getRecommendations(dateParams),
+    queryKey: ['analytics', 'insights', dateRange],
+    queryFn: () => api.getChannelInsights(dateParams),
     staleTime: STALE_5_MIN,
   });
 }

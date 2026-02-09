@@ -8,8 +8,8 @@
 import { supabaseAdmin } from '../config/supabase';
 import { logger } from '../utils/logger';
 import { getGeminiClient } from '../config/gemini';
-import { enhanceRecommendationsWithAI } from '../services/gemini.service';
-import type { DateRange, AIRecommendation } from '@shared/types';
+import { generateAIInsights } from '../services/gemini.service';
+import type { DateRange } from '@shared/types';
 
 interface JobResult {
     success: boolean;
@@ -61,12 +61,12 @@ export async function runGeminiRecommendationJob(): Promise<JobResult> {
 
         for (const userId of userIds) {
             try {
-                const recs = await enhanceRecommendationsWithAI(userId, dateRange, 'sales');
+                const insights = await generateAIInsights(userId, dateRange, 'sales');
                 usersProcessed++;
-                recommendationsGenerated += recs.length;
+                recommendationsGenerated += insights.length;
 
                 logger.info('GeminiJob', `Processed user ${userId}`, {
-                    recommendations: recs.length,
+                    insights: insights.length,
                 });
             } catch (userError) {
                 const errorMsg = userError instanceof Error ? userError.message : 'Unknown error';

@@ -1,0 +1,189 @@
+INTELLIGENCE PLATFORM — PITCH OVERVIEW
+=======================================
+Prepared: February 2026
+
+
+WHAT IT IS
+----------
+A marketing intelligence platform that shows businesses how their marketing
+channels actually work together to drive revenue. It connects to platforms
+like Google Analytics, Meta Ads, Stripe, and HubSpot — then reconstructs
+real customer journeys, detects which channel combinations produce the
+highest conversions, and delivers AI-powered recommendations on where to
+spend next.
+
+
+THE PROBLEM
+-----------
+Most marketing tools tell you what each channel did in isolation:
+  - "Facebook got 2,000 clicks"
+  - "Google Ads spent P50,000"
+  - "Email had a 22% open rate"
+
+But they can't answer the question that matters:
+  "Which channels work TOGETHER to drive actual revenue?"
+
+A customer might see a Facebook ad on Monday, search Google on Wednesday,
+click an email on Friday, and buy on Saturday. Traditional analytics gives
+100% credit to email (last click). The real story is that all three channels
+played a role — and cutting Facebook would break the whole chain.
+
+
+WHAT WE DO DIFFERENTLY
+----------------------
+1. PIXEL TRACKING
+   A lightweight (<5KB) JavaScript snippet installed on the merchant's
+   website. Captures every visitor session, UTM parameters, and page views.
+   Works with Shopify, WordPress, Google Tag Manager, or any custom site.
+
+2. CROSS-PLATFORM DATA UNIFICATION
+   One-click OAuth connections to 7 platforms:
+     - Google Analytics 4 (traffic & sessions)
+     - Meta / Facebook Ads (ad spend & conversions)
+     - Google Ads (search ad spend)
+     - Stripe (payment revenue)
+     - PayPal (payment revenue)
+     - HubSpot (CRM deals & pipeline)
+     - Mailchimp (email campaign performance)
+
+   All data flows into one normalized database — no CSV exports, no
+   manual uploads, no spreadsheet stitching.
+
+3. JOURNEY RECONSTRUCTION
+   The engine links pixel sessions to verified conversions (actual sales
+   from Stripe/PayPal). For each conversion, it rebuilds the full
+   customer journey:
+     Session 1: Facebook ad click (Day 1)
+     Session 2: Google search (Day 3)
+     Session 3: Email click (Day 5) -> Purchase (P4,500)
+
+   This produces a channel sequence: [facebook, google, email] — the
+   real path to purchase.
+
+4. SYNERGY DETECTION
+   From thousands of journeys, the platform calculates which channel
+   PAIRS amplify each other. The synergy score compares multi-touch
+   revenue to solo-touch revenue:
+
+     Example:
+       Facebook solo conversions average:   P1,500
+       Google solo conversions average:      P2,800
+       Facebook + Google journeys average:   P6,400
+       Synergy Score = 6,400 / 2,800 = 2.29x (Strong)
+
+   Translation: When Facebook and Google appear together in a journey,
+   the conversion is worth 2.3x more than Google alone. Cutting Facebook
+   would cost far more than its solo numbers suggest.
+
+5. AI RECOMMENDATIONS
+   Google Gemini analyzes performance data, synergy scores, and channel
+   roles to generate actionable recommendations:
+
+     SCALE:    "Increase Facebook Ads budget by 30% — strong synergy
+                with Google drives P8,100 avg multi-touch conversions"
+     OPTIMIZE: "Refine email targeting — pair with Google for 1.8x lift"
+     STOP:     "Pause underperforming Instagram campaigns — reallocate
+                P12,000/month to Facebook-Google funnel"
+
+   Each recommendation includes confidence %, estimated monthly impact
+   in pesos, and an AI-written explanation of why it matters.
+
+
+THE PRODUCT (4 SCREENS)
+------------------------
+
+Screen 1: DASHBOARD
+  - Top-line metrics: Total Revenue, Total Spend, Average ROI
+  - Channel performance table with ratings (Exceptional to Failing)
+  - Mini network graph showing live channel relationships
+  - Toggle between revenue view and cost-per-lead view
+
+Screen 2: INTEGRATIONS
+  - Guided 3-step onboarding: Install Pixel -> Connect Analytics -> Connect Payments
+  - Platform cards with live status (Connected / Syncing / Error)
+  - Copy-paste pixel installation for Shopify, WordPress, GTM
+  - Troubleshooting FAQ built in
+
+Screen 3: NEURAL ANALYSIS
+  - Interactive network graph visualization
+  - Channels as nodes (sized by revenue, colored by performance)
+  - Synergy connections as edges (green=strong, yellow=medium, red=weak)
+  - Click any node to see its connections, synergy scores, and revenue share
+  - Synergy table with sortable scores, frequency, and confidence
+
+Screen 4: AI RECOMMENDATIONS
+  - Priority-grouped cards (High / Medium / Low)
+  - Each card: channel, action, type (Scale/Optimize/Stop), confidence %,
+    estimated impact (P/month), 6-month trend sparkline
+  - Expandable detail: current state, projected outcome, why it matters
+  - Summary cards showing total potential monthly impact
+
+
+HOW IT WORKS (TECHNICAL SUMMARY)
+---------------------------------
+Architecture: Monorepo with 4 packages
+  - Frontend:  React 18 + TypeScript + Tailwind (Vite, port 3000)
+  - Backend:   Express + TypeScript (port 3001)
+  - Pixel:     Webpack bundle, ES2015 target (port 3002)
+  - Shared:    TypeScript types + utility functions
+
+Database: Supabase (PostgreSQL)
+  - Tables: users, platform_connections, raw_events, pixel_events,
+    verified_conversions, ai_recommendations
+
+Background Jobs (node-cron, Manila timezone):
+  - Midnight: Attribution engine links conversions to journeys
+  - 2:00 AM:  Gemini AI generates enhanced recommendations
+
+Auth: OAuth 2.0 for all platforms, Passport.js, encrypted token storage
+
+Data freshness: Platforms sync every 6 hours, pixel events are real-time,
+attribution recalculates daily, AI recommendations refresh with 5-min cache.
+
+
+KEY METRICS FOR THE DEMO
+-------------------------
+With seed data loaded (4 channels, 90 days):
+
+  Channels:       Facebook, Google, Email, Instagram
+  Journeys:       96 conversion journeys
+  Spend Events:   52 (4 channels x 13 weeks)
+
+  Top Synergy:    Facebook + Google = ~2.5x (Strong)
+  Channel Roles:  Google = Closer, Facebook = Introducer,
+                  Email = Introducer, Instagram = Isolated
+
+  The demo shows a clear story: Facebook drives awareness, Google closes
+  sales, and together they produce 2.5x higher conversion value than
+  either channel alone. Instagram operates independently with low synergy
+  — a candidate for budget reallocation.
+
+
+TARGET MARKET
+-------------
+  - Philippine SMBs and mid-market businesses running multi-channel marketing
+  - E-commerce merchants on Shopify / WooCommerce
+  - Marketing agencies managing multiple client accounts
+  - Any business spending on 2+ marketing platforms that wants to understand
+    cross-channel ROI
+
+
+COMPETITIVE EDGE
+----------------
+  1. Journey-level attribution, not just channel-level reporting
+  2. Synergy scores quantify HOW channels amplify each other
+  3. AI recommendations with peso-denominated impact estimates
+  4. One-click platform connections (no engineering required)
+  5. Built for Philippine market (PHP currency, Manila timezone, local context)
+  6. Lightweight pixel — no impact on site performance
+
+
+TECH STACK AT A GLANCE
+-----------------------
+  Frontend:    React 18, TypeScript, Vite, Tailwind CSS, React Query
+  Backend:     Express, TypeScript, Supabase, Passport.js
+  AI:          Google Gemini API
+  Tracking:    Custom pixel (<5KB), session-based
+  Database:    PostgreSQL (Supabase)
+  Scheduling:  node-cron (daily attribution + AI refresh)
+  Deployment:  Node.js monorepo (npm workspaces)

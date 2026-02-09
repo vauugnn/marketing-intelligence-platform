@@ -115,6 +115,9 @@ export interface ChannelPerformance {
   performance_rating: 'exceptional' | 'excellent' | 'satisfactory' | 'poor' | 'failing';
 }
 
+// Synergy status labels
+export type SynergyStatus = 'strong' | 'needs_improvement' | 'needs_attention' | 'urgent';
+
 // System Intelligence
 export interface ChannelSynergy {
   channel_a: string;
@@ -122,15 +125,42 @@ export interface ChannelSynergy {
   synergy_score: number; // multiplier effect
   frequency: number; // how often they appear together
   confidence: number;
+  status: SynergyStatus;
 }
 
 export interface SystemHealth {
   overall_score: number; // 0-100
   synergies: ChannelSynergy[];
   isolated_channels: string[];
-  recommendations: AIRecommendation[];
 }
 
+// Per-channel AI insight
+export interface ChannelInsight {
+  id: string;
+  channel: string;
+  strengths: string[];
+  weaknesses: string[];
+  cross_channel_effects: CrossChannelEffect[];
+  campaign_insights: CampaignInsight[];
+  ai_summary: string;
+  confidence: number;
+}
+
+export interface CrossChannelEffect {
+  target_channel: string;
+  effect: 'amplifies' | 'weakens' | 'neutral';
+  magnitude: number;
+  description: string;
+}
+
+export interface CampaignInsight {
+  campaign_name: string;
+  channel: string;
+  observation: string;
+  cross_platform_impact?: string;
+}
+
+/** @deprecated Use ChannelInsight instead */
 export interface AIRecommendation {
   id: string;
   type: 'scale' | 'optimize' | 'stop';

@@ -1,0 +1,99 @@
+Slide 1: Title & The Hook
+Visual: Neuralys Logo.
+
+Text: See Your Marketing as a System, Not Scattered Channels.
+
+Script:
+
+"Good day, I’m Vaughn and we are Neuralys. Are you actually running your business, or are you just watching your budget burn in silos you don't control? Most marketers are just spectators. They celebrate high numbers on a screen while their bank account stays empty. We built Neuralys to be the Truth Machine for business owners who are tired of platforms lying to them."
+
+Slide 2: Positioning & The Job to be Done (JTBD)
+
+Visual: Graphic of "The Attribution Trap"—Facebook, Google, and Email all claiming the same single sale.
+
+Text:
+
+Positioning:
+
+
+For conscious business owners,
+
+
+who struggle at channel management and optimization,
+
+
+because platforms claim credit for the same sales using fragmented data,
+
+
+our product helps by identifying the truth through cross-referenced, system-level intelligence.
+
+JTBD: When multiple marketing channels are running, I want to understand the unique role each one plays in my ecosystem, so that I can double down on what works and nourish the relationships that drive the most growth.
+
+Script:
+
+"Neuralys is for the owner tired of 'platform greed.' Right now, you’re likely paying for the same customer three different times because your tools only show you isolated islands. We move you from guessing to orchestrating a high-performance system by cross-referencing every platform claim against actual revenue in your payment processor."
+
+Slide 3: Technical Pillars
+Visual: Three distinct icons for Verification, Intelligence, and Analysis.
+
+Text:
+
+
+Dual-Layer Verification: Custom Pixel + GA4 cross-referencing for 95% accuracy.
+
+
+System Intelligence: Visual network mapping of synergies and isolation.
+
+
+Neural Analysis: Data-driven insights into per-channel roles and cross-platform effects.
+
+Script:
+
+"Our solution stands on three technical pillars. First, Dual-Layer Verification: we cross-check our custom pixel with GA4 to eliminate 'last-click' bias. Second, System Intelligence: a visual map of your entire ecosystem. And finally, Neural Analysis: we use Google Gemini to turn raw data from Meta, Google, and HubSpot into actionable insights."
+
+Slide 4: Neural Analysis (The Pivot)
+Visual: Screenshot of the "Neural Analysis" dashboard with status badges: Strong / Needs Improvement / Urgent.
+
+Text:
+
+
+Synergy Status: Real-time monitoring of reinforcement and decay.
+
+
+Insight Engine: Per-channel marketing roles and campaign-level cross-platform effects.
+
+Script:
+
+"We’ve moved past simple commands. We provide Neural Analysis. Our system reveals how your campaigns amplify or weaken each other in real-time. You get a clear Synergy Status—letting you know which connections are Strong and which ones need Urgent attention. We show you the exact bridge where your brand reach turns into revenue."
+
+Slide 5: Proof of Concept & Competitive Edge
+
+Visual: Comparison Table (Neuralys vs. Triple Whale vs. Northbeam). 
+
+Text:
+
+
+Triple Whale: Cannot verify platform claims against actual payment data.
+
+
+Northbeam: No system-level intelligence at SMB pricing.
+
+
+Neuralys: Verified Truth against Stripe/PayPal + Visual Synergy Map.
+
+Script:
+
+"Our Proof of Concept is a working engine. While competitors like Triple Whale can't verify platform claims against actual payment data, we verify every sale through Stripe or PayPal. We bring enterprise-level accuracy and system intelligence to the SMB market at a price that actually makes sense."
+
+Slide 6: Conclusion
+Visual: Large text: "Stop Optimizing in Silos. Start Growing the System." 
+
+Text:
+
+Team 5: Neuralys 
+
+Experience the Truth.
+
+Script:
+
+"When you understand how your channels help each other, you stop wasting 30% of your budget. We’re Team 5, and we’re here to give you the truth about your marketing system. Thank you."

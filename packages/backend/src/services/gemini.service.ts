@@ -1,7 +1,7 @@
 /**
  * Gemini AI Enhancement Service
  *
- * Enhances rule-based recommendations with AI-generated narratives.
+ * Generates analytical channel insights using AI.
  * Falls back to rule-based output when Gemini is unavailable or fails.
  */
 
@@ -12,15 +12,17 @@ import {
   analyzeChannelSynergies,
   getJourneyPatterns,
   identifyChannelRoles,
-  generateRecommendations,
+  generateChannelInsights,
+  getCampaignData,
 } from './synergy.service';
 import type {
-  AIRecommendation,
+  ChannelInsight,
   DateRange,
   ChannelPerformance,
   ChannelSynergy,
   ChannelRole,
   JourneyPattern,
+  CampaignInsight,
 } from '@shared/types';
 
 // Compatibility exports / wrappers for legacy tests
@@ -29,39 +31,23 @@ export type { ChannelPerformance, ChannelSynergy } from '@shared/types';
 export { calculateROI } from '@shared/utils';
 import { getPerformanceRating, normalizeChannel } from '@shared/utils';
 
-// --- Types for Gemini responase validation ---
+// --- Types for Gemini response validation ---
 
-interface GeminiEnhancedRec {
-  id: string;
-  action: string;
-  reason: string;
-  ai_explanation: string;
-  after_implementation: string;
-  why_it_matters: string[];
-}
-
-interface GeminiAdditionalRec {
-  type: 'scale' | 'optimize' | 'stop';
-  channel: string;
-  action: string;
-  reason: string;
-  ai_explanation: string;
-  after_implementation: string;
-  why_it_matters: string[];
-  estimated_impact: number;
-  confidence: number;
-  priority: 'high' | 'medium' | 'low';
-}
-
-interface GeminiResponse {
-  enhanced: GeminiEnhancedRec[];
-  additional: GeminiAdditionalRec[];
+interface GeminiInsightResponse {
+  channel_insights: Array<{
+    channel: string;
+    strengths: string[];
+    weaknesses: string[];
+    ai_summary: string;
+    campaign_observations: string[];
+  }>;
+  cross_channel_observations: string[];
 }
 
 // --- In-memory cache ---
 
 interface CacheEntry {
-  data: AIRecommendation[];
+  data: ChannelInsight[];
   expiresAt: number;
 }
 
@@ -72,7 +58,7 @@ function getCacheKey(userId: string, dateRange: DateRange, businessType: 'sales'
   return `${userId}:${dateRange.start}:${dateRange.end}:${businessType}`;
 }
 
-function getCached(key: string): AIRecommendation[] | null {
+function getCached(key: string): ChannelInsight[] | null {
   const entry = cache.get(key);
   if (!entry) return null;
   if (Date.now() > entry.expiresAt) {
@@ -82,45 +68,25 @@ function getCached(key: string): AIRecommendation[] | null {
   return entry.data;
 }
 
-function setCache(key: string, data: AIRecommendation[]): void {
+function setCache(key: string, data: ChannelInsight[]): void {
   cache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS });
 }
 
 // --- Validation ---
 
-function validateGeminiResponse(parsed: unknown): parsed is GeminiResponse {
+function validateGeminiResponse(parsed: unknown): parsed is GeminiInsightResponse {
   if (!parsed || typeof parsed !== 'object') return false;
   const obj = parsed as Record<string, unknown>;
 
-  if (!Array.isArray(obj.enhanced) || !Array.isArray(obj.additional)) return false;
+  if (!Array.isArray(obj.channel_insights) || !Array.isArray(obj.cross_channel_observations)) return false;
 
-  for (const rec of obj.enhanced) {
+  for (const insight of obj.channel_insights) {
     if (
-      typeof rec !== 'object' || !rec ||
-      typeof (rec as any).id !== 'string' ||
-      typeof (rec as any).action !== 'string' ||
-      typeof (rec as any).reason !== 'string' ||
-      typeof (rec as any).ai_explanation !== 'string' ||
-      typeof (rec as any).after_implementation !== 'string' ||
-      !Array.isArray((rec as any).why_it_matters)
-    ) {
-      return false;
-    }
-  }
-
-  for (const rec of obj.additional) {
-    if (
-      typeof rec !== 'object' || !rec ||
-      !['scale', 'optimize', 'stop'].includes((rec as any).type) ||
-      typeof (rec as any).channel !== 'string' ||
-      typeof (rec as any).action !== 'string' ||
-      typeof (rec as any).reason !== 'string' ||
-      typeof (rec as any).ai_explanation !== 'string' ||
-      typeof (rec as any).after_implementation !== 'string' ||
-      !Array.isArray((rec as any).why_it_matters) ||
-      typeof (rec as any).estimated_impact !== 'number' ||
-      typeof (rec as any).confidence !== 'number' ||
-      !['high', 'medium', 'low'].includes((rec as any).priority)
+      typeof insight !== 'object' || !insight ||
+      typeof (insight as any).channel !== 'string' ||
+      !Array.isArray((insight as any).strengths) ||
+      !Array.isArray((insight as any).weaknesses) ||
+      typeof (insight as any).ai_summary !== 'string'
     ) {
       return false;
     }
@@ -136,14 +102,27 @@ function buildPrompt(
   synergies: ChannelSynergy[],
   roles: ChannelRole[],
   patterns: JourneyPattern[],
-  ruleBasedRecs: AIRecommendation[],
+  campaignData: CampaignInsight[],
   businessType: 'sales' | 'leads' = 'sales'
 ): string {
   const intro = businessType === 'leads'
-    ? `You are a senior marketing analytics consultant advising a Philippine lead generation business (₱ PHP currency). This business measures success by conversion volume and cost-per-lead (CPL), NOT by revenue.`
-    : `You are a senior marketing analytics consultant advising a Philippine business (₱ PHP currency).`;
+    ? `You are a senior marketing analytics consultant analyzing a Philippine lead generation business's marketing channels (₱ PHP currency). This business measures success by conversion volume and cost-per-lead (CPL), NOT by revenue.`
+    : `You are a senior marketing analytics consultant analyzing a Philippine business's marketing channels (₱ PHP currency).`;
 
   return `${intro}
+
+DO NOT recommend specific actions like "increase budget" or "cut this channel".
+Instead, provide analytical observations about:
+
+1. For each channel: What patterns show it's effective at (strengths) and where
+   the data suggests room for improvement (weaknesses)
+2. Cross-channel dynamics: Which channel pairs amplify each other and which may
+   be weakening each other's effectiveness
+3. Campaign-level observations: What the campaign data reveals about cross-platform
+   performance
+
+Be specific — reference actual numbers from the data. Keep each insight under
+200 characters.
 
 ## Input Data
 
@@ -159,139 +138,85 @@ ${JSON.stringify(roles, null, 2)}
 ### Top Journey Patterns
 ${JSON.stringify(patterns.slice(0, 15), null, 2)}
 
-### Rule-Based Recommendations
-${JSON.stringify(ruleBasedRecs, null, 2)}
-
-## Task
-
-1. **Enhance** each rule-based recommendation:
-   - Rewrite "action" with specific data references (keep under 120 characters)
-   - Rewrite "reason" with concrete metrics from the data
-   - Add "ai_explanation": 2-3 sentence narrative context (under 300 characters)
-   - Add "after_implementation": projected outcome description
-   - Add "why_it_matters": 2-4 data-grounded bullet points
-
-2. **Identify** 0-2 additional recommendations the rules missed, based on patterns in the data.
-
-## Constraints
-- Do NOT invent data — only reference numbers from the input
-- Use ₱ symbol for currency values
-- Keep "action" under 120 characters
-- Keep "ai_explanation" under 300 characters
-${businessType === 'leads' ? '- Focus on conversion counts and CPL, not revenue or ROI' : ''}
+### Campaign Data
+${JSON.stringify(campaignData, null, 2)}
 
 ## Output Format
 Return strictly valid JSON matching this schema:
 {
-  "enhanced": [
+  "channel_insights": [
     {
-      "id": "<matching rule-based rec id>",
-      "action": "<enhanced action text>",
-      "reason": "<enhanced reason>",
-      "ai_explanation": "<2-3 sentence narrative>",
-      "after_implementation": "<projected outcome>",
-      "why_it_matters": ["<bullet 1>", "<bullet 2>"]
+      "channel": "<channel name>",
+      "strengths": ["<strength observation>"],
+      "weaknesses": ["<weakness observation>"],
+      "ai_summary": "<2-3 sentence analytical narrative about this channel>",
+      "campaign_observations": ["<campaign-specific observation>"]
     }
   ],
-  "additional": [
-    {
-      "type": "scale" | "optimize" | "stop",
-      "channel": "<channel name>",
-      "action": "<action text>",
-      "reason": "<reason>",
-      "ai_explanation": "<narrative>",
-      "after_implementation": "<outcome>",
-      "why_it_matters": ["<bullet>"],
-      "estimated_impact": <number>,
-      "confidence": <number 0-100>,
-      "priority": "high" | "medium" | "low"
-    }
-  ]
+  "cross_channel_observations": ["<general cross-channel pattern>"]
 }`;
 }
 
 // --- Merge ---
 
 function mergeResults(
-  ruleBasedRecs: AIRecommendation[],
-  geminiResponse: GeminiResponse
-): AIRecommendation[] {
-  const enhanced = new Map(geminiResponse.enhanced.map((e) => [e.id, e]));
+  ruleBasedInsights: ChannelInsight[],
+  geminiResponse: GeminiInsightResponse
+): ChannelInsight[] {
+  const aiMap = new Map(geminiResponse.channel_insights.map((ai) => [ai.channel.toLowerCase(), ai]));
 
-  const merged: AIRecommendation[] = ruleBasedRecs.map((rec) => {
-    const aiData = enhanced.get(rec.id);
-    if (!aiData) return rec;
+  return ruleBasedInsights.map((insight) => {
+    const aiData = aiMap.get(insight.channel.toLowerCase());
+    if (!aiData) return insight;
 
     return {
-      ...rec,
-      action: aiData.action || rec.action,
-      reason: aiData.reason || rec.reason,
-      ai_explanation: aiData.ai_explanation,
-      after_implementation: aiData.after_implementation,
-      why_it_matters: aiData.why_it_matters,
-      ai_enhanced: true,
+      ...insight,
+      ai_summary: aiData.ai_summary || insight.ai_summary,
+      // Merge AI strengths/weaknesses that aren't duplicates
+      strengths: [...insight.strengths, ...aiData.strengths.filter(s => !insight.strengths.includes(s))],
+      weaknesses: [...insight.weaknesses, ...aiData.weaknesses.filter(w => !insight.weaknesses.includes(w))],
     };
   });
-
-  // Append additional AI-identified recommendations
-  for (let i = 0; i < geminiResponse.additional.length; i++) {
-    const add = geminiResponse.additional[i];
-    merged.push({
-      id: `rec-ai-${i + 1}`,
-      type: add.type,
-      channel: add.channel,
-      action: add.action,
-      reason: add.reason,
-      estimated_impact: add.estimated_impact,
-      confidence: add.confidence,
-      priority: add.priority,
-      ai_explanation: add.ai_explanation,
-      after_implementation: add.after_implementation,
-      why_it_matters: add.why_it_matters,
-      ai_enhanced: true,
-    });
-  }
-
-  return merged;
 }
 
 // --- Main export ---
 
-export async function enhanceRecommendationsWithAI(
+export async function generateAIInsights(
   userId: string,
   dateRange: DateRange,
   businessType: 'sales' | 'leads' = 'sales'
-): Promise<AIRecommendation[]> {
+): Promise<ChannelInsight[]> {
   // 1. Fetch all analysis data once
-  const [performance, synergies, roles, patterns] = await Promise.all([
+  const [performance, synergies, roles, patterns, campaignData] = await Promise.all([
     getChannelPerformance(userId, dateRange, businessType),
     analyzeChannelSynergies(userId, dateRange, businessType),
     identifyChannelRoles(userId, dateRange),
     getJourneyPatterns(userId, dateRange, businessType),
+    getCampaignData(userId, dateRange),
   ]);
 
-  // 2. Generate rule-based recommendations with pre-fetched data (no duplicate queries)
-  const ruleBasedRecs = await generateRecommendations(userId, dateRange, {
+  // 2. Generate rule-based insights with pre-fetched data
+  const ruleBasedInsights = await generateChannelInsights(userId, dateRange, {
     synergies,
     performance,
     roles,
   }, businessType);
 
-  if (ruleBasedRecs.length === 0) return [];
+  if (ruleBasedInsights.length === 0) return [];
 
   // 3. Check cache
   const cacheKey = getCacheKey(userId, dateRange, businessType);
   const cached = getCached(cacheKey);
   if (cached) {
-    logger.info('GeminiService', 'Returning cached AI recommendations', { userId });
+    logger.info('GeminiService', 'Returning cached AI insights', { userId });
     return cached;
   }
 
   // 4. Check if Gemini is available
   const client = getGeminiClient();
   if (!client) {
-    logger.info('GeminiService', 'No Gemini API key, returning rule-based recommendations');
-    return ruleBasedRecs;
+    logger.info('GeminiService', 'No Gemini API key, returning rule-based insights');
+    return ruleBasedInsights;
   }
 
   // 5. Call Gemini API
@@ -301,7 +226,7 @@ export async function enhanceRecommendationsWithAI(
       generationConfig,
     });
 
-    const prompt = buildPrompt(performance, synergies, roles, patterns, ruleBasedRecs, businessType);
+    const prompt = buildPrompt(performance, synergies, roles, patterns, campaignData, businessType);
     const result = await model.generateContent(prompt);
     const text = result.response.text();
 
@@ -310,16 +235,16 @@ export async function enhanceRecommendationsWithAI(
 
     if (!validateGeminiResponse(parsed)) {
       logger.warn('GeminiService', 'Gemini response failed schema validation, falling back');
-      return ruleBasedRecs;
+      return ruleBasedInsights;
     }
 
     // 7. Merge and cache
-    const merged = mergeResults(ruleBasedRecs, parsed);
+    const merged = mergeResults(ruleBasedInsights, parsed);
     setCache(cacheKey, merged);
 
-    logger.info('GeminiService', 'AI enhancement complete', {
-      enhanced: parsed.enhanced.length,
-      additional: parsed.additional.length,
+    logger.info('GeminiService', 'AI insight generation complete', {
+      channels: parsed.channel_insights.length,
+      crossChannel: parsed.cross_channel_observations.length,
     });
 
     return merged;
@@ -327,7 +252,7 @@ export async function enhanceRecommendationsWithAI(
     logger.error('GeminiService', 'Gemini API call failed, falling back to rule-based', {
       error: error instanceof Error ? error.message : String(error),
     });
-    return ruleBasedRecs;
+    return ruleBasedInsights;
   }
 }
 
@@ -379,7 +304,6 @@ export function generateFallbackRecommendations(
 ): any[] {
   const recs: any[] = [];
 
-  // 1) Priority: exceptional channels -> scale
   for (const p of performance || []) {
     const rating = (p.performance_rating || '').toString().toLowerCase();
     if (rating === 'exceptional') {
@@ -395,22 +319,19 @@ export function generateFallbackRecommendations(
         priority: 'high',
         is_active: true,
       });
-    } else if (rating === 'satisfactory' || rating === 'satisfactory') {
-      // Satisfactory -> optimize
-      if (rating === 'satisfactory') {
-        recs.push({
-          user_id: userId,
-          id: `rec-fallback-${recs.length + 1}`,
-          type: 'optimize',
-          channel: p.channel,
-          action: `Optimize ${p.channel}`,
-          reason: `Below target ROI (${Math.round(p.roi)}%)`,
-          estimated_impact: Math.round(p.revenue * 0.05),
-          confidence_score: 70,
-          priority: 'medium',
-          is_active: true,
-        });
-      }
+    } else if (rating === 'satisfactory') {
+      recs.push({
+        user_id: userId,
+        id: `rec-fallback-${recs.length + 1}`,
+        type: 'optimize',
+        channel: p.channel,
+        action: `Optimize ${p.channel}`,
+        reason: `Below target ROI (${Math.round(p.roi)}%)`,
+        estimated_impact: Math.round(p.revenue * 0.05),
+        confidence_score: 70,
+        priority: 'medium',
+        is_active: true,
+      });
     } else if (rating === 'poor' || rating === 'failing') {
       recs.push({
         user_id: userId,
@@ -429,7 +350,6 @@ export function generateFallbackRecommendations(
     if (recs.length >= 3) break;
   }
 
-  // 2) Synergy-based scale recommendations
   for (const s of synergies || []) {
     if (s.synergy_score >= 2.0 && (s.confidence ?? 0) >= 50) {
       recs.push({

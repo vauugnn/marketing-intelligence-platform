@@ -21,7 +21,10 @@ import type {
   ChannelSynergy,
   JourneyPattern,
   ChannelRole,
-  AIRecommendation,
+  ChannelInsight,
+  CrossChannelEffect,
+  CampaignInsight,
+  SynergyStatus,
   DateRange,
 } from '@shared/types';
 
@@ -342,13 +345,15 @@ export async function analyzeChannelSynergies(
       }
 
       const confidence = Math.min(95, Math.round(20 + 25 * Math.log2(stats.count)));
+      const roundedScore = Math.round(synergyScore * 100) / 100;
 
       synergies.push({
         channel_a: channelA,
         channel_b: channelB,
-        synergy_score: Math.round(synergyScore * 100) / 100,
+        synergy_score: roundedScore,
         frequency: stats.count,
         confidence,
+        status: getSynergyStatus(roundedScore),
       });
     }
 
@@ -395,12 +400,14 @@ export async function analyzeChannelSynergies(
       const totalConversions = channelA.conversions + channelB.conversions;
       const confidence = Math.min(70, Math.round(30 + Math.log2(totalConversions + 1) * 10));
 
+      const roundedScore = Math.round(synergyScore * 100) / 100;
       synergies.push({
         channel_a: channelA.channel,
         channel_b: channelB.channel,
-        synergy_score: Math.round(synergyScore * 100) / 100,
+        synergy_score: roundedScore,
         frequency: totalConversions,
         confidence,
+        status: getSynergyStatus(roundedScore),
       });
     }
   }
@@ -560,8 +567,17 @@ export async function identifyChannelRoles(
 }
 
 /**
- * Generates rule-based recommendations from synergy, performance,
- * and role analysis.
+ * Maps a synergy score to a status label.
+ */
+function getSynergyStatus(score: number): SynergyStatus {
+  if (score >= 1.5) return 'strong';
+  if (score >= 1.0) return 'needs_improvement';
+  if (score >= 0.5) return 'needs_attention';
+  return 'urgent';
+}
+
+/**
+ * Analysis data bundle for channel insights generation.
  */
 export interface AnalysisData {
   synergies: ChannelSynergy[];
@@ -569,130 +585,207 @@ export interface AnalysisData {
   roles: ChannelRole[];
 }
 
-export async function generateRecommendations(
+/**
+ * Queries pixel_events grouped by utm_campaign to return campaign-level metrics.
+ */
+export async function getCampaignData(
+  userId: string,
+  dateRange: DateRange
+): Promise<CampaignInsight[]> {
+  logger.info('SynergyService', 'Fetching campaign data', { userId, dateRange });
+
+  // Get user's pixel_id
+  const { data: user } = await supabaseAdmin
+    .from('users')
+    .select('pixel_id')
+    .eq('id', userId)
+    .single();
+
+  if (!user?.pixel_id) return [];
+
+  // Get conversion pixel events with campaign data
+  const { data: events, error } = await supabaseAdmin
+    .from('pixel_events')
+    .select('utm_campaign, utm_source, session_id, event_type, metadata')
+    .eq('pixel_id', user.pixel_id)
+    .not('utm_campaign', 'is', null)
+    .gte('timestamp', dateRange.start)
+    .lte('timestamp', dateRange.end);
+
+  if (error || !events) return [];
+
+  // Group by campaign
+  const campaignMap = new Map<string, { channel: string; sessions: Set<string>; conversions: number }>();
+  for (const e of events) {
+    const campaign = e.utm_campaign;
+    if (!campaign) continue;
+    const channel = normalizeChannel(e.utm_source || 'direct');
+    const key = `${campaign}|${channel}`;
+    if (!campaignMap.has(key)) {
+      campaignMap.set(key, { channel, sessions: new Set(), conversions: 0 });
+    }
+    const entry = campaignMap.get(key)!;
+    entry.sessions.add(e.session_id);
+    if (e.event_type === 'conversion') entry.conversions += 1;
+  }
+
+  // Find campaigns that appear across multiple channels
+  const campaignChannels = new Map<string, Set<string>>();
+  for (const [key] of campaignMap) {
+    const [campaign, channel] = key.split('|');
+    if (!campaignChannels.has(campaign)) campaignChannels.set(campaign, new Set());
+    campaignChannels.get(campaign)!.add(channel);
+  }
+
+  const insights: CampaignInsight[] = [];
+  for (const [key, data] of campaignMap) {
+    const [campaign, channel] = key.split('|');
+    const otherChannels = campaignChannels.get(campaign);
+    const crossPlatform = otherChannels && otherChannels.size > 1
+      ? `Also appears on ${[...otherChannels].filter(c => c !== channel).join(', ')}`
+      : undefined;
+
+    insights.push({
+      campaign_name: campaign,
+      channel,
+      observation: `${data.sessions.size} sessions, ${data.conversions} conversions`,
+      cross_platform_impact: crossPlatform,
+    });
+  }
+
+  return insights;
+}
+
+/**
+ * Generates per-channel insight objects from synergy, performance,
+ * role, and campaign analysis data.
+ */
+export async function generateChannelInsights(
   userId: string,
   dateRange: DateRange,
   prefetched?: AnalysisData,
   businessType: 'sales' | 'leads' = 'sales'
-): Promise<AIRecommendation[]> {
-  logger.info('SynergyService', 'Generating recommendations', { userId, dateRange, businessType });
+): Promise<ChannelInsight[]> {
+  logger.info('SynergyService', 'Generating channel insights', { userId, dateRange, businessType });
 
-  // Use pre-fetched data or run analyses in parallel
-  const [synergies, performance, roles] = prefetched
-    ? [prefetched.synergies, prefetched.performance, prefetched.roles]
+  const [synergies, performance, roles, campaignData] = prefetched
+    ? [prefetched.synergies, prefetched.performance, prefetched.roles, await getCampaignData(userId, dateRange)]
     : await Promise.all([
       analyzeChannelSynergies(userId, dateRange, businessType),
       getChannelPerformance(userId, dateRange, businessType),
       identifyChannelRoles(userId, dateRange),
+      getCampaignData(userId, dateRange),
     ]);
 
-  const recommendations: AIRecommendation[] = [];
-  let idCounter = 1;
-
-  // Build lookup maps
   const perfMap = new Map(performance.map((p) => [p.channel, p]));
   const roleMap = new Map(roles.map((r) => [r.channel, r]));
 
-  // Rule 1: Scale — synergy pairs with score >= 2.0 and confidence >= 50
+  // Build synergy lookup per channel
+  const channelSynergies = new Map<string, ChannelSynergy[]>();
   for (const syn of synergies) {
-    if (syn.synergy_score >= 2.0 && syn.confidence >= 50) {
-      const estimatedImpact = businessType === 'leads'
-        ? Math.round(syn.synergy_score * syn.frequency)
-        : Math.round(
-          syn.synergy_score * syn.frequency * ((perfMap.get(syn.channel_a)?.revenue || 0) + (perfMap.get(syn.channel_b)?.revenue || 0)) / Math.max(1, (perfMap.get(syn.channel_a)?.conversions || 0) + (perfMap.get(syn.channel_b)?.conversions || 0))
-        );
+    if (!channelSynergies.has(syn.channel_a)) channelSynergies.set(syn.channel_a, []);
+    if (!channelSynergies.has(syn.channel_b)) channelSynergies.set(syn.channel_b, []);
+    channelSynergies.get(syn.channel_a)!.push(syn);
+    channelSynergies.get(syn.channel_b)!.push(syn);
+  }
 
-      recommendations.push({
-        id: `rec-${idCounter++}`,
-        type: 'scale',
-        channel: `${syn.channel_a} + ${syn.channel_b}`,
-        action: `Combine ${syn.channel_a} and ${syn.channel_b} campaigns — run ${syn.channel_b} retargeting on ${syn.channel_a} audience`,
-        reason: `${syn.synergy_score}x synergy detected across ${syn.frequency} conversions`,
-        estimated_impact: estimatedImpact,
-        confidence: syn.confidence,
-        priority: syn.synergy_score >= 3.0 ? 'high' : 'medium',
-        why_it_matters: [
-          `Strong synergy (${syn.synergy_score}x) detected between these channels`,
-          `Verified across ${syn.frequency} conversion journeys`,
-          businessType === 'leads'
-            ? `Combined approach yields more conversions than solo performance`
-            : `Combined approach yields better ROI than solo performance`
-        ],
+  // Build campaign lookup per channel
+  const channelCampaigns = new Map<string, CampaignInsight[]>();
+  for (const ci of campaignData) {
+    if (!channelCampaigns.has(ci.channel)) channelCampaigns.set(ci.channel, []);
+    channelCampaigns.get(ci.channel)!.push(ci);
+  }
+
+  const insights: ChannelInsight[] = [];
+
+  for (const perf of performance) {
+    const channel = perf.channel;
+    const role = roleMap.get(channel);
+    const syns = channelSynergies.get(channel) || [];
+    const campaigns = channelCampaigns.get(channel) || [];
+
+    // Derive strengths
+    const strengths: string[] = [];
+    if (perf.performance_rating === 'exceptional' || perf.performance_rating === 'excellent') {
+      if (businessType === 'leads') {
+        strengths.push(`Strong performer — CPL of ₱${Math.round(perf.cpl || 0)} across ${perf.conversions} conversions`);
+      } else {
+        strengths.push(`High ROI at ${Math.round(perf.roi)}% across ${perf.conversions} conversions`);
+      }
+    }
+    if (role) {
+      const totalApp = role.solo_conversions + role.assisted_conversions;
+      if (role.primary_role === 'introducer' && totalApp > 0) {
+        const pct = Math.round((role.introducer_count / totalApp) * 100);
+        strengths.push(`Strong introducer — first touch in ${pct}% of multi-touch journeys`);
+      } else if (role.primary_role === 'closer' && totalApp > 0) {
+        const pct = Math.round((role.closer_count / totalApp) * 100);
+        strengths.push(`Strong closer — last touch in ${pct}% of multi-touch conversions`);
+      } else if (role.primary_role === 'supporter' && totalApp > 0) {
+        strengths.push(`Key supporter — assists in ${role.assisted_conversions} multi-touch journeys`);
+      }
+    }
+    const strongSyns = syns.filter(s => s.synergy_score >= 1.5);
+    if (strongSyns.length > 0) {
+      strengths.push(`Strong synergy with ${strongSyns.length} channel${strongSyns.length > 1 ? 's' : ''}`);
+    }
+    if (strengths.length === 0) {
+      strengths.push(`Active channel with ${perf.conversions} conversions in period`);
+    }
+
+    // Derive weaknesses
+    const weaknesses: string[] = [];
+    if (perf.performance_rating === 'poor' || perf.performance_rating === 'failing') {
+      if (businessType === 'leads') {
+        weaknesses.push(`${perf.performance_rating} CPL (₱${Math.round(perf.cpl || 0)}) — above target threshold`);
+      } else {
+        weaknesses.push(`${perf.performance_rating} ROI (${Math.round(perf.roi)}%) — below target threshold`);
+      }
+    }
+    if (role?.primary_role === 'isolated') {
+      const totalApp = role.solo_conversions + role.assisted_conversions;
+      const soloRatio = totalApp > 0 ? Math.round((role.solo_conversions / totalApp) * 100) : 0;
+      weaknesses.push(`Operates in isolation — ${soloRatio}% solo conversion ratio`);
+    }
+    const weakSyns = syns.filter(s => s.synergy_score < 0.5);
+    if (weakSyns.length > 0) {
+      weaknesses.push(`Urgent synergy status with ${weakSyns.length} channel pair${weakSyns.length > 1 ? 's' : ''}`);
+    }
+
+    // Cross-channel effects
+    const crossChannelEffects: CrossChannelEffect[] = [];
+    for (const syn of syns) {
+      const targetChannel = syn.channel_a === channel ? syn.channel_b : syn.channel_a;
+      const effect: CrossChannelEffect['effect'] = syn.synergy_score > 1.0 ? 'amplifies' : syn.synergy_score < 1.0 ? 'weakens' : 'neutral';
+      const description = effect === 'amplifies'
+        ? `${channel} audiences convert better when also exposed to ${targetChannel}`
+        : effect === 'weakens'
+          ? `Combined ${channel} + ${targetChannel} journeys underperform solo conversions`
+          : `Neutral interaction between ${channel} and ${targetChannel}`;
+
+      crossChannelEffects.push({
+        target_channel: targetChannel,
+        effect,
+        magnitude: syn.synergy_score,
+        description,
       });
     }
+
+    // Confidence based on data volume
+    const totalAppearances = role ? role.solo_conversions + role.assisted_conversions : perf.conversions;
+    const confidence = Math.min(95, Math.round(30 + 20 * Math.log2(Math.max(1, totalAppearances))));
+
+    insights.push({
+      id: `insight-${channel}`,
+      channel,
+      strengths,
+      weaknesses,
+      cross_channel_effects: crossChannelEffects,
+      campaign_insights: campaigns,
+      ai_summary: '',
+      confidence,
+    });
   }
 
-  // Rule 2: Stop — isolated channels with poor/failing performance
-  for (const role of roles) {
-    if (role.primary_role === 'isolated') {
-      const perf = perfMap.get(role.channel);
-      if (perf && (perf.performance_rating === 'poor' || perf.performance_rating === 'failing')) {
-        const metricLabel = businessType === 'leads'
-          ? `CPL (₱${Math.round(perf.cpl || 0)})`
-          : `ROI (${Math.round(perf.roi)}%)`;
-
-        recommendations.push({
-          id: `rec-${idCounter++}`,
-          type: 'stop',
-          channel: role.channel,
-          action: `Cut ${role.channel} budget — reallocate to synergistic channels`,
-          reason: `Isolated channel (${role.solo_conversions} solo / ${role.solo_conversions + role.assisted_conversions} total), ${perf.performance_rating} ${metricLabel}`,
-          estimated_impact: perf.spend,
-          confidence: 90,
-          priority: perf.performance_rating === 'failing' ? 'high' : 'medium',
-          why_it_matters: [
-            businessType === 'leads'
-              ? `Channel acts in isolation with ${perf.performance_rating} CPL`
-              : `Channel acts in isolation with ${perf.performance_rating} ROI`,
-            `Low contribution to other channel conversions`,
-            `Budget can be better utilized in synergistic channels`
-          ],
-        });
-      }
-    }
-  }
-
-  // Rule 3: Optimize — non-isolated channels with below-target performance
-  for (const role of roles) {
-    if (role.primary_role !== 'isolated') {
-      const perf = perfMap.get(role.channel);
-      if (perf && (perf.performance_rating === 'poor' || perf.performance_rating === 'failing')) {
-        const metricLabel = businessType === 'leads'
-          ? `CPL is ${perf.performance_rating} (₱${Math.round(perf.cpl || 0)})`
-          : `ROI is ${perf.performance_rating} (${Math.round(perf.roi)}%)`;
-        const estimatedImpact = businessType === 'leads'
-          ? Math.round(perf.conversions * 0.2)
-          : Math.round(perf.revenue * 0.2);
-        const currentMetric = businessType === 'leads'
-          ? `Current CPL (₱${Math.round(perf.cpl || 0)}) is above target`
-          : `Current ROI (${Math.round(perf.roi)}%) is below potential`;
-
-        recommendations.push({
-          id: `rec-${idCounter++}`,
-          type: 'optimize',
-          channel: role.channel,
-          action: `Optimize ${role.channel} — improve targeting or reduce cost per acquisition`,
-          reason: `Active in ${role.assisted_conversions} assisted conversions but ${metricLabel}`,
-          estimated_impact: estimatedImpact,
-          confidence: 75,
-          priority: 'medium',
-          why_it_matters: [
-            `Critical support role in ${role.assisted_conversions} conversions`,
-            currentMetric,
-            `Optimization could improve overall funnel efficiency`
-          ],
-        });
-      }
-    }
-  }
-
-  // Sort: high priority first, then by estimated impact
-  const priorityOrder = { high: 0, medium: 1, low: 2 };
-  recommendations.sort((a, b) => {
-    const pDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
-    if (pDiff !== 0) return pDiff;
-    return b.estimated_impact - a.estimated_impact;
-  });
-
-  return recommendations;
+  return insights;
 }

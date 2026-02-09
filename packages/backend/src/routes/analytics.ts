@@ -7,7 +7,7 @@ import {
   getJourneyPatterns,
   identifyChannelRoles,
 } from '../services/synergy.service';
-import { enhanceRecommendationsWithAI } from '../services/gemini.service';
+import { generateAIInsights } from '../services/gemini.service';
 import type { DateRange } from '@shared/types';
 
 const router = Router();
@@ -43,13 +43,13 @@ router.get(
   })
 );
 
-// GET /api/analytics/recommendations - Get AI recommendations
+// GET /api/analytics/recommendations - Get channel insights
 router.get(
   '/recommendations',
   authMiddleware,
   asyncHandler(async (req, res) => {
     const dateRange = parseDateRange(req.query);
-    const data = await enhanceRecommendationsWithAI(req.userId!, dateRange, 'sales');
+    const data = await generateAIInsights(req.userId!, dateRange, 'sales');
     res.json({ success: true, data });
   })
 );

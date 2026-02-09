@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, Key } from 'react';
-import { usePerformance, useSynergies } from '../hooks/useAnalytics';
+import { usePerformance, useSynergies, useChannelInsights } from '../hooks/useAnalytics';
 import { useFilteredChannels } from '../hooks/useFilteredChannels';
 import { useDashboardPreferences } from '../stores/useDashboardPreferences';
 import DashboardControls from '../components/DashboardControls';
-import type { ChannelPerformance, ChannelSynergy } from '@shared/types';
+import type { ChannelPerformance, ChannelSynergy, SynergyStatus } from '@shared/types';
 
 interface NetworkNode {
   id: string;
@@ -16,14 +16,14 @@ interface NetworkNode {
 interface NetworkEdge {
   from: string;
   to: string;
-  strength: 'strong' | 'medium' | 'weak';
+  status: SynergyStatus;
 }
 
 interface NodeConnection {
   type: 'incoming' | 'outgoing';
   fromNode: string;
   toNode: string;
-  strength: 'strong' | 'medium' | 'weak';
+  status: SynergyStatus;
 }
 
 // Performance to color mapping — lowercase keys matching API values
@@ -84,13 +84,46 @@ function deriveEdges(synergies: ChannelSynergy[]): NetworkEdge[] {
   return synergies.map((s) => ({
     from: channelToId(s.channel_a),
     to: channelToId(s.channel_b),
-    strength: s.synergy_score >= 1.5 ? 'strong' : s.synergy_score >= 1.0 ? 'medium' : 'weak',
+    status: s.status || (s.synergy_score >= 1.5 ? 'strong' : s.synergy_score >= 1.0 ? 'needs_improvement' : s.synergy_score >= 0.5 ? 'needs_attention' : 'urgent'),
   }));
+}
+
+function getEdgeStyle(status: SynergyStatus) {
+  const baseColor = 'hsl(var(--foreground))';
+  switch (status) {
+    case 'strong':
+      return { stroke: baseColor, strokeWidth: 0.5, strokeDasharray: 'none', opacity: 0.9 };
+    case 'needs_improvement':
+      return { stroke: baseColor, strokeWidth: 0.4, strokeDasharray: 'none', opacity: 0.45 };
+    case 'needs_attention':
+      return { stroke: baseColor, strokeWidth: 0.3, strokeDasharray: '1.5,1', opacity: 0.35 };
+    case 'urgent':
+      return null; // no line rendered
+  }
+}
+
+function getStatusLabel(status: SynergyStatus): string {
+  switch (status) {
+    case 'strong': return 'Strong';
+    case 'needs_improvement': return 'Needs Improvement';
+    case 'needs_attention': return 'Needs High Attention';
+    case 'urgent': return 'Urgent';
+  }
+}
+
+function getStatusBadgeClass(status: SynergyStatus): string {
+  switch (status) {
+    case 'strong': return 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20';
+    case 'needs_improvement': return 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20';
+    case 'needs_attention': return 'bg-orange-500/10 text-orange-500 border border-orange-500/20';
+    case 'urgent': return 'bg-red-500/10 text-red-500 border border-red-500/20';
+  }
 }
 
 export default function SystemMap() {
   const { data: performance = [], isLoading: loadingPerf, error: errorPerf, refetch: refetchPerf } = usePerformance();
   const { data: synergies = [], isLoading: loadingSyn, refetch: refetchSyn } = useSynergies();
+  const { data: channelInsights = [], isLoading: loadingInsights } = useChannelInsights();
   const filteredPerformance = useFilteredChannels(performance);
   const metricView = useDashboardPreferences((s) => s.metricView);
   const allChannelNames = performance.map((ch) => ch.channel);
@@ -99,6 +132,7 @@ export default function SystemMap() {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [animatedNodes, setAnimatedNodes] = useState<Set<string>>(new Set());
   const [isMobile, setIsMobile] = useState(false);
+  const [expandedInsights, setExpandedInsights] = useState<Set<string>>(new Set());
 
   // Detect screen size
   useEffect(() => {
@@ -179,15 +213,6 @@ export default function SystemMap() {
     return distance < minDistance;
   };
 
-  const getEdgeStyle = (strength: string) => {
-    switch (strength) {
-      case 'strong': return { stroke: '#10b981', strokeWidth: 4, strokeDasharray: 'none', opacity: 0.9 };
-      case 'medium': return { stroke: '#f59e0b', strokeWidth: 4, strokeDasharray: 'none', opacity: 0.8 };
-      case 'weak': return { stroke: '#ef4444', strokeWidth: 4, strokeDasharray: 'none', opacity: 0.7 };
-      default: return { stroke: '#64748b', strokeWidth: 2, strokeDasharray: 'none', opacity: 0.3 };
-    }
-  };
-
   const getSocialIcon = (nodeId: string) => {
     const iconProps = { className: "w-full h-full", fill: "white", viewBox: "0 0 24 24" };
     switch (nodeId) {
@@ -207,33 +232,34 @@ export default function SystemMap() {
   const getNodeDetails = (nodeId: string) => {
     const node = networkNodes.find((n) => n.id === nodeId);
     const channel = channelMap.get(nodeId);
-    return { node, channel };
+    const insight = channelInsights.find((i) => channelToId(i.channel) === nodeId);
+    return { node, channel, insight };
   };
 
   const getNodeConnections = (nodeId: string): NodeConnection[] => {
     const connections: NodeConnection[] = [];
     networkEdges.forEach((edge) => {
-      if (edge.from === nodeId) connections.push({ type: 'outgoing', fromNode: edge.from, toNode: edge.to, strength: edge.strength });
-      if (edge.to === nodeId) connections.push({ type: 'incoming', fromNode: edge.from, toNode: edge.to, strength: edge.strength });
+      if (edge.from === nodeId) connections.push({ type: 'outgoing', fromNode: edge.from, toNode: edge.to, status: edge.status });
+      if (edge.to === nodeId) connections.push({ type: 'incoming', fromNode: edge.from, toNode: edge.to, status: edge.status });
     });
     return connections;
   };
 
   const getNodeNameById = (nodeId: string): string => networkNodes.find((n) => n.id === nodeId)?.name || nodeId;
 
-  const getStrengthColor = (strength: string): string => {
-    switch (strength) {
-      case 'strong': return '#10b981';
-      case 'medium': return '#f59e0b';
-      case 'weak': return '#ef4444';
-      default: return '#64748b';
-    }
-  };
-
   const getConnectionMetrics = (fromNode: string, toNode: string) => {
     const syn = synergyMap.get(`${fromNode}-${toNode}`);
     if (syn) return { score: syn.synergy_score.toFixed(2), frequency: syn.frequency, confidence: syn.confidence };
     return { score: '—', frequency: 0, confidence: 0 };
+  };
+
+  const toggleInsightExpanded = (channelId: string) => {
+    setExpandedInsights((prev) => {
+      const next = new Set(prev);
+      if (next.has(channelId)) next.delete(channelId);
+      else next.add(channelId);
+      return next;
+    });
   };
 
   // Loading state
@@ -298,10 +324,315 @@ export default function SystemMap() {
         <DashboardControls channels={allChannelNames} showMetricToggle={true} />
       </div>
 
-      {/* Section 1: Channel Performance Table */}
+      {/* Section 1: Channel Network Graph (moved to top) */}
       <div className="glass-card overflow-hidden mb-8">
         <div className="p-6 border-b border-border/50">
-          <h3 className="text-lg font-bold text-foreground">Channel Performance</h3>
+          <h3 className="text-lg font-bold text-foreground">Channel Network</h3>
+          <p className="text-sm text-muted-foreground mt-1">Interactive visualization of channel relationships and synergies</p>
+        </div>
+
+        <div
+          className="relative overflow-hidden"
+          style={{
+            height: '500px',
+            backgroundImage: `
+              linear-gradient(hsl(var(--muted-foreground) / 0.1) 1px, transparent 1px),
+              linear-gradient(90deg, hsl(var(--muted-foreground) / 0.1) 1px, transparent 1px)
+            `,
+            backgroundSize: '30px 30px',
+            backgroundPosition: 'center center',
+          }}
+        >
+          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+            {/* Edges */}
+            {networkEdges.map((edge, idx) => {
+              const fromNode = networkNodes.find((n) => n.id === edge.from);
+              const toNode = networkNodes.find((n) => n.id === edge.to);
+              if (!fromNode || !toNode) return null;
+
+              const style = getEdgeStyle(edge.status);
+              if (!style) return null; // urgent = no line
+
+              const isConnectedToSelected = selectedNode === edge.from || selectedNode === edge.to;
+
+              const fromSize = getNodeSize(fromNode.revenue) / 15;
+              const toSize = getNodeSize(toNode.revenue) / 15;
+              const dx = toNode.x - fromNode.x;
+              const dy = toNode.y - fromNode.y;
+              const angle = Math.atan2(dy, dx);
+              const hasOverlap = checkNodeOverlap(fromNode, toNode);
+              const padding = hasOverlap ? 0.5 : 0.3;
+              const x1 = fromNode.x + Math.cos(angle) * (fromSize + padding);
+              const y1 = fromNode.y + Math.sin(angle) * (fromSize + padding);
+              const x2 = toNode.x - Math.cos(angle) * (toSize + padding);
+              const y2 = toNode.y - Math.sin(angle) * (toSize + padding);
+
+              return (
+                <g key={idx}>
+                  <defs>
+                    <marker id={`arrow-${idx}`} markerWidth="4" markerHeight="4" refX="3.5" refY="2" orient="auto" markerUnits="strokeWidth">
+                      <path d="M0,0 L0,4 L4,2 z" fill={style.stroke} fillOpacity={isConnectedToSelected ? 1 : style.opacity} />
+                    </marker>
+                  </defs>
+                  <line x1={x1} y1={y1} x2={x2} y2={y2}
+                    stroke={style.stroke} strokeWidth={isConnectedToSelected ? 0.6 : style.strokeWidth}
+                    strokeDasharray={style.strokeDasharray}
+                    opacity={isConnectedToSelected ? 0.9 : style.opacity}
+                    markerEnd={`url(#arrow-${idx})`} className="transition-all duration-500"
+                  />
+                </g>
+              );
+            })}
+
+            {/* Nodes */}
+            {networkNodes.map((node) => {
+              const baseSize = getNodeSize(node.revenue);
+              const size = baseSize / 15;
+              const isHovered = hoveredNode === node.id;
+              const isSelected = selectedNode === node.id;
+              const nodeColor = getNodeColor(node.id);
+              const isAnimated = animatedNodes.has(node.id);
+
+              return (
+                <g key={node.id} style={{
+                  opacity: isAnimated ? 1 : 0, transform: isAnimated ? 'scale(1)' : 'scale(0)',
+                  transformOrigin: `${node.x}px ${node.y}px`, transition: 'all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                }}>
+                  {(isHovered || isSelected) && (
+                    <>
+                      <circle cx={node.x} cy={node.y} r={size * VISUAL_CONFIG.PULSE_SCALE + 2} fill={nodeColor} opacity="0.2" className="animate-pulse-strong" />
+                      <circle cx={node.x} cy={node.y} r={size * VISUAL_CONFIG.PULSE_SCALE + 1} fill={nodeColor} opacity="0.35" className="animate-pulse-strong" style={{ animationDelay: '0.2s' }} />
+                      <circle cx={node.x} cy={node.y} r={size * 1.08} fill={nodeColor} opacity="0.5" className="animate-pulse-strong" style={{ animationDelay: '0.4s' }} />
+                    </>
+                  )}
+                  <circle cx={node.x} cy={node.y} r={size + 0.3} fill="none" stroke={nodeColor}
+                    strokeWidth={isSelected ? '0.3' : '0.15'} opacity={isSelected ? 0.8 : 0.4} className="transition-all duration-300"
+                  />
+                  <circle cx={node.x} cy={node.y} r={size} fill={nodeColor} fillOpacity="0.15"
+                    stroke={nodeColor} strokeWidth={isSelected ? '0.25' : '0.15'} className="backdrop-blur-sm transition-all duration-300"
+                  />
+                  <circle cx={node.x} cy={node.y} r={(size - 0.3) * (isHovered || isSelected ? 1.08 : 1)}
+                    fill={nodeColor} opacity="0.95"
+                    className="cursor-pointer transition-all duration-500 ease-out hover:opacity-100"
+                    onMouseEnter={() => setHoveredNode(node.id)}
+                    onMouseLeave={() => setHoveredNode(null)}
+                    onClick={() => setSelectedNode(selectedNode === node.id ? null : node.id)}
+                    style={{ filter: (isHovered || isSelected) ? 'brightness(1.3) drop-shadow(0 0 8px currentColor)' : 'brightness(1)', transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+                  />
+                  <foreignObject x={node.x - VISUAL_CONFIG.ICON_SIZE / 2} y={node.y - VISUAL_CONFIG.ICON_SIZE / 2}
+                    width={VISUAL_CONFIG.ICON_SIZE} height={VISUAL_CONFIG.ICON_SIZE} className="pointer-events-none"
+                  >
+                    <div className="w-full h-full flex items-center justify-center text-white opacity-95">
+                      {getSocialIcon(node.id)}
+                    </div>
+                  </foreignObject>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+
+        {/* Legend — line style based */}
+        <div className="border-t border-border p-3 sm:p-6 bg-card/95">
+          <div className="mb-3 sm:mb-4">
+            <h4 className="font-bold text-sm sm:text-base mb-1 flex items-center text-primary">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Legend
+            </h4>
+            <p className="text-xs text-muted-foreground">Connection strength indicators</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-xs sm:text-sm">
+            <div className="flex items-start">
+              <div className="w-10 sm:w-12 h-[2px] bg-foreground mr-2 sm:mr-3 mt-2 flex-shrink-0 rounded opacity-90"></div>
+              <div><p className="text-foreground font-semibold">Solid line</p><p className="text-muted-foreground text-xs">Strong connection</p></div>
+            </div>
+            <div className="flex items-start">
+              <div className="w-10 sm:w-12 h-[2px] bg-foreground/45 mr-2 sm:mr-3 mt-2 flex-shrink-0 rounded"></div>
+              <div><p className="text-foreground font-semibold">Fading line</p><p className="text-muted-foreground text-xs">Weakening influence</p></div>
+            </div>
+            <div className="flex items-start">
+              <div className="w-10 sm:w-12 h-0 border-t-[2px] border-dashed border-foreground/35 mr-2 sm:mr-3 mt-2 flex-shrink-0"></div>
+              <div><p className="text-foreground font-semibold">Dashed line</p><p className="text-muted-foreground text-xs">Decaying connection</p></div>
+            </div>
+            <div className="flex items-start">
+              <div className="w-10 sm:w-12 h-[2px] mr-2 sm:mr-3 mt-2 flex-shrink-0 rounded border border-dashed border-muted-foreground/20"></div>
+              <div><p className="text-foreground font-semibold">No line</p><p className="text-muted-foreground text-xs">No active connection</p></div>
+            </div>
+          </div>
+          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border">
+            <p className="text-xs text-muted-foreground">Click on nodes to see detailed information and relationships.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Node Detail Overlay Modal */}
+      {selectedNode && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 transition-opacity" onClick={() => setSelectedNode(null)}>
+          <div className="absolute inset-4 md:inset-y-10 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-lg bg-card rounded-2xl border border-border shadow-2xl overflow-auto" onClick={e => e.stopPropagation()}>
+            <div className="p-4 sm:p-6">
+              {/* Header */}
+              <div className="flex items-start justify-between mb-4 sm:mb-6">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: getNodeColor(selectedNode) }}>
+                    <div className="text-white">{getSocialIcon(selectedNode)}</div>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-base sm:text-xl text-foreground">{getNodeDetails(selectedNode).node?.name}</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Platform Details</p>
+                  </div>
+                </div>
+                <button onClick={() => setSelectedNode(null)}
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-muted hover:bg-destructive/10 border border-border hover:border-destructive/30 flex items-center justify-center transition-all text-muted-foreground hover:text-destructive"
+                >
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Metrics */}
+              {getNodeDetails(selectedNode).channel ? (() => {
+                const details = getNodeDetails(selectedNode);
+                const connections = getNodeConnections(selectedNode);
+                return (
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="bg-primary/5 rounded-lg p-3 sm:p-4 border border-primary/10 shadow-sm">
+                      <div className="text-xs text-muted-foreground mb-1">Revenue Generated</div>
+                      <div className="text-2xl sm:text-3xl font-bold text-foreground">
+                        ₱{(details.node?.revenue || 0).toLocaleString()}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                      <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border border-border">
+                        <div className="text-xs text-muted-foreground mb-1">Ad Spend</div>
+                        <div className="text-base sm:text-lg font-bold text-foreground">
+                          ₱{(details.channel?.spend || 0).toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border border-border">
+                        <div className="text-xs text-muted-foreground mb-1">ROI</div>
+                        <div className="text-base sm:text-lg font-bold text-foreground">
+                          {Math.round(details.channel?.roi || 0)}%
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border border-border">
+                      <div className="text-xs text-muted-foreground mb-2">Performance Status</div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full animate-pulse"
+                          style={{ backgroundColor: performanceColors[details.channel?.performance_rating || ''] }}
+                        ></div>
+                        <div className="text-sm sm:text-base font-semibold text-foreground capitalize">
+                          {details.channel?.performance_rating}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Cross-Channel Effects from insight */}
+                    {details.insight && details.insight.cross_channel_effects.length > 0 && (
+                      <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border border-border">
+                        <div className="text-xs text-muted-foreground mb-3 font-semibold">Cross-Channel Effects</div>
+                        <div className="space-y-2">
+                          {details.insight.cross_channel_effects.map((effect, idx) => (
+                            <div key={idx} className="flex items-center gap-2 text-sm">
+                              <span className={effect.effect === 'amplifies' ? 'text-emerald-500' : effect.effect === 'weakens' ? 'text-red-500' : 'text-muted-foreground'}>
+                                {effect.effect === 'amplifies' ? '↑' : effect.effect === 'weakens' ? '↓' : '→'}
+                              </span>
+                              <span className="text-foreground">
+                                {effect.effect === 'amplifies' ? 'Amplifies' : effect.effect === 'weakens' ? 'Weakens' : 'Neutral with'}{' '}
+                                {capitalizeChannel(effect.target_channel)} ({effect.magnitude.toFixed(2)}x)
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Campaign breakdown from insight */}
+                    {details.insight && details.insight.campaign_insights.length > 0 && (
+                      <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border border-border">
+                        <div className="text-xs text-muted-foreground mb-3 font-semibold">Campaign Performance</div>
+                        <div className="space-y-2">
+                          {details.insight.campaign_insights.map((ci, idx) => (
+                            <div key={idx} className="text-sm">
+                              <div className="font-medium text-foreground font-mono text-xs">{ci.campaign_name}</div>
+                              <div className="text-xs text-muted-foreground">{ci.observation}</div>
+                              {ci.cross_platform_impact && (
+                                <div className="text-xs text-primary/70 mt-0.5">{ci.cross_platform_impact}</div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Connections */}
+                    <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border border-border">
+                      <div className="text-xs text-muted-foreground mb-3 font-semibold flex items-center">
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                        Platform Connections
+                      </div>
+                      <div className="space-y-3">
+                        {connections.map((conn, idx) => {
+                          const metrics = getConnectionMetrics(conn.fromNode, conn.toNode);
+                          return (
+                            <div key={idx} className="bg-card/50 p-3 rounded border border-border shadow-sm">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-1 flex-1 text-xs sm:text-sm">
+                                  <span className="text-foreground/90 font-medium truncate">{getNodeNameById(conn.fromNode)}</span>
+                                  <svg className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                  </svg>
+                                  <span className="text-foreground/90 font-medium truncate">{getNodeNameById(conn.toNode)}</span>
+                                </div>
+                                <span className={`px-2 py-1 rounded text-xs font-semibold flex-shrink-0 ml-2 ${getStatusBadgeClass(conn.status)}`}>
+                                  {getStatusLabel(conn.status)}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-border">
+                                <div>
+                                  <div className="text-xs text-muted-foreground mb-0.5">Synergy</div>
+                                  <div className="text-sm font-bold text-foreground">{metrics.score}x</div>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-muted-foreground mb-0.5">Frequency</div>
+                                  <div className="text-sm font-bold text-blue-500">{metrics.frequency}</div>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-muted-foreground mb-0.5">Confidence</div>
+                                  <div className="text-sm font-bold text-green-500">{metrics.confidence}%</div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {connections.length === 0 && (
+                          <p className="text-xs text-muted-foreground">No synergy connections found for this channel.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })() : (
+                <div className="bg-muted/30 rounded-lg p-6 text-center border border-border">
+                  <div className="text-muted-foreground text-sm">No detailed metrics available for this platform yet.</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Section 2: Channel Performance Table */}
+      <div className="glass-card overflow-hidden mb-8">
+        <div className="p-6 border-b border-border/50">
+          <h3 className="text-lg font-bold text-foreground">Individual Performance</h3>
           <p className="text-sm text-muted-foreground mt-1">
             {metricView === 'revenue'
               ? 'Track revenue, spend, and ROI across platforms'
@@ -388,284 +719,8 @@ export default function SystemMap() {
         </div>
       </div>
 
-      {/* Section 2: Channel Network Graph */}
-      <div className="glass-card overflow-hidden mb-8">
-        <div className="p-6 border-b border-border/50">
-          <h3 className="text-lg font-bold text-foreground">Channel Network</h3>
-          <p className="text-sm text-muted-foreground mt-1">Interactive visualization of channel relationships and synergies</p>
-        </div>
-
-        <div
-          className="relative overflow-hidden"
-          style={{
-            height: '500px',
-            backgroundImage: `
-              linear-gradient(hsl(var(--muted-foreground) / 0.1) 1px, transparent 1px),
-              linear-gradient(90deg, hsl(var(--muted-foreground) / 0.1) 1px, transparent 1px)
-            `,
-            backgroundSize: '30px 30px',
-            backgroundPosition: 'center center',
-          }}
-        >
-          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-            {/* Edges */}
-            {networkEdges.map((edge, idx) => {
-              const fromNode = networkNodes.find((n) => n.id === edge.from);
-              const toNode = networkNodes.find((n) => n.id === edge.to);
-              if (!fromNode || !toNode) return null;
-
-              const style = getEdgeStyle(edge.strength);
-              const isConnectedToSelected = selectedNode === edge.from || selectedNode === edge.to;
-
-              const fromSize = getNodeSize(fromNode.revenue) / 15;
-              const toSize = getNodeSize(toNode.revenue) / 15;
-              const dx = toNode.x - fromNode.x;
-              const dy = toNode.y - fromNode.y;
-              const angle = Math.atan2(dy, dx);
-              const hasOverlap = checkNodeOverlap(fromNode, toNode);
-              const padding = hasOverlap ? 0.5 : 0.3;
-              const x1 = fromNode.x + Math.cos(angle) * (fromSize + padding);
-              const y1 = fromNode.y + Math.sin(angle) * (fromSize + padding);
-              const x2 = toNode.x - Math.cos(angle) * (toSize + padding);
-              const y2 = toNode.y - Math.sin(angle) * (toSize + padding);
-
-              return (
-                <g key={idx}>
-                  <defs>
-                    <marker id={`arrow-${idx}`} markerWidth="4" markerHeight="4" refX="3.5" refY="2" orient="auto" markerUnits="strokeWidth">
-                      <path d="M0,0 L0,4 L4,2 z" fill={style.stroke} />
-                    </marker>
-                  </defs>
-                  <line x1={x1} y1={y1} x2={x2} y2={y2}
-                    stroke={style.stroke} strokeWidth={isConnectedToSelected ? 0.6 : 0.4}
-                    opacity={isConnectedToSelected ? 1 : style.opacity}
-                    markerEnd={`url(#arrow-${idx})`} className="transition-all duration-500"
-                  />
-                </g>
-              );
-            })}
-
-            {/* Nodes */}
-            {networkNodes.map((node) => {
-              const baseSize = getNodeSize(node.revenue);
-              const size = baseSize / 15;
-              const isHovered = hoveredNode === node.id;
-              const isSelected = selectedNode === node.id;
-              const nodeColor = getNodeColor(node.id);
-              const isAnimated = animatedNodes.has(node.id);
-
-              return (
-                <g key={node.id} style={{
-                  opacity: isAnimated ? 1 : 0, transform: isAnimated ? 'scale(1)' : 'scale(0)',
-                  transformOrigin: `${node.x}px ${node.y}px`, transition: 'all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                }}>
-                  {(isHovered || isSelected) && (
-                    <>
-                      <circle cx={node.x} cy={node.y} r={size * VISUAL_CONFIG.PULSE_SCALE + 2} fill={nodeColor} opacity="0.2" className="animate-pulse-strong" />
-                      <circle cx={node.x} cy={node.y} r={size * VISUAL_CONFIG.PULSE_SCALE + 1} fill={nodeColor} opacity="0.35" className="animate-pulse-strong" style={{ animationDelay: '0.2s' }} />
-                      <circle cx={node.x} cy={node.y} r={size * 1.08} fill={nodeColor} opacity="0.5" className="animate-pulse-strong" style={{ animationDelay: '0.4s' }} />
-                    </>
-                  )}
-                  <circle cx={node.x} cy={node.y} r={size + 0.3} fill="none" stroke={nodeColor}
-                    strokeWidth={isSelected ? '0.3' : '0.15'} opacity={isSelected ? 0.8 : 0.4} className="transition-all duration-300"
-                  />
-                  <circle cx={node.x} cy={node.y} r={size} fill={nodeColor} fillOpacity="0.15"
-                    stroke={nodeColor} strokeWidth={isSelected ? '0.25' : '0.15'} className="backdrop-blur-sm transition-all duration-300"
-                  />
-                  <circle cx={node.x} cy={node.y} r={(size - 0.3) * (isHovered || isSelected ? 1.08 : 1)}
-                    fill={nodeColor} opacity="0.95"
-                    className="cursor-pointer transition-all duration-500 ease-out hover:opacity-100"
-                    onMouseEnter={() => setHoveredNode(node.id)}
-                    onMouseLeave={() => setHoveredNode(null)}
-                    onClick={() => setSelectedNode(selectedNode === node.id ? null : node.id)}
-                    style={{ filter: (isHovered || isSelected) ? 'brightness(1.3) drop-shadow(0 0 8px currentColor)' : 'brightness(1)', transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)' }}
-                  />
-                  <foreignObject x={node.x - VISUAL_CONFIG.ICON_SIZE / 2} y={node.y - VISUAL_CONFIG.ICON_SIZE / 2}
-                    width={VISUAL_CONFIG.ICON_SIZE} height={VISUAL_CONFIG.ICON_SIZE} className="pointer-events-none"
-                  >
-                    <div className="w-full h-full flex items-center justify-center text-white opacity-95">
-                      {getSocialIcon(node.id)}
-                    </div>
-                  </foreignObject>
-                </g>
-              );
-            })}
-          </svg>
-        </div>
-
-        {/* Legend */}
-        <div className="border-t border-border p-3 sm:p-6 bg-card/95">
-          <div className="mb-3 sm:mb-4">
-            <h4 className="font-bold text-sm sm:text-base mb-1 flex items-center text-primary">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Legend
-            </h4>
-            <p className="text-xs text-muted-foreground">Understand the connections</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-xs sm:text-sm">
-            <div className="flex items-start">
-              <div className="w-10 sm:w-12 h-1 bg-green-500 mr-2 sm:mr-3 mt-1.5 sm:mt-2 flex-shrink-0 rounded"></div>
-              <div><p className="text-foreground font-semibold">Green solid</p><p className="text-muted-foreground text-xs">Strong synergy (score &ge; 1.5)</p></div>
-            </div>
-            <div className="flex items-start">
-              <div className="w-10 sm:w-12 h-1 bg-yellow-500 mr-2 sm:mr-3 mt-1.5 sm:mt-2 flex-shrink-0 rounded"></div>
-              <div><p className="text-foreground font-semibold">Yellow solid</p><p className="text-muted-foreground text-xs">Some reinforcement (score &ge; 1.0)</p></div>
-            </div>
-            <div className="flex items-start">
-              <div className="w-10 sm:w-12 h-1 bg-red-500 mr-2 sm:mr-3 mt-1.5 sm:mt-2 flex-shrink-0 rounded"></div>
-              <div><p className="text-foreground font-semibold">Red solid</p><p className="text-muted-foreground text-xs">Weak connection</p></div>
-            </div>
-            <div className="flex items-start">
-              <div className="flex items-center mr-2 sm:mr-3 mt-1 flex-shrink-0">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-500"></div>
-                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-blue-500 -ml-2 sm:-ml-3"></div>
-              </div>
-              <div><p className="text-foreground font-semibold">Node size</p><p className="text-muted-foreground text-xs">Revenue volume indicator</p></div>
-            </div>
-          </div>
-          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border">
-            <p className="text-xs text-muted-foreground">Click on nodes to see detailed information and relationships.</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Node Detail Overlay Modal */}
-      {selectedNode && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 transition-opacity" onClick={() => setSelectedNode(null)}>
-          <div className="absolute inset-4 md:inset-y-10 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-lg bg-card rounded-2xl border border-border shadow-2xl overflow-auto" onClick={e => e.stopPropagation()}>
-            <div className="p-4 sm:p-6">
-              {/* Header */}
-              <div className="flex items-start justify-between mb-4 sm:mb-6">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: getNodeColor(selectedNode) }}>
-                    <div className="text-white">{getSocialIcon(selectedNode)}</div>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-base sm:text-xl text-foreground">{getNodeDetails(selectedNode).node?.name}</h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground">Platform Details</p>
-                  </div>
-                </div>
-                <button onClick={() => setSelectedNode(null)}
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-muted hover:bg-destructive/10 border border-border hover:border-destructive/30 flex items-center justify-center transition-all text-muted-foreground hover:text-destructive"
-                >
-                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Metrics */}
-              {getNodeDetails(selectedNode).channel ? (
-                <div className="space-y-3 sm:space-y-4">
-                  <div className="bg-primary/5 rounded-lg p-3 sm:p-4 border border-primary/10 shadow-sm">
-                    <div className="text-xs text-muted-foreground mb-1">Revenue Generated</div>
-                    <div className="text-2xl sm:text-3xl font-bold text-foreground">
-                      ₱{(getNodeDetails(selectedNode).node?.revenue || 0).toLocaleString()}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                    <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border border-border">
-                      <div className="text-xs text-muted-foreground mb-1">Ad Spend</div>
-                      <div className="text-base sm:text-lg font-bold text-foreground">
-                        ₱{(getNodeDetails(selectedNode).channel?.spend || 0).toLocaleString()}
-                      </div>
-                    </div>
-                    <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border border-border">
-                      <div className="text-xs text-muted-foreground mb-1">ROI</div>
-                      <div className="text-base sm:text-lg font-bold text-foreground">
-                        {Math.round(getNodeDetails(selectedNode).channel?.roi || 0)}%
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border border-border">
-                    <div className="text-xs text-muted-foreground mb-2">Performance Status</div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full animate-pulse"
-                        style={{ backgroundColor: performanceColors[getNodeDetails(selectedNode).channel?.performance_rating || ''] }}
-                      ></div>
-                      <div className="text-sm sm:text-base font-semibold text-foreground capitalize">
-                        {getNodeDetails(selectedNode).channel?.performance_rating}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Connections */}
-                  <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border border-border">
-                    <div className="text-xs text-muted-foreground mb-3 font-semibold flex items-center">
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                      </svg>
-                      Platform Connections
-                    </div>
-                    <div className="space-y-3">
-                      {getNodeConnections(selectedNode).map((conn, idx) => {
-                        const metrics = getConnectionMetrics(conn.fromNode, conn.toNode);
-                        return (
-                          <div key={idx} className="bg-card/50 p-3 rounded border border-border shadow-sm">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-1 flex-1 text-xs sm:text-sm">
-                                <span className="text-foreground/90 font-medium truncate">{getNodeNameById(conn.fromNode)}</span>
-                                <svg className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                </svg>
-                                <span className="text-foreground/90 font-medium truncate">{getNodeNameById(conn.toNode)}</span>
-                              </div>
-                              <div className="px-2 py-1 rounded text-xs font-semibold flex-shrink-0 ml-2"
-                                style={{ backgroundColor: `${getStrengthColor(conn.strength)}20`, color: getStrengthColor(conn.strength) }}
-                              >
-                                {conn.strength}
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-border">
-                              <div>
-                                <div className="text-xs text-muted-foreground mb-0.5">Synergy</div>
-                                <div className="text-sm font-bold text-foreground">{metrics.score}x</div>
-                              </div>
-                              <div>
-                                <div className="text-xs text-muted-foreground mb-0.5">Frequency</div>
-                                <div className="text-sm font-bold text-blue-500">{metrics.frequency}</div>
-                              </div>
-                              <div>
-                                <div className="text-xs text-muted-foreground mb-0.5">Confidence</div>
-                                <div className="text-sm font-bold text-green-500">{metrics.confidence}%</div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {getNodeConnections(selectedNode).length === 0 && (
-                        <p className="text-xs text-muted-foreground">No synergy connections found for this channel.</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 sm:p-4">
-                    <p className="text-xs text-primary/80">
-                      This platform is{' '}
-                      {getNodeDetails(selectedNode).channel?.performance_rating === 'exceptional' || getNodeDetails(selectedNode).channel?.performance_rating === 'excellent'
-                        ? 'performing well' : getNodeDetails(selectedNode).channel?.performance_rating === 'satisfactory' ? 'performing adequately' : 'underperforming'}{' '}
-                      and generating{' '}
-                      {((getNodeDetails(selectedNode).node?.revenue || 0) / networkNodes.reduce((sum, n) => sum + n.revenue, 0) * 100).toFixed(1)}%{' '}
-                      of total revenue.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-muted/30 rounded-lg p-6 text-center border border-border">
-                  <div className="text-muted-foreground text-sm">No detailed metrics available for this platform yet.</div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Section 3: Channel Synergies Table */}
-      <div className="glass-card overflow-hidden">
+      <div className="glass-card overflow-hidden mb-8">
         <div className="p-6 border-b border-border/50">
           <h3 className="text-lg font-bold text-foreground">Channel Synergies</h3>
           <p className="text-sm text-muted-foreground mt-1">Cross-channel reinforcement patterns and interaction strength</p>
@@ -685,17 +740,12 @@ export default function SystemMap() {
                   <th className="px-6 py-4 text-right uppercase tracking-wider">Score</th>
                   <th className="px-6 py-4 text-right uppercase tracking-wider">Frequency</th>
                   <th className="px-6 py-4 text-right uppercase tracking-wider">Confidence</th>
-                  <th className="px-6 py-4 text-right uppercase tracking-wider">Strength</th>
+                  <th className="px-6 py-4 text-right uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
                 {filteredSynergies.map((synergy, idx) => {
-                  const strength = synergy.synergy_score >= 1.5 ? 'Strong' : synergy.synergy_score >= 1.0 ? 'Medium' : 'Weak';
-                  const strengthClass = strength === 'Strong'
-                    ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
-                    : strength === 'Medium'
-                      ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20'
-                      : 'bg-red-500/10 text-red-500 border border-red-500/20';
+                  const status: SynergyStatus = synergy.status || (synergy.synergy_score >= 1.5 ? 'strong' : synergy.synergy_score >= 1.0 ? 'needs_improvement' : synergy.synergy_score >= 0.5 ? 'needs_attention' : 'urgent');
 
                   return (
                     <tr key={idx} className="group hover:bg-muted/30 transition-colors">
@@ -715,8 +765,8 @@ export default function SystemMap() {
                         {synergy.confidence}%
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium w-20 ${strengthClass}`}>
-                          {strength}
+                        <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(status)}`}>
+                          {getStatusLabel(status)}
                         </span>
                       </td>
                     </tr>
@@ -724,6 +774,144 @@ export default function SystemMap() {
                 })}
               </tbody>
             </table>
+          )}
+        </div>
+      </div>
+
+      {/* Section 4: AI Channel Insights */}
+      <div className="glass-card overflow-hidden">
+        <div className="p-6 border-b border-border/50">
+          <h3 className="text-lg font-bold text-foreground">AI Channel Insights</h3>
+          <p className="text-sm text-muted-foreground mt-1">Per-channel analysis of strengths, weaknesses, and cross-channel dynamics</p>
+        </div>
+
+        <div className="p-6">
+          {loadingInsights && channelInsights.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="inline-block w-8 h-8 border-[3px] border-muted border-t-primary rounded-full animate-spin" />
+              <p className="text-muted-foreground text-sm mt-3">Analyzing channels...</p>
+            </div>
+          ) : channelInsights.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground text-sm">No channel insights available yet. Seed data to generate analysis.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {channelInsights.map((insight) => {
+                const nodeId = channelToId(insight.channel);
+                const isExpanded = expandedInsights.has(nodeId);
+                const nodeColor = getNodeColor(nodeId);
+
+                return (
+                  <div
+                    key={insight.id}
+                    className="rounded-xl border border-border bg-card/50 overflow-hidden transition-all duration-300"
+                  >
+                    {/* Card header — always visible */}
+                    <button
+                      onClick={() => toggleInsightExpanded(nodeId)}
+                      className="w-full p-4 sm:p-5 flex items-start gap-3 text-left hover:bg-muted/20 transition-colors"
+                    >
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-md" style={{ backgroundColor: nodeColor }}>
+                        <div className="w-5 h-5 text-white">{getSocialIcon(nodeId)}</div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-bold text-foreground">{capitalizeChannel(insight.channel)}</h4>
+                          <span className="text-xs text-muted-foreground font-mono">{insight.confidence}% confidence</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                          {insight.ai_summary || insight.strengths[0] || 'Channel analysis available'}
+                        </p>
+                      </div>
+                      <svg
+                        className={`w-5 h-5 text-muted-foreground flex-shrink-0 mt-1 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {/* Expanded content */}
+                    {isExpanded && (
+                      <div className="px-4 sm:px-5 pb-4 sm:pb-5 space-y-4 border-t border-border/50 pt-4">
+                        {/* Strengths */}
+                        {insight.strengths.length > 0 && (
+                          <div>
+                            <h5 className="text-xs font-semibold text-emerald-500 uppercase tracking-wider mb-2">Strengths</h5>
+                            <ul className="space-y-1.5">
+                              {insight.strengths.map((s, i) => (
+                                <li key={i} className="flex items-start gap-2 text-sm text-foreground">
+                                  <span className="text-emerald-500 mt-0.5 flex-shrink-0">&#8226;</span>
+                                  {s}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Weaknesses */}
+                        {insight.weaknesses.length > 0 && (
+                          <div>
+                            <h5 className="text-xs font-semibold text-orange-500 uppercase tracking-wider mb-2">Areas to Watch</h5>
+                            <ul className="space-y-1.5">
+                              {insight.weaknesses.map((w, i) => (
+                                <li key={i} className="flex items-start gap-2 text-sm text-foreground">
+                                  <span className="text-orange-500 mt-0.5 flex-shrink-0">&#8226;</span>
+                                  {w}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Cross-Channel Effects */}
+                        {insight.cross_channel_effects.length > 0 && (
+                          <div>
+                            <h5 className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">Cross-Channel Effects</h5>
+                            <div className="space-y-2">
+                              {insight.cross_channel_effects.map((effect, i) => (
+                                <div key={i} className="flex items-center gap-2 text-sm">
+                                  <span className={`flex-shrink-0 font-medium ${
+                                    effect.effect === 'amplifies' ? 'text-emerald-500' :
+                                    effect.effect === 'weakens' ? 'text-red-500' : 'text-muted-foreground'
+                                  }`}>
+                                    {effect.effect === 'amplifies' ? '↑' : effect.effect === 'weakens' ? '↓' : '→'}
+                                  </span>
+                                  <span className="text-foreground">
+                                    {effect.effect === 'amplifies' ? 'Amplifies' : effect.effect === 'weakens' ? 'Weakens' : 'Neutral with'}{' '}
+                                    <span className="font-medium">{capitalizeChannel(effect.target_channel)}</span>
+                                    {' '}({effect.magnitude.toFixed(2)}x synergy)
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Campaign Insights */}
+                        {insight.campaign_insights.length > 0 && (
+                          <div>
+                            <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Campaign Performance</h5>
+                            <div className="space-y-2">
+                              {insight.campaign_insights.map((ci, i) => (
+                                <div key={i} className="bg-muted/30 rounded-lg p-3 border border-border">
+                                  <div className="font-medium text-foreground text-sm font-mono">{ci.campaign_name}</div>
+                                  <div className="text-xs text-muted-foreground mt-0.5">{ci.observation}</div>
+                                  {ci.cross_platform_impact && (
+                                    <div className="text-xs text-primary/70 mt-1">{ci.cross_platform_impact}</div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>

@@ -6,7 +6,6 @@ import Sidebar from './components/layout/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Integrations from './pages/Integrations';
 import SystemMap from './pages/SystemMap';
-import Recommendations from './pages/Recommendations';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -63,7 +62,6 @@ function App() {
                       <Route path="/dashboard" element={<Dashboard />} />
                       <Route path="/integrations" element={<Integrations />} />
                       <Route path="/system-map" element={<SystemMap />} />
-                      <Route path="/recommendations" element={<Recommendations />} />
                       <Route path="*" element={<Navigate to="/dashboard" replace />} />
                     </Routes>
                   </AppLayout>

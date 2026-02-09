@@ -2,14 +2,16 @@
  * Seed: 90-day Revenue + Coverage dataset for Neural Analysis page
  *
  * Creates conversion journeys across 4 channels (google, facebook, email,
- * instagram) with weekly spend events, so the Neural Analysis page
- * shows meaningful data across performance table, network graph, and synergy table.
+ * instagram) with weekly spend events and campaign-level data, so the
+ * Neural Analysis page shows meaningful data across performance table,
+ * network graph, synergy table, and AI channel insights.
  *
  * Calibrated to produce:
- *   - 6 synergy pairs: 1 Strong, 3 Medium, 2 Weak
+ *   - 6 synergy pairs with varied statuses (strong, needs_improvement, needs_attention, urgent)
  *   - 4 channel roles: google (closer), facebook (introducer), email (introducer),
  *     instagram (isolated)
  *   - 4 performance ratings: exceptional, satisfactory, poor, failing
+ *   - 10 campaigns across 4 channels with cross-platform attribution
  *
  * Usage:
  *   npx tsx scripts/seed_neural_analysis.ts [--email user@example.com]
@@ -67,145 +69,189 @@ interface SessionDef {
   channels: string[];
   amount: number;
   daysAgo: number;
+  campaign: string;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
 // Journey definitions — calibrated for synergy scores, isolation ratios,
-// and performance ratings.
+// performance ratings, and campaign-level attribution.
 //
 // Solo baselines kept LOW so synergy ratios (avgPair / maxSoloAvg) are high.
-// Multi-touch amounts kept HIGH relative to solos to produce strong scores.
+// NO 3-touch journeys — they pollute pair scores across multiple pairs.
+// Each 2-touch pair amount is calibrated independently for its target status.
+//
+// Campaigns (10 total):
+//   1. fb_summer_promo        — Facebook awareness
+//   2. fb_retargeting_q1      — Facebook retargeting
+//   3. gads_brand_search      — Google brand terms
+//   4. gads_competitor_kw     — Google competitor keywords
+//   5. email_weekly_digest    — Regular email newsletter
+//   6. email_abandoned_cart   — Cart recovery emails
+//   7. ig_product_showcase    — Instagram product posts
+//   8. ig_stories_engagement  — Instagram stories
+//   9. cross_holiday_sale     — Multi-channel (FB + Google + Email)
+//  10. cross_new_product_launch — Multi-channel (all 4)
 // ═══════════════════════════════════════════════════════════════════════
 
 const journeys: SessionDef[] = [
-  // ── Google solo (16 journeys, avg ~2,800) ──
-  { channels: ['google'], amount: 2400, daysAgo: 2 },
-  { channels: ['google'], amount: 3100, daysAgo: 5 },
-  { channels: ['google'], amount: 2600, daysAgo: 9 },
-  { channels: ['google'], amount: 3400, daysAgo: 14 },
-  { channels: ['google'], amount: 2200, daysAgo: 18 },
-  { channels: ['google'], amount: 3000, daysAgo: 23 },
-  { channels: ['google'], amount: 2500, daysAgo: 28 },
-  { channels: ['google'], amount: 3200, daysAgo: 35 },
-  { channels: ['google'], amount: 2700, daysAgo: 42 },
-  { channels: ['google'], amount: 3300, daysAgo: 50 },
-  { channels: ['google'], amount: 2100, daysAgo: 58 },
-  { channels: ['google'], amount: 2900, daysAgo: 62 },
-  { channels: ['google'], amount: 2800, daysAgo: 68 },
-  { channels: ['google'], amount: 3100, daysAgo: 72 },
-  { channels: ['google'], amount: 2600, daysAgo: 78 },
-  { channels: ['google'], amount: 2900, daysAgo: 85 },
+  // ── Google solo (20 journeys, avg ~2,800) ──
+  { channels: ['google'], amount: 2400, daysAgo: 2, campaign: 'gads_brand_search' },
+  { channels: ['google'], amount: 3100, daysAgo: 5, campaign: 'gads_brand_search' },
+  { channels: ['google'], amount: 2600, daysAgo: 9, campaign: 'gads_competitor_kw' },
+  { channels: ['google'], amount: 3400, daysAgo: 14, campaign: 'gads_brand_search' },
+  { channels: ['google'], amount: 2200, daysAgo: 18, campaign: 'gads_competitor_kw' },
+  { channels: ['google'], amount: 3000, daysAgo: 23, campaign: 'gads_brand_search' },
+  { channels: ['google'], amount: 2500, daysAgo: 28, campaign: 'gads_competitor_kw' },
+  { channels: ['google'], amount: 3200, daysAgo: 35, campaign: 'gads_brand_search' },
+  { channels: ['google'], amount: 2700, daysAgo: 42, campaign: 'gads_brand_search' },
+  { channels: ['google'], amount: 3300, daysAgo: 50, campaign: 'gads_competitor_kw' },
+  { channels: ['google'], amount: 2100, daysAgo: 58, campaign: 'gads_brand_search' },
+  { channels: ['google'], amount: 2900, daysAgo: 62, campaign: 'gads_competitor_kw' },
+  { channels: ['google'], amount: 2800, daysAgo: 68, campaign: 'gads_brand_search' },
+  { channels: ['google'], amount: 3100, daysAgo: 72, campaign: 'gads_brand_search' },
+  { channels: ['google'], amount: 2600, daysAgo: 78, campaign: 'gads_competitor_kw' },
+  { channels: ['google'], amount: 2900, daysAgo: 85, campaign: 'gads_brand_search' },
+  { channels: ['google'], amount: 2750, daysAgo: 6, campaign: 'gads_brand_search' },
+  { channels: ['google'], amount: 3050, daysAgo: 20, campaign: 'gads_competitor_kw' },
+  { channels: ['google'], amount: 2350, daysAgo: 44, campaign: 'gads_brand_search' },
+  { channels: ['google'], amount: 2950, daysAgo: 66, campaign: 'gads_competitor_kw' },
 
-  // ── Facebook solo (11 journeys, avg ~1,450) ──
-  { channels: ['facebook'], amount: 1200, daysAgo: 3 },
-  { channels: ['facebook'], amount: 1600, daysAgo: 8 },
-  { channels: ['facebook'], amount: 1100, daysAgo: 15 },
-  { channels: ['facebook'], amount: 1700, daysAgo: 22 },
-  { channels: ['facebook'], amount: 1300, daysAgo: 30 },
-  { channels: ['facebook'], amount: 1500, daysAgo: 38 },
-  { channels: ['facebook'], amount: 1400, daysAgo: 45 },
-  { channels: ['facebook'], amount: 1800, daysAgo: 52 },
-  { channels: ['facebook'], amount: 1200, daysAgo: 60 },
-  { channels: ['facebook'], amount: 1500, daysAgo: 70 },
-  { channels: ['facebook'], amount: 1650, daysAgo: 80 },
+  // ── Facebook solo (14 journeys, avg ~1,450) ──
+  { channels: ['facebook'], amount: 1200, daysAgo: 3, campaign: 'fb_summer_promo' },
+  { channels: ['facebook'], amount: 1600, daysAgo: 8, campaign: 'fb_retargeting_q1' },
+  { channels: ['facebook'], amount: 1100, daysAgo: 15, campaign: 'fb_summer_promo' },
+  { channels: ['facebook'], amount: 1700, daysAgo: 22, campaign: 'fb_retargeting_q1' },
+  { channels: ['facebook'], amount: 1300, daysAgo: 30, campaign: 'fb_summer_promo' },
+  { channels: ['facebook'], amount: 1500, daysAgo: 38, campaign: 'fb_retargeting_q1' },
+  { channels: ['facebook'], amount: 1400, daysAgo: 45, campaign: 'fb_summer_promo' },
+  { channels: ['facebook'], amount: 1800, daysAgo: 52, campaign: 'fb_retargeting_q1' },
+  { channels: ['facebook'], amount: 1200, daysAgo: 60, campaign: 'fb_summer_promo' },
+  { channels: ['facebook'], amount: 1500, daysAgo: 70, campaign: 'fb_retargeting_q1' },
+  { channels: ['facebook'], amount: 1650, daysAgo: 80, campaign: 'fb_summer_promo' },
+  { channels: ['facebook'], amount: 1350, daysAgo: 11, campaign: 'fb_summer_promo' },
+  { channels: ['facebook'], amount: 1550, daysAgo: 33, campaign: 'fb_retargeting_q1' },
+  { channels: ['facebook'], amount: 1450, daysAgo: 56, campaign: 'fb_summer_promo' },
 
-  // ── Email solo (9 journeys, avg ~850) ──
-  { channels: ['email'], amount: 800, daysAgo: 1 },
-  { channels: ['email'], amount: 950, daysAgo: 10 },
-  { channels: ['email'], amount: 700, daysAgo: 18 },
-  { channels: ['email'], amount: 1000, daysAgo: 28 },
-  { channels: ['email'], amount: 750, daysAgo: 38 },
-  { channels: ['email'], amount: 900, daysAgo: 48 },
-  { channels: ['email'], amount: 850, daysAgo: 55 },
-  { channels: ['email'], amount: 800, daysAgo: 65 },
-  { channels: ['email'], amount: 950, daysAgo: 75 },
+  // ── Email solo (12 journeys, avg ~850) ──
+  { channels: ['email'], amount: 800, daysAgo: 1, campaign: 'email_weekly_digest' },
+  { channels: ['email'], amount: 950, daysAgo: 10, campaign: 'email_abandoned_cart' },
+  { channels: ['email'], amount: 700, daysAgo: 18, campaign: 'email_weekly_digest' },
+  { channels: ['email'], amount: 1000, daysAgo: 28, campaign: 'email_abandoned_cart' },
+  { channels: ['email'], amount: 750, daysAgo: 38, campaign: 'email_weekly_digest' },
+  { channels: ['email'], amount: 900, daysAgo: 48, campaign: 'email_abandoned_cart' },
+  { channels: ['email'], amount: 850, daysAgo: 55, campaign: 'email_weekly_digest' },
+  { channels: ['email'], amount: 800, daysAgo: 65, campaign: 'email_weekly_digest' },
+  { channels: ['email'], amount: 950, daysAgo: 75, campaign: 'email_abandoned_cart' },
+  { channels: ['email'], amount: 820, daysAgo: 13, campaign: 'email_weekly_digest' },
+  { channels: ['email'], amount: 880, daysAgo: 41, campaign: 'email_abandoned_cart' },
+  { channels: ['email'], amount: 770, daysAgo: 83, campaign: 'email_weekly_digest' },
 
-  // ── Instagram solo (15 journeys, avg ~340) ──
-  { channels: ['instagram'], amount: 300, daysAgo: 2 },
-  { channels: ['instagram'], amount: 380, daysAgo: 7 },
-  { channels: ['instagram'], amount: 250, daysAgo: 12 },
-  { channels: ['instagram'], amount: 400, daysAgo: 17 },
-  { channels: ['instagram'], amount: 320, daysAgo: 23 },
-  { channels: ['instagram'], amount: 350, daysAgo: 29 },
-  { channels: ['instagram'], amount: 280, daysAgo: 35 },
-  { channels: ['instagram'], amount: 420, daysAgo: 42 },
-  { channels: ['instagram'], amount: 300, daysAgo: 50 },
-  { channels: ['instagram'], amount: 370, daysAgo: 58 },
-  { channels: ['instagram'], amount: 340, daysAgo: 65 },
-  { channels: ['instagram'], amount: 290, daysAgo: 73 },
-  { channels: ['instagram'], amount: 400, daysAgo: 82 },
-  { channels: ['instagram'], amount: 310, daysAgo: 87 },
-  { channels: ['instagram'], amount: 360, daysAgo: 89 },
-
-  // ═══════════════════════════════════════════════════════════════════
-  // 2-touch pairs — HIGH amounts drive synergy scores
-  // ═══════════════════════════════════════════════════════════════════
-
-  // ── facebook → google (18 journeys, avg ~8,100) → synergy ~2.5 Strong ──
-  { channels: ['facebook', 'google'], amount: 7500, daysAgo: 1 },
-  { channels: ['facebook', 'google'], amount: 8800, daysAgo: 4 },
-  { channels: ['facebook', 'google'], amount: 7200, daysAgo: 7 },
-  { channels: ['facebook', 'google'], amount: 9200, daysAgo: 11 },
-  { channels: ['facebook', 'google'], amount: 7800, daysAgo: 15 },
-  { channels: ['facebook', 'google'], amount: 8500, daysAgo: 19 },
-  { channels: ['facebook', 'google'], amount: 7600, daysAgo: 23 },
-  { channels: ['facebook', 'google'], amount: 9000, daysAgo: 27 },
-  { channels: ['facebook', 'google'], amount: 8100, daysAgo: 32 },
-  { channels: ['facebook', 'google'], amount: 7900, daysAgo: 37 },
-  { channels: ['facebook', 'google'], amount: 8400, daysAgo: 42 },
-  { channels: ['facebook', 'google'], amount: 7700, daysAgo: 47 },
-  { channels: ['facebook', 'google'], amount: 8600, daysAgo: 52 },
-  { channels: ['facebook', 'google'], amount: 8200, daysAgo: 57 },
-  { channels: ['facebook', 'google'], amount: 7400, daysAgo: 62 },
-  { channels: ['facebook', 'google'], amount: 8900, daysAgo: 68 },
-  { channels: ['facebook', 'google'], amount: 8000, daysAgo: 75 },
-  { channels: ['facebook', 'google'], amount: 8100, daysAgo: 82 },
-
-  // ── email → google (10 journeys, avg ~3,200) → synergy ~1.1 Medium ──
-  { channels: ['email', 'google'], amount: 3000, daysAgo: 3 },
-  { channels: ['email', 'google'], amount: 3400, daysAgo: 10 },
-  { channels: ['email', 'google'], amount: 2900, daysAgo: 17 },
-  { channels: ['email', 'google'], amount: 3500, daysAgo: 25 },
-  { channels: ['email', 'google'], amount: 3100, daysAgo: 33 },
-  { channels: ['email', 'google'], amount: 3300, daysAgo: 42 },
-  { channels: ['email', 'google'], amount: 3000, daysAgo: 50 },
-  { channels: ['email', 'google'], amount: 3200, daysAgo: 60 },
-  { channels: ['email', 'google'], amount: 3500, daysAgo: 70 },
-  { channels: ['email', 'google'], amount: 3100, daysAgo: 80 },
-
-  // ── email → facebook (5 journeys, avg ~1,100) ──
-  { channels: ['email', 'facebook'], amount: 1000, daysAgo: 6 },
-  { channels: ['email', 'facebook'], amount: 1200, daysAgo: 20 },
-  { channels: ['email', 'facebook'], amount: 1000, daysAgo: 35 },
-  { channels: ['email', 'facebook'], amount: 1200, daysAgo: 55 },
-  { channels: ['email', 'facebook'], amount: 1100, daysAgo: 75 },
-
-  // ── instagram → google (3 journeys, avg ~1,750) → synergy ~0.6 Weak ──
-  { channels: ['instagram', 'google'], amount: 1600, daysAgo: 5 },
-  { channels: ['instagram', 'google'], amount: 1900, daysAgo: 35 },
-  { channels: ['instagram', 'google'], amount: 1750, daysAgo: 70 },
-
-  // ── email → instagram (3 journeys, avg ~1,150) → synergy ~1.3 Medium ──
-  { channels: ['email', 'instagram'], amount: 1050, daysAgo: 9 },
-  { channels: ['email', 'instagram'], amount: 1250, daysAgo: 40 },
-  { channels: ['email', 'instagram'], amount: 1150, daysAgo: 72 },
-
-  // ── instagram → facebook (1 journey) ──
-  { channels: ['instagram', 'facebook'], amount: 600, daysAgo: 45 },
+  // ── Instagram solo (18 journeys, avg ~340) ──
+  { channels: ['instagram'], amount: 300, daysAgo: 2, campaign: 'ig_product_showcase' },
+  { channels: ['instagram'], amount: 380, daysAgo: 7, campaign: 'ig_stories_engagement' },
+  { channels: ['instagram'], amount: 250, daysAgo: 12, campaign: 'ig_product_showcase' },
+  { channels: ['instagram'], amount: 400, daysAgo: 17, campaign: 'ig_stories_engagement' },
+  { channels: ['instagram'], amount: 320, daysAgo: 23, campaign: 'ig_product_showcase' },
+  { channels: ['instagram'], amount: 350, daysAgo: 29, campaign: 'ig_stories_engagement' },
+  { channels: ['instagram'], amount: 280, daysAgo: 35, campaign: 'ig_product_showcase' },
+  { channels: ['instagram'], amount: 420, daysAgo: 42, campaign: 'ig_stories_engagement' },
+  { channels: ['instagram'], amount: 300, daysAgo: 50, campaign: 'ig_product_showcase' },
+  { channels: ['instagram'], amount: 370, daysAgo: 58, campaign: 'ig_stories_engagement' },
+  { channels: ['instagram'], amount: 340, daysAgo: 65, campaign: 'ig_product_showcase' },
+  { channels: ['instagram'], amount: 290, daysAgo: 73, campaign: 'ig_stories_engagement' },
+  { channels: ['instagram'], amount: 400, daysAgo: 82, campaign: 'ig_product_showcase' },
+  { channels: ['instagram'], amount: 310, daysAgo: 87, campaign: 'ig_stories_engagement' },
+  { channels: ['instagram'], amount: 360, daysAgo: 89, campaign: 'ig_product_showcase' },
+  { channels: ['instagram'], amount: 330, daysAgo: 4, campaign: 'ig_product_showcase' },
+  { channels: ['instagram'], amount: 290, daysAgo: 31, campaign: 'ig_stories_engagement' },
+  { channels: ['instagram'], amount: 350, daysAgo: 53, campaign: 'ig_product_showcase' },
 
   // ═══════════════════════════════════════════════════════════════════
-  // 3-touch journeys — LOW counts, contribute to multiple pairs
+  // Multi-touch pairs — NO 3-touch journeys (they pollute pair scores).
+  // Each pair is calibrated independently.
+  //
+  // Synergy = avgPairRevenue / max(soloA_avg, soloB_avg)
+  // Solo avgs: google=2800, facebook=1450, email=848, instagram=338
+  //
+  // TARGET DISTRIBUTION:
+  //   fb→google:  avg 8100 / 2800 = 2.89 → Strong
+  //   email→ig:   avg 1400 / 848  = 1.65 → Strong
+  //   email→ggl:  avg 3200 / 2800 = 1.14 → Needs Improvement
+  //   email→fb:   avg 1100 / 1450 = 0.76 → Needs Attention
+  //   ig→google:  avg 1750 / 2800 = 0.63 → Needs Attention
+  //   ig→fb:      avg 575  / 1450 = 0.40 → Urgent
   // ═══════════════════════════════════════════════════════════════════
 
-  // ── facebook → email → google (3 journeys, avg ~3,000) ──
-  { channels: ['facebook', 'email', 'google'], amount: 2800, daysAgo: 12 },
-  { channels: ['facebook', 'email', 'google'], amount: 3200, daysAgo: 40 },
-  { channels: ['facebook', 'email', 'google'], amount: 3000, daysAgo: 70 },
+  // ── facebook → google (25 journeys, avg ~8,100) → 8100/2800 = 2.89 Strong ──
+  { channels: ['facebook', 'google'], amount: 7500, daysAgo: 1, campaign: 'fb_summer_promo' },
+  { channels: ['facebook', 'google'], amount: 8800, daysAgo: 4, campaign: 'fb_retargeting_q1' },
+  { channels: ['facebook', 'google'], amount: 7200, daysAgo: 7, campaign: 'fb_summer_promo' },
+  { channels: ['facebook', 'google'], amount: 9200, daysAgo: 11, campaign: 'cross_holiday_sale' },
+  { channels: ['facebook', 'google'], amount: 7800, daysAgo: 15, campaign: 'fb_summer_promo' },
+  { channels: ['facebook', 'google'], amount: 8500, daysAgo: 19, campaign: 'fb_retargeting_q1' },
+  { channels: ['facebook', 'google'], amount: 7600, daysAgo: 23, campaign: 'fb_summer_promo' },
+  { channels: ['facebook', 'google'], amount: 9000, daysAgo: 27, campaign: 'cross_holiday_sale' },
+  { channels: ['facebook', 'google'], amount: 8100, daysAgo: 32, campaign: 'fb_retargeting_q1' },
+  { channels: ['facebook', 'google'], amount: 7900, daysAgo: 37, campaign: 'fb_summer_promo' },
+  { channels: ['facebook', 'google'], amount: 8400, daysAgo: 42, campaign: 'fb_retargeting_q1' },
+  { channels: ['facebook', 'google'], amount: 7700, daysAgo: 47, campaign: 'fb_summer_promo' },
+  { channels: ['facebook', 'google'], amount: 8600, daysAgo: 52, campaign: 'cross_holiday_sale' },
+  { channels: ['facebook', 'google'], amount: 8200, daysAgo: 57, campaign: 'fb_retargeting_q1' },
+  { channels: ['facebook', 'google'], amount: 7400, daysAgo: 62, campaign: 'fb_summer_promo' },
+  { channels: ['facebook', 'google'], amount: 8900, daysAgo: 68, campaign: 'fb_retargeting_q1' },
+  { channels: ['facebook', 'google'], amount: 8000, daysAgo: 75, campaign: 'fb_summer_promo' },
+  { channels: ['facebook', 'google'], amount: 8100, daysAgo: 82, campaign: 'cross_holiday_sale' },
+  { channels: ['facebook', 'google'], amount: 7650, daysAgo: 10, campaign: 'fb_summer_promo' },
+  { channels: ['facebook', 'google'], amount: 8350, daysAgo: 34, campaign: 'fb_retargeting_q1' },
+  { channels: ['facebook', 'google'], amount: 8050, daysAgo: 55, campaign: 'cross_holiday_sale' },
+  { channels: ['facebook', 'google'], amount: 7850, daysAgo: 77, campaign: 'fb_summer_promo' },
+  { channels: ['facebook', 'google'], amount: 8250, daysAgo: 86, campaign: 'cross_holiday_sale' },
+  { channels: ['facebook', 'google'], amount: 7950, daysAgo: 40, campaign: 'fb_retargeting_q1' },
+  { channels: ['facebook', 'google'], amount: 8450, daysAgo: 63, campaign: 'fb_summer_promo' },
 
-  // ── google → email → facebook (2 journeys, avg ~2,800) ──
-  { channels: ['google', 'email', 'facebook'], amount: 2600, daysAgo: 25 },
-  { channels: ['google', 'email', 'facebook'], amount: 3000, daysAgo: 60 },
+  // ── email → instagram (8 journeys, avg ~1,400) → 1400/848 = 1.65 Strong ──
+  { channels: ['email', 'instagram'], amount: 1350, daysAgo: 9, campaign: 'email_weekly_digest' },
+  { channels: ['email', 'instagram'], amount: 1500, daysAgo: 18, campaign: 'email_abandoned_cart' },
+  { channels: ['email', 'instagram'], amount: 1300, daysAgo: 30, campaign: 'email_weekly_digest' },
+  { channels: ['email', 'instagram'], amount: 1450, daysAgo: 40, campaign: 'email_abandoned_cart' },
+  { channels: ['email', 'instagram'], amount: 1380, daysAgo: 52, campaign: 'email_weekly_digest' },
+  { channels: ['email', 'instagram'], amount: 1420, daysAgo: 64, campaign: 'email_abandoned_cart' },
+  { channels: ['email', 'instagram'], amount: 1350, daysAgo: 72, campaign: 'email_weekly_digest' },
+  { channels: ['email', 'instagram'], amount: 1450, daysAgo: 84, campaign: 'email_abandoned_cart' },
 
+  // ── email → google (12 journeys, avg ~3,200) → 3200/2800 = 1.14 Needs Improvement ──
+  { channels: ['email', 'google'], amount: 3000, daysAgo: 3, campaign: 'email_abandoned_cart' },
+  { channels: ['email', 'google'], amount: 3400, daysAgo: 10, campaign: 'cross_holiday_sale' },
+  { channels: ['email', 'google'], amount: 2900, daysAgo: 17, campaign: 'email_weekly_digest' },
+  { channels: ['email', 'google'], amount: 3500, daysAgo: 25, campaign: 'email_abandoned_cart' },
+  { channels: ['email', 'google'], amount: 3100, daysAgo: 33, campaign: 'cross_holiday_sale' },
+  { channels: ['email', 'google'], amount: 3300, daysAgo: 42, campaign: 'email_weekly_digest' },
+  { channels: ['email', 'google'], amount: 3000, daysAgo: 50, campaign: 'email_abandoned_cart' },
+  { channels: ['email', 'google'], amount: 3200, daysAgo: 60, campaign: 'cross_holiday_sale' },
+  { channels: ['email', 'google'], amount: 3500, daysAgo: 70, campaign: 'email_abandoned_cart' },
+  { channels: ['email', 'google'], amount: 3100, daysAgo: 80, campaign: 'email_weekly_digest' },
+  { channels: ['email', 'google'], amount: 3250, daysAgo: 16, campaign: 'email_abandoned_cart' },
+  { channels: ['email', 'google'], amount: 3050, daysAgo: 64, campaign: 'cross_holiday_sale' },
+
+  // ── email → facebook (7 journeys, avg ~1,100) → 1100/1450 = 0.76 Needs Attention ──
+  { channels: ['email', 'facebook'], amount: 1000, daysAgo: 6, campaign: 'email_weekly_digest' },
+  { channels: ['email', 'facebook'], amount: 1200, daysAgo: 20, campaign: 'email_abandoned_cart' },
+  { channels: ['email', 'facebook'], amount: 1000, daysAgo: 35, campaign: 'email_weekly_digest' },
+  { channels: ['email', 'facebook'], amount: 1200, daysAgo: 55, campaign: 'email_abandoned_cart' },
+  { channels: ['email', 'facebook'], amount: 1100, daysAgo: 75, campaign: 'email_weekly_digest' },
+  { channels: ['email', 'facebook'], amount: 1050, daysAgo: 26, campaign: 'email_abandoned_cart' },
+  { channels: ['email', 'facebook'], amount: 1150, daysAgo: 63, campaign: 'email_weekly_digest' },
+
+  // ── instagram → google (4 journeys, avg ~1,750) → 1750/2800 = 0.63 Needs Attention ──
+  { channels: ['instagram', 'google'], amount: 1600, daysAgo: 5, campaign: 'ig_product_showcase' },
+  { channels: ['instagram', 'google'], amount: 1900, daysAgo: 35, campaign: 'ig_stories_engagement' },
+  { channels: ['instagram', 'google'], amount: 1750, daysAgo: 70, campaign: 'ig_product_showcase' },
+  { channels: ['instagram', 'google'], amount: 1700, daysAgo: 46, campaign: 'ig_stories_engagement' },
+
+  // ── instagram → facebook (3 journeys, avg ~500) → 500/1450 = 0.34 Urgent ──
+  { channels: ['instagram', 'facebook'], amount: 520, daysAgo: 45, campaign: 'ig_product_showcase' },
+  { channels: ['instagram', 'facebook'], amount: 480, daysAgo: 79, campaign: 'ig_stories_engagement' },
+  { channels: ['instagram', 'facebook'], amount: 500, daysAgo: 30, campaign: 'ig_product_showcase' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -218,12 +264,26 @@ const journeys: SessionDef[] = [
 //   hubspot        → normalizeChannel(data.channel || 'email')
 //   google_analytics_4 → normalizeChannel(data.channel_group || data.sessionSource || 'google')
 // ═══════════════════════════════════════════════════════════════════════
-const spendConfig = [
-  { platform: 'google_ads',           eventData: { spend: 0 },                        channel: 'google',    minSpend: 800,  maxSpend: 1200 },
-  { platform: 'meta',                 eventData: { spend: 0 },                        channel: 'facebook',  minSpend: 600,  maxSpend: 900  },
-  { platform: 'hubspot',              eventData: { spend: 0, channel: 'email' },      channel: 'email',     minSpend: 300,  maxSpend: 500  },
-  { platform: 'google_analytics_4',   eventData: { spend: 0, channel_group: 'instagram' }, channel: 'instagram', minSpend: 400, maxSpend: 700 },
+
+// Campaign-level spend breakdown
+const campaignSpendConfig = [
+  // Google campaigns
+  { platform: 'google_ads', campaign_id: 'gads_brand_search', campaign_name: 'Brand Search', channel: 'google', minSpend: 500, maxSpend: 700, minImpressions: 8000, maxImpressions: 12000, minClicks: 200, maxClicks: 350 },
+  { platform: 'google_ads', campaign_id: 'gads_competitor_kw', campaign_name: 'Competitor Keywords', channel: 'google', minSpend: 350, maxSpend: 550, minImpressions: 6000, maxImpressions: 9000, minClicks: 120, maxClicks: 220 },
+  // Facebook campaigns
+  { platform: 'meta', campaign_id: 'fb_summer_promo', campaign_name: 'Summer Promo', channel: 'facebook', minSpend: 300, maxSpend: 500, minImpressions: 10000, maxImpressions: 15000, minClicks: 150, maxClicks: 280 },
+  { platform: 'meta', campaign_id: 'fb_retargeting_q1', campaign_name: 'Retargeting Q1', channel: 'facebook', minSpend: 250, maxSpend: 400, minImpressions: 5000, maxImpressions: 8000, minClicks: 100, maxClicks: 200 },
+  // Email campaigns
+  { platform: 'hubspot', campaign_id: 'email_weekly_digest', campaign_name: 'Weekly Digest', channel: 'email', minSpend: 100, maxSpend: 200, minImpressions: 3000, maxImpressions: 5000, minClicks: 80, maxClicks: 150 },
+  { platform: 'hubspot', campaign_id: 'email_abandoned_cart', campaign_name: 'Abandoned Cart', channel: 'email', minSpend: 150, maxSpend: 300, minImpressions: 2000, maxImpressions: 4000, minClicks: 60, maxClicks: 120 },
+  // Instagram campaigns
+  { platform: 'google_analytics_4', campaign_id: 'ig_product_showcase', campaign_name: 'Product Showcase', channel: 'instagram', minSpend: 200, maxSpend: 400, minImpressions: 7000, maxImpressions: 12000, minClicks: 80, maxClicks: 160 },
+  { platform: 'google_analytics_4', campaign_id: 'ig_stories_engagement', campaign_name: 'Stories Engagement', channel: 'instagram', minSpend: 180, maxSpend: 350, minImpressions: 5000, maxImpressions: 9000, minClicks: 60, maxClicks: 130 },
 ];
+
+function randBetween(min: number, max: number): number {
+  return min + Math.floor(Math.random() * (max - min + 1));
+}
 
 async function main() {
   if (argv.email) {
@@ -268,7 +328,7 @@ async function main() {
         referrer: `https://${j.channels[t]}.com`,
         utm_source: j.channels[t],
         utm_medium: 'cpc',
-        utm_campaign: `campaign_${j.channels[t]}`,
+        utm_campaign: j.campaign,
         timestamp: touchTime.toISOString(),
         user_agent: 'Mozilla/5.0',
         metadata: {
@@ -290,7 +350,7 @@ async function main() {
           referrer: 'https://example.com/product',
           utm_source: j.channels[t],
           utm_medium: 'cpc',
-          utm_campaign: `campaign_${j.channels[t]}`,
+          utm_campaign: j.campaign,
           timestamp: convTime.toISOString(),
           user_agent: 'Mozilla/5.0',
           metadata: {
@@ -315,25 +375,53 @@ async function main() {
       attribution_method: j.channels.length > 1 ? 'dual_verified' : 'single_source',
       is_platform_over_attributed: false,
       timestamp: convTime.toISOString(),
-      metadata: { journey_channels: j.channels },
+      metadata: { journey_channels: j.channels, campaign: j.campaign },
     });
   }
 
-  // Weekly spend events (~13 weeks across 90 days)
+  // Weekly spend events with campaign-level breakdown (~13 weeks across 90 days)
   for (let week = 0; week < 13; week++) {
     const weekDaysAgo = week * 7 + 3; // mid-week timestamp
-    for (const s of spendConfig) {
-      const spend = s.minSpend + Math.floor(Math.random() * (s.maxSpend - s.minSpend + 1));
+    for (const cs of campaignSpendConfig) {
+      const spend = randBetween(cs.minSpend, cs.maxSpend);
+      const impressions = randBetween(cs.minImpressions, cs.maxImpressions);
+      const clicks = randBetween(cs.minClicks, cs.maxClicks);
+
+      const eventData: Record<string, any> = {
+        spend,
+        campaign_id: cs.campaign_id,
+        campaign_name: cs.campaign_name,
+        impressions,
+        clicks,
+      };
+
+      // Add channel routing fields for specific platforms
+      if (cs.platform === 'hubspot') {
+        eventData.channel = 'email';
+      } else if (cs.platform === 'google_analytics_4') {
+        eventData.channel_group = 'instagram';
+      }
+
       rawSpendEvents.push({
         id: randomUUID(),
         user_id: USER_ID,
-        platform: s.platform,
+        platform: cs.platform,
         event_type: 'ad_spend',
-        event_data: { ...s.eventData, spend },
+        event_data: eventData,
         timestamp: new Date(now - weekDaysAgo * msPerDay).toISOString(),
       });
     }
   }
+
+  // ── Clean up old data for this user before inserting ──
+  console.log('Cleaning old seed data for user...');
+  const { error: delConv } = await supabase.from('verified_conversions').delete().eq('user_id', USER_ID);
+  if (delConv) console.warn('cleanup verified_conversions:', delConv.message);
+  const { error: delPixel } = await supabase.from('pixel_events').delete().eq('pixel_id', PIXEL_ID);
+  if (delPixel) console.warn('cleanup pixel_events:', delPixel.message);
+  const { error: delRaw } = await supabase.from('raw_events').delete().eq('user_id', USER_ID);
+  if (delRaw) console.warn('cleanup raw_events:', delRaw.message);
+  console.log('Old data cleaned.');
 
   // Insert verified conversions (chunked, upsert on transaction_id)
   console.log(`Inserting ${verifiedConversions.length} verified conversions...`);
@@ -359,7 +447,7 @@ async function main() {
     if (error) console.warn('raw_events warning:', error.message);
   }
 
-  console.log(`Neural analysis seed complete! (${journeys.length} journeys, ${rawSpendEvents.length} spend events)`);
+  console.log(`Neural analysis seed complete! (${journeys.length} journeys, ${rawSpendEvents.length} spend events, ${campaignSpendConfig.length} campaigns)`);
   process.exit(0);
 }
 
