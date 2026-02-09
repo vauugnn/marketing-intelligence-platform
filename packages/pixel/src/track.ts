@@ -131,11 +131,17 @@
   // --- Core tracking (consent-aware) ---
   let consentMode: 'accepted' | 'declined' = 'accepted';
 
+  const KNOWN_TYPES = ['page_view', 'conversion', 'custom', 'form_submit'];
+
   function trackEvent(eventType: string = 'page_view', data?: Record<string, any>): void {
     if (!shouldTrack(eventType)) return;
 
     // In declined mode, only allow form_submit and checkout events
     if (consentMode === 'declined' && eventType === 'page_view') return;
+
+    // Normalize unknown event types to 'custom' and preserve original name
+    const normalizedType = KNOWN_TYPES.includes(eventType) ? eventType : 'custom';
+    const extraMeta = normalizedType !== eventType ? { event_name: eventType } : {};
 
     const useCookie = consentMode === 'accepted';
     const sessionId = getSessionId(useCookie);
@@ -147,12 +153,12 @@
     const event = {
       pixel_id: pixelId,
       session_id: sessionId,
-      event_type: eventType,
+      event_type: normalizedType,
       page_url: window.location.href,
       referrer: document.referrer || undefined,
       timestamp: new Date().toISOString(),
       consent_status: consentMode,
-      metadata: { ...pageMetadata, ...scriptData, ...dataLayerData, ...data },
+      metadata: { ...extraMeta, ...pageMetadata, ...scriptData, ...dataLayerData, ...data },
       ...utmParams
     };
 
