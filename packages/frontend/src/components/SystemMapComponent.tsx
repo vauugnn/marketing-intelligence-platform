@@ -1,12 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { ChannelPerformance, ChannelSynergy } from '@shared/types';
 import { useSynergies } from '../hooks/useAnalytics';
-import { useBusinessType } from '../hooks/useBusinessType';
 
 interface NetworkNode {
   id: string;
   name: string;
-  value: number; // revenue in sales mode, conversions in leads mode
+  revenue: number;
   x: number;
   y: number;
 }
@@ -58,15 +57,13 @@ function capitalizeChannel(channel: string): string {
   return channel.charAt(0).toUpperCase() + channel.slice(1);
 }
 
-function deriveNodes(channels: ChannelPerformance[], isMobile: boolean, isLeadsMode: boolean): NetworkNode[] {
+function deriveNodes(channels: ChannelPerformance[], isMobile: boolean): NetworkNode[] {
   return channels.map((ch, i) => {
     const id = channelToId(ch.channel);
     const pos = CHANNEL_POSITIONS[id]
       ? (isMobile ? CHANNEL_POSITIONS[id].mobile : CHANNEL_POSITIONS[id].desktop)
       : circlePosition(i, channels.length);
-    // Use conversions in leads mode, revenue in sales mode
-    const value = isLeadsMode ? ch.conversions : ch.revenue;
-    return { id, name: capitalizeChannel(ch.channel), value, x: pos.x, y: pos.y };
+    return { id, name: capitalizeChannel(ch.channel), revenue: ch.revenue, x: pos.x, y: pos.y };
   });
 }
 
@@ -82,8 +79,6 @@ export default function SystemMapComponent({ channels, isExpanded, onToggleExpan
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const { data: synergies = [] } = useSynergies();
-  const { type: businessType } = useBusinessType();
-  const isLeadsMode = businessType === 'leads';
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -91,7 +86,7 @@ export default function SystemMapComponent({ channels, isExpanded, onToggleExpan
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const networkNodes = useMemo(() => deriveNodes(channels, isMobile, isLeadsMode), [channels, isMobile, isLeadsMode]);
+  const networkNodes = useMemo(() => deriveNodes(channels, isMobile), [channels, isMobile]);
   const networkEdges = useMemo(() => deriveEdges(synergies), [synergies]);
 
   const channelMap = useMemo(() => {
@@ -106,17 +101,17 @@ export default function SystemMapComponent({ channels, isExpanded, onToggleExpan
     return '#64748b';
   };
 
-  const maxValue = Math.max(...networkNodes.map(n => n.value), 1);
+  const maxRevenue = Math.max(...networkNodes.map(n => n.revenue), 1);
 
-  const getNodeSize = (value: number, isExpanded: boolean, isMobile: boolean) => {
+  const getNodeSize = (revenue: number, isExpanded: boolean, isMobile: boolean) => {
     if (isMobile) {
       const minSize = 60;
       const maxSize = 100;
-      return minSize + (value / maxValue) * (maxSize - minSize);
+      return minSize + (revenue / maxRevenue) * (maxSize - minSize);
     }
     const minSize = isExpanded ? 80 : 50;
     const maxSize = isExpanded ? 140 : 80;
-    return minSize + (value / maxValue) * (maxSize - minSize);
+    return minSize + (revenue / maxRevenue) * (maxSize - minSize);
   };
 
   const getEdgeStyle = (strength: string) => {
@@ -262,7 +257,7 @@ export default function SystemMapComponent({ channels, isExpanded, onToggleExpan
 
             {/* Draw nodes */}
             {networkNodes.map((node) => {
-              const size = getNodeSize(node.value, isExpanded, isMobile);
+              const size = getNodeSize(node.revenue, isExpanded, isMobile);
               const isHovered = hoveredNode === node.id;
               const nodeColor = getNodeColor(node.id);
 
@@ -340,7 +335,7 @@ export default function SystemMapComponent({ channels, isExpanded, onToggleExpan
                         fontWeight="500"
                         className="pointer-events-none"
                       >
-                        {isLeadsMode ? `${node.value}` : `₱${(node.value / 1000).toFixed(0)}K`}
+                        ₱{(node.revenue / 1000).toFixed(0)}K
                       </text>
                     </>
                   )}
@@ -395,14 +390,14 @@ export default function SystemMapComponent({ channels, isExpanded, onToggleExpan
                 </div>
                 <div>
                   <p className="text-white font-semibold">Node size</p>
-                  <p className="text-gray-400 text-xs">{isLeadsMode ? 'Conversion volume indicator' : 'Revenue volume indicator'}</p>
+                  <p className="text-gray-400 text-xs">Revenue volume indicator</p>
                 </div>
               </div>
             </div>
 
             <div className="mt-auto pt-4 lg:pt-6 border-t border-gray-800">
               <p className="text-xs text-gray-500">
-                Hover over nodes to see details. Larger nodes indicate higher {isLeadsMode ? 'conversions' : 'revenue'}.
+                Hover over nodes to see details. Larger nodes indicate higher revenue.
               </p>
             </div>
           </div>
