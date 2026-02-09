@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { usePerformance, useSynergies } from '../hooks/useAnalytics';
+import { useBusinessType } from '../hooks/useBusinessType';
 import type { ChannelPerformance, ChannelSynergy } from '@shared/types';
 
 interface NetworkNode {
   id: string;
   name: string;
-  revenue: number;
+  value: number; // revenue in sales mode, conversions in leads mode
   x: number;
   y: number;
 }
@@ -68,13 +69,15 @@ function capitalizeChannel(channel: string): string {
   return channel.charAt(0).toUpperCase() + channel.slice(1);
 }
 
-function deriveNodes(channels: ChannelPerformance[], isMobile: boolean): NetworkNode[] {
+function deriveNodes(channels: ChannelPerformance[], isMobile: boolean, isLeadsMode: boolean): NetworkNode[] {
   return channels.map((ch, i) => {
     const id = channelToId(ch.channel);
     const pos = CHANNEL_POSITIONS[id]
       ? (isMobile ? CHANNEL_POSITIONS[id].mobile : CHANNEL_POSITIONS[id].desktop)
       : circlePosition(i, channels.length, isMobile);
-    return { id, name: capitalizeChannel(ch.channel), revenue: ch.revenue, x: pos.x, y: pos.y };
+    // Use conversions in leads mode, revenue in sales mode
+    const value = isLeadsMode ? ch.conversions : ch.revenue;
+    return { id, name: capitalizeChannel(ch.channel), value, x: pos.x, y: pos.y };
   });
 }
 
@@ -89,6 +92,8 @@ function deriveEdges(synergies: ChannelSynergy[]): NetworkEdge[] {
 export default function SystemMap() {
   const { data: performance = [], isLoading: loadingPerf, error: errorPerf, refetch: refetchPerf } = usePerformance();
   const { data: synergies = [], isLoading: loadingSyn, refetch: refetchSyn } = useSynergies();
+  const { type: businessType } = useBusinessType();
+  const isLeadsMode = businessType === 'leads';
 
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
@@ -104,7 +109,7 @@ export default function SystemMap() {
   }, []);
 
   // Derive graph data from store
-  const networkNodes = useMemo(() => deriveNodes(performance, isMobile), [performance, isMobile]);
+  const networkNodes = useMemo(() => deriveNodes(performance, isMobile, isLeadsMode), [performance, isMobile, isLeadsMode]);
   const networkEdges = useMemo(() => deriveEdges(synergies), [synergies]);
 
   // Build a lookup from channel id → ChannelPerformance
@@ -143,19 +148,19 @@ export default function SystemMap() {
     return '#64748b';
   };
 
-  const sortedByRevenue = [...networkNodes].sort((a, b) => b.revenue - a.revenue);
-  const maxRevenue = sortedByRevenue[0]?.revenue || 1;
-  const minRevenue = sortedByRevenue[sortedByRevenue.length - 1]?.revenue || 0;
+  const sortedByValue = [...networkNodes].sort((a, b) => b.value - a.value);
+  const maxValue = sortedByValue[0]?.value || 1;
+  const minValue = sortedByValue[sortedByValue.length - 1]?.value || 0;
 
-  const getNodeSize = (revenue: number) => {
-    const range = maxRevenue - minRevenue;
-    const normalized = range > 0 ? (revenue - minRevenue) / range : 0.5;
+  const getNodeSize = (value: number) => {
+    const range = maxValue - minValue;
+    const normalized = range > 0 ? (value - minValue) / range : 0.5;
     return VISUAL_CONFIG.NODE_MIN_SIZE + (normalized * (VISUAL_CONFIG.NODE_MAX_SIZE - VISUAL_CONFIG.NODE_MIN_SIZE));
   };
 
   const checkNodeOverlap = (node1: NetworkNode, node2: NetworkNode): boolean => {
-    const size1 = getNodeSize(node1.revenue) / 15;
-    const size2 = getNodeSize(node2.revenue) / 15;
+    const size1 = getNodeSize(node1.value) / 15;
+    const size2 = getNodeSize(node2.value) / 15;
     const distance = Math.sqrt(Math.pow(node2.x - node1.x, 2) + Math.pow(node2.y - node1.y, 2));
     const minDistance = (size1 + size2) / 2 + VISUAL_CONFIG.MIN_DISTANCE_BETWEEN_NODES / 15;
     return distance < minDistance;
@@ -302,8 +307,8 @@ export default function SystemMap() {
                   const style = getEdgeStyle(edge.strength);
                   const isConnectedToSelected = selectedNode === edge.from || selectedNode === edge.to;
 
-                  const fromSize = getNodeSize(fromNode.revenue) / 15;
-                  const toSize = getNodeSize(toNode.revenue) / 15;
+                  const fromSize = getNodeSize(fromNode.value) / 15;
+                  const toSize = getNodeSize(toNode.value) / 15;
                   const dx = toNode.x - fromNode.x;
                   const dy = toNode.y - fromNode.y;
                   const angle = Math.atan2(dy, dx);
@@ -332,7 +337,7 @@ export default function SystemMap() {
 
                 {/* Nodes */}
                 {networkNodes.map((node) => {
-                  const baseSize = getNodeSize(node.revenue);
+                  const baseSize = getNodeSize(node.value);
                   const size = baseSize / 15;
                   const isHovered = hoveredNode === node.id;
                   const isSelected = selectedNode === node.id;
@@ -446,9 +451,11 @@ export default function SystemMap() {
                 {getNodeDetails(selectedNode).channel ? (
                   <div className="space-y-3 sm:space-y-4">
                     <div className="bg-primary/5 rounded-lg p-3 sm:p-4 border border-primary/10 shadow-sm">
-                      <div className="text-xs text-muted-foreground mb-1">Revenue Generated</div>
+                      <div className="text-xs text-muted-foreground mb-1">{isLeadsMode ? 'Conversions' : 'Revenue Generated'}</div>
                       <div className="text-2xl sm:text-3xl font-bold text-foreground">
-                        ₱{(getNodeDetails(selectedNode).node?.revenue || 0).toLocaleString()}
+                        {isLeadsMode
+                          ? (getNodeDetails(selectedNode).channel?.conversions || 0).toLocaleString()
+                          : `₱${(getNodeDetails(selectedNode).channel?.revenue || 0).toLocaleString()}`}
                       </div>
                     </div>
 
@@ -460,9 +467,11 @@ export default function SystemMap() {
                         </div>
                       </div>
                       <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border border-border">
-                        <div className="text-xs text-muted-foreground mb-1">ROI</div>
+                        <div className="text-xs text-muted-foreground mb-1">{isLeadsMode ? 'CPL' : 'ROI'}</div>
                         <div className="text-base sm:text-lg font-bold text-foreground">
-                          {Math.round(getNodeDetails(selectedNode).channel?.roi || 0)}%
+                          {isLeadsMode
+                            ? `₱${(getNodeDetails(selectedNode).channel?.cpl || 0).toLocaleString()}`
+                            : `${Math.round(getNodeDetails(selectedNode).channel?.roi || 0)}%`}
                         </div>
                       </div>
                     </div>
@@ -535,8 +544,8 @@ export default function SystemMap() {
                         {getNodeDetails(selectedNode).channel?.performance_rating === 'exceptional' || getNodeDetails(selectedNode).channel?.performance_rating === 'excellent'
                           ? 'performing well' : getNodeDetails(selectedNode).channel?.performance_rating === 'satisfactory' ? 'performing adequately' : 'underperforming'}{' '}
                         and generating{' '}
-                        {((getNodeDetails(selectedNode).node?.revenue || 0) / networkNodes.reduce((sum, n) => sum + n.revenue, 0) * 100).toFixed(1)}%{' '}
-                        of total revenue.
+                        {((getNodeDetails(selectedNode).node?.value || 0) / networkNodes.reduce((sum, n) => sum + n.value, 0) * 100).toFixed(1)}%{' '}
+                        of total {isLeadsMode ? 'conversions' : 'revenue'}.
                       </p>
                     </div>
                   </div>

@@ -31,7 +31,7 @@ export default function CTA() {
                         initial={{ opacity: 0, scale: 0.9 }}
                         whileInView={{ opacity: 1, scale: 1 }}
                         viewport={{ once: true }}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-[#162044]/20 backdrop-blur-sm text-sm font-semibold text-white mb-8"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-[#162044]/20 backdrop-blur-sm text-sm font-semibold text-gray-900 dark:text-white mb-8"
                     >
                         <Sparkles className="w-4 h-4" />
                         Intelligent Marketing Starts Here
@@ -49,7 +49,7 @@ export default function CTA() {
                         whileHover={{ scale: 1.05, boxShadow: '0 20px 40px -10px rgba(0,0,0,0.3)' }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => navigate('/auth')}
-                        className="px-8 py-4 rounded-full bg-white dark:bg-[#162044] text-[#e05a2b] font-bold text-lg shadow-xl flex items-center gap-2"
+                        className="mx-auto px-8 py-4 rounded-full bg-white light:[#e05a2b] dark:bg-[#162044] text-[#e05a2b] font-bold text-lg shadow-xl flex items-center gap-2"
                     >
                         Get Started Free
                         <ArrowRight className="w-5 h-5" />

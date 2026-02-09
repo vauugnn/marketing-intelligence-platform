@@ -277,6 +277,8 @@ export async function getChannelPerformance(
 /**
  * Detects synergy effects between channel pairs by comparing
  * multi-touch journey revenue against solo channel revenue.
+ * Falls back to performance-based synergy estimation when no
+ * multi-touch journey data is available.
  */
 export async function analyzeChannelSynergies(
   userId: string,
@@ -286,81 +288,125 @@ export async function analyzeChannelSynergies(
   logger.info('SynergyService', 'Analyzing channel synergies', { userId, dateRange });
 
   const journeys = await getConversionJourneys(userId, dateRange);
+  const multiTouchJourneys = journeys.filter(j => j.is_multi_touch);
 
-  if (journeys.length === 0) return [];
-
-  // Build solo revenue map (single-touch journeys)
-  const soloRevenue = new Map<string, { total: number; count: number }>();
-  for (const j of journeys) {
-    if (!j.is_multi_touch) {
-      const channel = j.channel_sequence[0];
-      const existing = soloRevenue.get(channel) || { total: 0, count: 0 };
-      existing.total += j.amount;
-      existing.count += 1;
-      soloRevenue.set(channel, existing);
-    }
-  }
-
-  // Build pair co-occurrence map from multi-touch journeys
-  const pairStats = new Map<string, { totalRevenue: number; count: number }>();
-  for (const j of journeys) {
-    if (!j.is_multi_touch) continue;
-
-    // Get unique channels in this journey
-    const uniqueChannels = [...new Set(j.channel_sequence)];
-
-    // Generate all unique pairs
-    for (let i = 0; i < uniqueChannels.length; i++) {
-      for (let k = i + 1; k < uniqueChannels.length; k++) {
-        const pair = [uniqueChannels[i], uniqueChannels[k]].sort().join('|');
-        const existing = pairStats.get(pair) || { totalRevenue: 0, count: 0 };
-        existing.totalRevenue += j.amount;
+  // If we have multi-touch journeys, calculate real synergies
+  if (multiTouchJourneys.length > 0) {
+    // Build solo revenue map (single-touch journeys)
+    const soloRevenue = new Map<string, { total: number; count: number }>();
+    for (const j of journeys) {
+      if (!j.is_multi_touch) {
+        const channel = j.channel_sequence[0];
+        const existing = soloRevenue.get(channel) || { total: 0, count: 0 };
+        existing.total += j.amount;
         existing.count += 1;
-        pairStats.set(pair, existing);
+        soloRevenue.set(channel, existing);
       }
     }
-  }
 
-  // Calculate synergy scores
-  const synergies: ChannelSynergy[] = [];
-  for (const [pairKey, stats] of pairStats.entries()) {
-    const [channelA, channelB] = pairKey.split('|');
-
-    let synergyScore: number;
-
-    if (businessType === 'leads') {
-      // Leads: co-occurrence frequency vs expected (lift)
-      const soloACount = soloRevenue.get(channelA)?.count || 0;
-      const soloBCount = soloRevenue.get(channelB)?.count || 0;
-      const denominator = Math.sqrt(soloACount * soloBCount);
-      synergyScore = denominator > 0 ? stats.count / denominator : 1;
-    } else {
-      // Sales: revenue multiplier
-      const avgPairRevenue = stats.totalRevenue / stats.count;
-      const soloA = soloRevenue.get(channelA);
-      const soloB = soloRevenue.get(channelB);
-      const bestSoloAvg = Math.max(
-        soloA ? soloA.total / soloA.count : 0,
-        soloB ? soloB.total / soloB.count : 0
-      );
-      synergyScore = bestSoloAvg > 0 ? avgPairRevenue / bestSoloAvg : 1;
+    // Build pair co-occurrence map from multi-touch journeys
+    const pairStats = new Map<string, { totalRevenue: number; count: number }>();
+    for (const j of multiTouchJourneys) {
+      const uniqueChannels = [...new Set(j.channel_sequence)];
+      for (let i = 0; i < uniqueChannels.length; i++) {
+        for (let k = i + 1; k < uniqueChannels.length; k++) {
+          const pair = [uniqueChannels[i], uniqueChannels[k]].sort().join('|');
+          const existing = pairStats.get(pair) || { totalRevenue: 0, count: 0 };
+          existing.totalRevenue += j.amount;
+          existing.count += 1;
+          pairStats.set(pair, existing);
+        }
+      }
     }
 
-    // Confidence from sample size: min(95, 20 + 25 * log2(frequency))
-    const confidence = Math.min(95, Math.round(20 + 25 * Math.log2(stats.count)));
+    // Calculate synergy scores
+    const synergies: ChannelSynergy[] = [];
+    for (const [pairKey, stats] of pairStats.entries()) {
+      const [channelA, channelB] = pairKey.split('|');
 
-    synergies.push({
-      channel_a: channelA,
-      channel_b: channelB,
-      synergy_score: Math.round(synergyScore * 100) / 100,
-      frequency: stats.count,
-      confidence,
-    });
+      let synergyScore: number;
+
+      if (businessType === 'leads') {
+        const soloACount = soloRevenue.get(channelA)?.count || 0;
+        const soloBCount = soloRevenue.get(channelB)?.count || 0;
+        const denominator = Math.sqrt(soloACount * soloBCount);
+        synergyScore = denominator > 0 ? stats.count / denominator : 1;
+      } else {
+        const avgPairRevenue = stats.totalRevenue / stats.count;
+        const soloA = soloRevenue.get(channelA);
+        const soloB = soloRevenue.get(channelB);
+        const bestSoloAvg = Math.max(
+          soloA ? soloA.total / soloA.count : 0,
+          soloB ? soloB.total / soloB.count : 0
+        );
+        synergyScore = bestSoloAvg > 0 ? avgPairRevenue / bestSoloAvg : 1;
+      }
+
+      const confidence = Math.min(95, Math.round(20 + 25 * Math.log2(stats.count)));
+
+      synergies.push({
+        channel_a: channelA,
+        channel_b: channelB,
+        synergy_score: Math.round(synergyScore * 100) / 100,
+        frequency: stats.count,
+        confidence,
+      });
+    }
+
+    synergies.sort((a, b) => b.synergy_score - a.synergy_score);
+    return synergies;
   }
 
-  // Sort by synergy score descending
-  synergies.sort((a, b) => b.synergy_score - a.synergy_score);
+  // FALLBACK: Generate performance-based synergies when no multi-touch data exists
+  logger.info('SynergyService', 'No multi-touch journeys, generating performance-based synergies', { userId });
 
+  const performance = await getChannelPerformance(userId, dateRange, businessType);
+
+  if (performance.length < 2) {
+    return []; // Need at least 2 channels to create connections
+  }
+
+  // Map performance ratings to numeric scores for synergy calculation
+  const ratingScore: Record<string, number> = {
+    'exceptional': 5,
+    'excellent': 4,
+    'satisfactory': 3,
+    'poor': 2,
+    'failing': 1,
+  };
+
+  const synergies: ChannelSynergy[] = [];
+
+  // Generate synergies between all unique channel pairs
+  for (let i = 0; i < performance.length; i++) {
+    for (let j = i + 1; j < performance.length; j++) {
+      const channelA = performance[i];
+      const channelB = performance[j];
+
+      const scoreA = ratingScore[channelA.performance_rating] || 2;
+      const scoreB = ratingScore[channelB.performance_rating] || 2;
+
+      // Calculate synergy score based on combined performance
+      // Higher scores when both channels perform well = better synergy potential
+      const avgScore = (scoreA + scoreB) / 2;
+      // Normalize to synergy scale: 1.0 = neutral, >1.5 = strong, <1.0 = weak
+      const synergyScore = avgScore / 3; // Maps 1-5 to ~0.33-1.67
+
+      // Confidence is lower for estimated synergies (based on conversions count)
+      const totalConversions = channelA.conversions + channelB.conversions;
+      const confidence = Math.min(70, Math.round(30 + Math.log2(totalConversions + 1) * 10));
+
+      synergies.push({
+        channel_a: channelA.channel,
+        channel_b: channelB.channel,
+        synergy_score: Math.round(synergyScore * 100) / 100,
+        frequency: totalConversions,
+        confidence,
+      });
+    }
+  }
+
+  synergies.sort((a, b) => b.synergy_score - a.synergy_score);
   return synergies;
 }
 
@@ -554,8 +600,8 @@ export async function generateRecommendations(
       const estimatedImpact = businessType === 'leads'
         ? Math.round(syn.synergy_score * syn.frequency)
         : Math.round(
-            syn.synergy_score * syn.frequency * ((perfMap.get(syn.channel_a)?.revenue || 0) + (perfMap.get(syn.channel_b)?.revenue || 0)) / Math.max(1, (perfMap.get(syn.channel_a)?.conversions || 0) + (perfMap.get(syn.channel_b)?.conversions || 0))
-          );
+          syn.synergy_score * syn.frequency * ((perfMap.get(syn.channel_a)?.revenue || 0) + (perfMap.get(syn.channel_b)?.revenue || 0)) / Math.max(1, (perfMap.get(syn.channel_a)?.conversions || 0) + (perfMap.get(syn.channel_b)?.conversions || 0))
+        );
 
       recommendations.push({
         id: `rec-${idCounter++}`,

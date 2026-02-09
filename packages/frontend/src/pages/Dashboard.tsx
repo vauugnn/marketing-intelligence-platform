@@ -51,9 +51,6 @@ export default function Dashboard() {
               <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1">{copy.dashboardMetric1Label}</div>
               <h3 className="text-4xl font-bold">{metric1Value}</h3>
             </div>
-            <div className="text-sm font-medium opacity-90 mt-4">
-              +23% from last month
-            </div>
           </div>
         </div>
 
@@ -67,9 +64,6 @@ export default function Dashboard() {
               <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1 text-orange-950/70">Total Spend</div>
               <h3 className="text-4xl font-bold text-white">₱{totalSpend.toLocaleString()}</h3>
             </div>
-            <div className="text-sm font-medium opacity-90 mt-4 text-white">
-              +12% from last month
-            </div>
           </div>
         </div>
 
@@ -82,9 +76,6 @@ export default function Dashboard() {
             <div>
               <div className="text-xs font-bold tracking-widest uppercase opacity-80 mb-1">{copy.dashboardMetric3Label}</div>
               <h3 className="text-4xl font-bold">{metric3Value}</h3>
-            </div>
-            <div className="text-sm font-medium opacity-90 mt-4">
-              -5% from last month
             </div>
           </div>
         </div>
