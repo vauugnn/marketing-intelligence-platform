@@ -101,7 +101,7 @@ describe('Integrations Controller', () => {
       );
 
       const response = jsonMock.mock.calls[0][0];
-      expect(response.data.length).toBe(4); // All 4 platforms
+      expect(response.data.length).toBe(6); // All 6 platforms
     });
 
     it('should include connection status for each platform', async () => {

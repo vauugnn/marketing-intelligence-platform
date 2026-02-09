@@ -5,6 +5,17 @@
  */
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+
+// Mock supabase to avoid env var requirement
+jest.mock('../config/supabase', () => ({
+  supabase: { from: jest.fn() },
+  supabaseAdmin: { from: jest.fn() },
+}));
+
+jest.mock('../utils/logger', () => ({
+  logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
+}));
+
 import * as attributionService from './attribution.service';
 import type { AttributionMatch, PixelSession } from '../types/attribution.types';
 
@@ -46,16 +57,17 @@ describe('Attribution Service', () => {
     it('should return medium confidence for pixel match without GA4', () => {
       const match: AttributionMatch = {
         pixelMatch: true,
-        pixelTimeProximity: 0.8,
+        pixelTimeProximity: 1.0,
         pixelHasConversion: true,
-        pixelUtmCompleteness: 0.8,
+        pixelUtmCompleteness: 1.0,
         pixelChannel: 'facebook',
         ga4Match: false,
       };
 
       const result = attributionService.calculateConfidenceScore(match);
 
-      expect(result.score).toBeGreaterThanOrEqual(60);
+      // 30 + 20 + 10 + 10 = 70
+      expect(result.score).toBeGreaterThanOrEqual(70);
       expect(result.score).toBeLessThan(85);
       expect(result.level).toBe('medium');
       expect(result.method).toBe('single_source');
